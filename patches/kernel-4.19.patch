@@ -1,0 +1,75 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+index dbda66d..99333d9 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+@@ -226,7 +228,11 @@ static int nv_drm_connector_get_modes(struct drm_connector *connector)
+ 
+ 
+     if (nv_connector->edid != NULL) {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
+         drm_mode_connector_update_edid_property(
++#else
++        drm_connector_update_edid_property(
++#endif
+             connector, nv_connector->edid);
+     }
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+index 3dc2400..e8b4aad 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+@@ -216,7 +218,11 @@ nv_drm_add_encoder(struct drm_device *dev, NvKmsKapiDisplay hDisplay)
+ 
+     /* Attach encoder and connector */
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
+     ret = drm_mode_connector_attach_encoder(connector, encoder);
++#else
++    ret = drm_connector_attach_encoder(connector, encoder);
++#endif
+ 
+     if (ret != 0) {
+         NV_DRM_DEV_LOG_ERR(
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index dd61566..30c88a1 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -2363,17 +2363,22 @@ compile_test() {
+ 
+         ;;
+ 
+-        drm_mode_connector_list_update_has_merge_type_bits_arg)
++        drm_connector_list_update_has_merge_type_bits_arg)
+             #
+-            # Detect if drm_mode_connector_list_update() has a
++            # Detect if drm_connector_list_update() has a
+             # 'merge_type_bits' second argument.  This argument was
+             # remove by:
+             #   2015-12-03  6af3e6561243f167dabc03f732d27ff5365cd4a4
+             #
+             CODE="
+             #include <drm/drmP.h>
+-            void conftest_drm_mode_connector_list_update_has_merge_type_bits_arg(void) {
++            #include <linux/version.h>
++            void conftest_drm_connector_list_update_has_merge_type_bits_arg(void) {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
+                 drm_mode_connector_list_update(
++#else
++                drm_connector_list_update(
++#endif
+                     NULL,  /* struct drm_connector *connector */
+                     true); /* bool merge_type_bits */
+             }"
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild b/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
+index b4a45a7..3b7f3a1 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
++++ b/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
+@@ -74,7 +74,7 @@ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_driver_has_legacy_dev_list
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_driver_has_set_busid
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_crtc_state_has_connectors_changed
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_init_function_args
+-NV_CONFTEST_TYPE_COMPILE_TESTS += drm_mode_connector_list_update_has_merge_type_bits_arg
++NV_CONFTEST_TYPE_COMPILE_TESTS += drm_connector_list_update_has_merge_type_bits_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_helper_mode_fill_fb_struct
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_master_drop_has_from_release_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += drm_driver_unload_has_int_return_type

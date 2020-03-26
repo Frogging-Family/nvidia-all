@@ -1,0 +1,98 @@
+From c2c16eef00915cbe7a7bc58b1f3308705ef2bfc4 Mon Sep 17 00:00:00 2001
+From: Tk-Glitch <ti3nou@gmail.com>
+Date: Wed, 3 Apr 2019 18:02:22 +0200
+Subject: nvidia kernel 5.1 patch (exploded into parts).
+Thanks to Robert Gadsdon's findings @ http://rglinuxtech.com
+
+
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+index 4dd12d112..44c9d8ed3 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+@@ -201,6 +203,12 @@ nv_drm_connector_detect(struct drm_connector *connector, bool force)
+     return __nv_drm_connector_detect_internal(connector);
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
++int drm_helper_probe_single_connector_modes(struct drm_connector
++                                            *connector, uint32_t maxX,
++                                            uint32_t maxY);
++#endif
++
+ static struct drm_connector_funcs nv_connector_funcs = {
+ #if defined NV_DRM_ATOMIC_HELPER_CONNECTOR_DPMS_PRESENT
+     .dpms                   = drm_atomic_helper_connector_dpms,
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index 58fd2724a..fc9169a96 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -35,6 +37,13 @@
+ #include "nvidia-drm-gem-nvkms-memory.h"
+ #include "nvidia-drm-gem-user-memory.h"
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
++void drm_kms_helper_poll_init(struct drm_device *dev);
++void drm_kms_helper_poll_fini(struct drm_device *dev);
++bool drm_helper_hpd_irq_event(struct drm_device *dev);
++void drm_kms_helper_poll_disable(struct drm_device *dev);
++#endif
++
+ #if defined(NV_DRM_AVAILABLE)
+ 
+ #include "nvidia-drm-ioctl.h"
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+index f66bbd7c9..4de87a271 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+@@ -36,6 +38,10 @@
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_atomic_helper.h>
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
++void drm_kms_helper_hotplug_event(struct drm_device *dev);
++#endif
++
+ static void nv_drm_encoder_destroy(struct drm_encoder *encoder)
+ {
+     struct nv_drm_encoder *nv_encoder = to_nv_encoder(encoder);
+@@ -152,6 +158,12 @@ nv_drm_encoder_new(struct drm_device *dev,
+     return &nv_encoder->base;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
++int drm_helper_probe_single_connector_modes(struct drm_connector
++                                            *connector, uint32_t maxX,
++                                            uint32_t maxY);
++#endif
++
+ /*
+  * Add encoder for given NvKmsKapiDisplay
+  */
+diff --git a/kernel-dkms/nvidia-uvm/uvm8.c b/kernel-dkms/nvidia-uvm/uvm8.c
+index 44467988e..4cba5dc33 100644
+--- a/kernel-dkms/nvidia-uvm/uvm8.c
++++ b/kernel-dkms/nvidia-uvm/uvm8.c
+@@ -172,7 +172,11 @@ static int uvm_vm_fault_sigbus(struct vm_area_struct *vma, struct vm_fault *vmf)
+     return VM_FAULT_SIGBUS;
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+ static int uvm_vm_fault_sigbus_wrapper(struct vm_fault *vmf)
++#else
++static vm_fault_t uvm_vm_fault_sigbus_wrapper(struct vm_fault *vmf)
++#endif
+ {
+ #if defined(NV_VM_OPS_FAULT_REMOVED_VMA_ARG)
+     return uvm_vm_fault_sigbus(vmf->vma, vmf);
+@@ -507,7 +511,11 @@ convert_error:
+     }
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+ static int uvm_vm_fault_wrapper(struct vm_fault *vmf)
++#else
++static vm_fault_t uvm_vm_fault_wrapper(struct vm_fault *vmf)
++#endif
+ {
+ #if defined(NV_VM_OPS_FAULT_REMOVED_VMA_ARG)
+     return uvm_vm_fault(vmf->vma, vmf);

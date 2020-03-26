@@ -1,0 +1,646 @@
+From 11adcf1e8d2fbebeb614390832de08388a46bcda Mon Sep 17 00:00:00 2001
+From: Tk-Glitch <ti3nou@gmail.com>
+Date: Mon, 28 Jan 2019 18:21:34 +0100
+Subject: kernel 5.0 patch
+
+
+diff --git a/kernel-dkms/common/inc/nv.h b/kernel-dkms/common/inc/nv.h
+index d52c2a1ef..f6dc2dc32 100644
+--- a/kernel-dkms/common/inc/nv.h
++++ b/kernel-dkms/common/inc/nv.h
+@@ -603,6 +605,7 @@ typedef NV_STATUS (*nvPmaEvictRangeCallback)(void *, NvU64, NvU64);
+ #define NV_MAX_ISR_DELAY_US           20000
+ #define NV_MAX_ISR_DELAY_MS           (NV_MAX_ISR_DELAY_US / 1000)
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+ #define NV_TIMERCMP(a, b, CMP)                                              \
+     (((a)->tv_sec == (b)->tv_sec) ?                                         \
+         ((a)->tv_usec CMP (b)->tv_usec) : ((a)->tv_sec CMP (b)->tv_sec))
+@@ -630,6 +633,35 @@ typedef NV_STATUS (*nvPmaEvictRangeCallback)(void *, NvU64, NvU64);
+     }
+ 
+ #define NV_TIMEVAL_TO_US(tv)    ((NvU64)(tv).tv_sec * 1000000 + (tv).tv_usec)
++#else
++#define NV_TIMERCMP(a, b, CMP)                                              \
++    (((a)->tv_sec == (b)->tv_sec) ?                                         \
++        ((a)->tv_nsec CMP (b)->tv_nsec) : ((a)->tv_sec CMP (b)->tv_sec))
++
++#define NV_TIMERADD(a, b, result)                                           \
++    {                                                                       \
++        (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                       \
++        (result)->tv_nsec = (a)->tv_nsec + (b)->tv_nsec;                    \
++        if ((result)->tv_nsec >= NSEC_PER_SEC)                              \
++        {                                                                   \
++            ++(result)->tv_sec;                                             \
++            (result)->tv_nsec -= NSEC_PER_SEC;                              \
++        }                                                                   \
++    }
++
++#define NV_TIMERSUB(a, b, result)                                           \
++    {                                                                       \
++        (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                       \
++        (result)->tv_nsec = (a)->tv_nsec - (b)->tv_nsec;                    \
++        if ((result)->tv_nsec < 0)                                          \
++        {                                                                   \
++          --(result)->tv_sec;                                               \
++          (result)->tv_nsec += NSEC_PER_SEC;                                \
++        }                                                                   \
++    }
++
++#define NV_TIMEVAL_TO_US(tv)    ((NvU64)(tv).tv_sec * USEC_PER_SEC + (tv).tv_nsec/NSEC_PER_USEC)
++#endif
+ 
+ #ifndef NV_ALIGN_UP
+ #define NV_ALIGN_UP(v,g) (((v) + ((g) - 1)) & ~((g) - 1))
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index 0ae7a2662..9a71ae7b3 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -1653,6 +1653,24 @@ compile_test() {
+             compile_check_conftest "$CODE" "NV_DRM_AVAILABLE" "" "generic"
+         ;;
+ 
++        drm_dev_put)
++            #
++            # Determine if drm_dev_put() is present.
++            #
++            CODE="
++            #include <linux/version.h>
++            #if defined(NV_DRM_DRMP_H_PRESENT)
++            #include <drm/drmP.h>
++            #endif
++#if LINUX_VERSION_CODE => KERNEL_VERSION(5,0,0)
++            void conftest_drm_dev_put(void) {
++                drm_dev_put();
++            }
++#endif"
++
++            compile_check_conftest "$CODE" "NV_DRM_DEV_PUT_PRESENT" "" "functions"
++        ;;
++
+         drm_dev_unref)
+             #
+             # Determine if drm_dev_unref() is present.
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+index f276588db..7cbdbe632 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+@@ -79,7 +81,11 @@ static inline int nv_drm_gem_handle_create_drop_reference(
+ 
+     /* drop reference from allocate - handle holds it now */
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     drm_gem_object_unreference_unlocked(&nv_gem->base);
++#else
++    drm_gem_object_put_unlocked(&nv_gem->base);
++#endif
+ 
+     return ret;
+ }
+@@ -148,13 +154,21 @@ static inline struct nv_drm_gem_object *nv_drm_gem_object_lookup(
+ static inline void
+ nv_drm_gem_object_unreference_unlocked(struct nv_drm_gem_object *nv_gem)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     drm_gem_object_unreference_unlocked(&nv_gem->base);
++#else
++    drm_gem_object_put_unlocked(&nv_gem->base);
++#endif
+ }
+ 
+ static inline void
+ nv_drm_gem_object_unreference(struct nv_drm_gem_object *nv_gem)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     drm_gem_object_unreference(&nv_gem->base);
++#else
++    drm_gem_object_put(&nv_gem->base);
++#endif
+ }
+ 
+ static inline int nv_drm_gem_handle_create(struct drm_file *filp,
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+index 4ccf81929..7fb59bbb3 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+@@ -149,12 +151,20 @@ void nv_drm_atomic_clean_old_fb(struct drm_device *dev,
+         if (ret == 0) {
+             struct drm_framebuffer *new_fb = plane->state->fb;
+             if (new_fb)
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+                 drm_framebuffer_reference(new_fb);
++#else
++                drm_framebuffer_get(new_fb);
++#endif
+             plane->fb = new_fb;
+             plane->crtc = plane->state->crtc;
+ 
+             if (plane->old_fb)
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+                 drm_framebuffer_unreference(plane->old_fb);
++#else
++                drm_framebuffer_put(plane->old_fb);
++#endif
+        }
+        plane->old_fb = NULL;
+    }
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-helper.h b/kernel-dkms/nvidia-drm/nvidia-drm-helper.h
+index efecc4ad7..2a0c3bbca 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-helper.h
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-helper.h
+@@ -36,7 +36,9 @@
+  */
+ static inline void nv_drm_dev_free(struct drm_device *dev)
+ {
+-#if defined(NV_DRM_DEV_UNREF_PRESENT)
++#if defined(NV_DRM_DEV_PUT_PRESENT)
++    drm_dev_put(dev);
++#elif defined(NV_DRM_DEV_UNREF_PRESENT)
+     drm_dev_unref(dev);
+ #else
+     drm_dev_free(dev);
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+index 5a2bbc18c..133d8fe64 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+@@ -151,11 +153,19 @@ void nv_drm_vunmap(void *address)
+ 
+ uint64_t nv_drm_get_time_usec(void)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     struct timeval tv;
+ 
+     do_gettimeofday(&tv);
+ 
+     return (((uint64_t)tv.tv_sec) * 1000000) + tv.tv_usec;
++#else
++    struct timespec64 ts;
++
++    ktime_get_real_ts64(&ts);
++
++    return (((uint64_t)ts.tv_sec) * USEC_PER_SEC) + (((uint64_t)ts.tv_nsec) / NSEC_PER_USEC);
++#endif
+ }
+ 
+ #endif /* NV_DRM_AVAILABLE */
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild b/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
+index 466b51528..bcf8aff10 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
++++ b/kernel-dkms/nvidia-drm/nvidia-drm.Kbuild
+@@ -53,6 +53,7 @@ NV_CONFTEST_GENERIC_COMPILE_TESTS += drm_atomic_modeset_nonblocking_commit_avail
+ NV_CONFTEST_GENERIC_COMPILE_TESTS += is_export_symbol_gpl_refcount_inc
+ NV_CONFTEST_GENERIC_COMPILE_TESTS += is_export_symbol_gpl_refcount_dec_and_test
+ 
++NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_dev_put
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_dev_unref
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_reinit_primary_mode_group
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_atomic_set_mode_for_crtc
+diff --git a/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c b/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
+index 1b9148ee7..4c1bd3617 100644
+--- a/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
++++ b/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
+@@ -210,11 +212,19 @@ void NVKMS_API_CALL nvkms_usleep(NvU64 usec)
+ 
+ NvU64 NVKMS_API_CALL nvkms_get_usec(void)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     struct timeval tv;
+ 
+     do_gettimeofday(&tv);
+ 
+     return (((NvU64)tv.tv_sec) * 1000000) + tv.tv_usec;
++#else
++    struct timespec64 ts;
++
++    ktime_get_real_ts64(&ts);
++
++    return (((NvU64)ts.tv_sec) * 1000000) + ts.tv_nsec/NSEC_PER_USEC;
++#endif
+ }
+ 
+ int NVKMS_API_CALL nvkms_copyin(void *kptr, NvU64 uaddr, size_t n)
+diff --git a/kernel-dkms/nvidia-uvm/uvm_linux.h b/kernel-dkms/nvidia-uvm/uvm_linux.h
+index 8707ac070..990cefbd4 100644
+--- a/kernel-dkms/nvidia-uvm/uvm_linux.h
++++ b/kernel-dkms/nvidia-uvm/uvm_linux.h
+@@ -320,12 +322,21 @@ static inline uint64_t NV_DIV64(uint64_t dividend, uint64_t divisor, uint64_t *r
+ /* Return a nanosecond-precise value */
+ static inline NvU64 NV_GETTIME(void)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     struct timespec ts = {0};
+ 
+     getrawmonotonic(&ts);
+ 
+     /* Wraps around every 583 years */
+     return (ts.tv_sec * 1000000000ULL + ts.tv_nsec);
++#else
++    struct timespec64 ts = {0};
++
++    ktime_get_raw_ts64(&ts);
++
++    /* Wraps around every 583 years */
++    return (ts.tv_sec * NSEC_PER_SEC + ts.tv_nsec);
++#endif
+ }
+ #else
+ /* We can only return a microsecond-precise value with the
+@@ -334,9 +345,15 @@ static inline NvU64 NV_GETTIME(void)
+ {
+     struct timeval tv = {0};
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     do_gettimeofday(&tv);
+ 
+     return (tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000ULL);
++#else
++    ktime_get_real_ts64(&tv);
++
++    return (tv.tv_sec * 1000000000ULL + (tv.tv_nsec/NSEC_PER_USEC) * 1000ULL);
++#endif
+ }
+ #endif
+ 
+diff --git a/kernel-dkms/nvidia/nvlink_linux.c b/kernel-dkms/nvidia/nvlink_linux.c
+index c13b72515..db691679c 100644
+--- a/kernel-dkms/nvidia/nvlink_linux.c
++++ b/kernel-dkms/nvidia/nvlink_linux.c
+@@ -500,6 +502,7 @@ void * NVLINK_API_CALL nvlink_memcpy(void *dest, void *src, NvLength size)
+     return memcpy(dest, src, size);
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+ static NvBool nv_timer_less_than
+ (
+     const struct timeval *a,
+@@ -610,6 +613,118 @@ void NVLINK_API_CALL nvlink_sleep(unsigned int ms)
+         udelay(us);
+     }
+ }
++#else
++static NvBool nv_timer_less_than
++(
++    const struct timespec64 *a,
++    const struct timespec64 *b
++)
++{
++    return (a->tv_sec == b->tv_sec) ? (a->tv_nsec < b->tv_nsec) 
++                                    : (a->tv_sec < b->tv_sec);
++}
++
++static void nv_timeradd
++(
++    const struct timespec64    *a,
++    const struct timespec64    *b,
++    struct timespec64          *result
++)
++{
++    result->tv_sec = a->tv_sec + b->tv_sec;
++    result->tv_nsec = a->tv_nsec + b->tv_nsec;
++    while (result->tv_nsec >= NSEC_PER_SEC)
++    {
++        ++result->tv_sec;
++        result->tv_nsec -= NSEC_PER_SEC;
++    }
++}
++
++static void nv_timersub
++(
++    const struct timespec64    *a,
++    const struct timespec64    *b,
++    struct timespec64          *result
++)
++{
++    result->tv_sec = a->tv_sec - b->tv_sec;
++    result->tv_nsec = a->tv_nsec - b->tv_nsec;
++    while (result->tv_nsec < 0)
++    {
++        --(result->tv_sec);
++        result->tv_nsec += NSEC_PER_SEC;
++    }
++}
++
++/*
++ * Sleep for specified milliseconds. Yields the CPU to scheduler.
++ */
++void NVLINK_API_CALL nvlink_sleep(unsigned int ms)
++{
++    unsigned long us;
++    unsigned long jiffies;
++    unsigned long mdelay_safe_msec;
++    struct timespec64 ts_end, ts_aux;
++
++    ktime_get_real_ts64(&ts_aux);
++
++    if (in_irq() && (ms > NV_MAX_ISR_DELAY_MS))
++    {
++        return;
++    }
++
++    if (irqs_disabled() || in_interrupt() || in_atomic())
++    {
++        mdelay(ms);
++        return;
++    }
++
++    us = ms * 1000;
++    ts_end.tv_nsec = us*NSEC_PER_USEC;
++    ts_end.tv_sec = 0;
++    nv_timeradd(&ts_aux, &ts_end, &ts_end);
++
++    /* do we have a full jiffie to wait? */
++    jiffies = NV_USECS_TO_JIFFIES(us);
++
++    if (jiffies)
++    {
++        //
++        // If we have at least one full jiffy to wait, give up
++        // up the CPU; since we may be rescheduled before
++        // the requested timeout has expired, loop until less
++        // than a jiffie of the desired delay remains.
++        //
++        current->state = TASK_INTERRUPTIBLE;
++        do
++        {
++            schedule_timeout(jiffies);
++            ktime_get_real_ts64(&ts_aux);
++            if (nv_timer_less_than(&ts_aux, &ts_end))
++            {
++                nv_timersub(&ts_end, &ts_aux, &ts_aux);
++                us = ts_aux.tv_nsec/NSEC_PER_USEC + ts_aux.tv_sec * USEC_PER_SEC;
++            }
++            else
++            {
++                us = 0;
++            }
++        } 
++        while ((jiffies = NV_USECS_TO_JIFFIES(us)) != 0);
++    }
++
++    if (us > 1000)
++    {
++        mdelay_safe_msec = us / USEC_PER_MSEC;
++        mdelay(mdelay_safe_msec);
++        us %= 1000;
++    }
++    if (us)
++    {
++        udelay(us);
++    }
++}
++#endif
+ 
+ void NVLINK_API_CALL nvlink_assert(int cond)
+ {
+diff --git a/kernel-dkms/nvidia/os-interface.c b/kernel-dkms/nvidia/os-interface.c
+index d1c889f69..88c57b2da 100644
+--- a/kernel-dkms/nvidia/os-interface.c
++++ b/kernel-dkms/nvidia/os-interface.c
+@@ -426,6 +428,7 @@ NV_STATUS NV_API_CALL os_get_current_time(
+     NvU32 *seconds,
+     NvU32 *useconds
+ )
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+ {
+     struct timeval tm;
+ 
+@@ -608,6 +611,190 @@ NV_STATUS NV_API_CALL os_delay(NvU32 MilliSeconds)
+ 
+     return NV_OK;
+ }
++#else
++{
++    struct timespec64 ts;
++
++    ktime_get_real_ts64(&ts);
++
++    *seconds = ts.tv_sec;
++    *useconds = ((uint64_t)(ts.tv_nsec / NSEC_PER_USEC));
++
++    return NV_OK;
++}
++
++#if BITS_PER_LONG >= 64
++
++void NV_API_CALL os_get_current_tick(NvU64 *nseconds)
++{
++    struct timespec64 ts;
++
++    jiffies_to_timespec64(jiffies, &ts);
++
++    *nseconds = ((NvU64)ts.tv_sec * NSEC_PER_SEC + (NvU64)ts.tv_nsec);
++}
++
++#else
++
++void NV_API_CALL os_get_current_tick(NvU64 *nseconds)
++{
++    /*
++     * 'jiffies' overflows regularly on 32-bit builds (unsigned long is 4 bytes
++     * instead of 8 bytes), so it's unwise to build a tick counter on it, since
++     * the rest of the Resman assumes the 'tick' returned from this function is
++     * monotonically increasing and never overflows.
++     *
++     * Instead, use the previous implementation that we've lived with since the
++     * beginning, which uses system clock time to calculate the tick. This is
++     * subject to problems if the system clock time changes dramatically
++     * (more than a second or so) while the Resman is actively tracking a
++     * timeout.
++     */
++    NvU32 seconds, useconds;
++
++    (void) os_get_current_time(&seconds, &useconds);
++
++    *nseconds = ((NvU64)seconds * NSEC_PER_SEC +
++                 (NvU64)useconds * NSEC_PER_USEC);
++}
++
++#endif
++
++//---------------------------------------------------------------------------
++//
++//  Misc services.
++//
++//---------------------------------------------------------------------------
++
++#define NV_MSECS_PER_JIFFIE         (1000 / HZ)
++#define NV_MSECS_TO_JIFFIES(msec)   ((msec) * HZ / 1000)
++#define NV_USECS_PER_JIFFIE         (1000000 / HZ)
++#define NV_USECS_TO_JIFFIES(usec)   ((usec) * HZ / 1000000)
++
++// #define NV_CHECK_DELAY_ACCURACY 1
++
++/*
++ * It is generally a bad idea to use udelay() to wait for more than
++ * a few milliseconds. Since the caller is most likely not aware of
++ * this, we use mdelay() for any full millisecond to be safe.
++ */
++
++NV_STATUS NV_API_CALL os_delay_us(NvU32 MicroSeconds)
++{
++    unsigned long mdelay_safe_msec;
++    unsigned long usec;
++
++#ifdef NV_CHECK_DELAY_ACCURACY
++    struct timespec64 ts1, ts2;
++
++    ktime_get_real_ts64(&ts1);
++#endif
++
++    if (in_irq() && (MicroSeconds > NV_MAX_ISR_DELAY_US))
++        return NV_ERR_GENERIC;
++
++    mdelay_safe_msec = MicroSeconds / 1000;
++    if (mdelay_safe_msec)
++        mdelay(mdelay_safe_msec);
++
++    usec = MicroSeconds % 1000;
++    if (usec)
++        udelay(usec);
++
++#ifdef NV_CHECK_DELAY_ACCURACY
++    ktime_get_real_ts64(&ts2);
++    nv_printf(NV_DBG_ERRORS, "NVRM: osDelayUs %d: 0x%x 0x%x\n",
++        MicroSeconds, ts2.tv_sec - ts1.tv_sec, (ts2.tv_nsec - ts1.tv_nsec) / NSEC_PER_USEC);
++#endif
++
++    return NV_OK;
++}
++
++/*
++ * On Linux, a jiffie represents the time passed in between two timer
++ * interrupts. The number of jiffies per second (HZ) varies across the
++ * supported platforms. On i386, where HZ is 100, a timer interrupt is
++ * generated every 10ms; the resolution is a lot better on ia64, where
++ * HZ is 1024. NV_MSECS_TO_JIFFIES should be accurate independent of
++ * the actual value of HZ; any partial jiffies will be 'floor'ed, the
++ * remainder will be accounted for with mdelay().
++ */
++
++NV_STATUS NV_API_CALL os_delay(NvU32 MilliSeconds)
++{
++    unsigned long MicroSeconds;
++    unsigned long jiffies;
++    unsigned long mdelay_safe_msec;
++    struct timespec64 ts_end, ts_aux;
++#ifdef NV_CHECK_DELAY_ACCURACY
++    struct timespec64 ts_start;
++#endif
++
++    ktime_get_real_ts64(&ts_aux);
++#ifdef NV_CHECK_DELAY_ACCURACY
++    ts_start = ts_aux;
++#endif
++
++    if (in_irq() && (MilliSeconds > NV_MAX_ISR_DELAY_MS))
++        return NV_ERR_GENERIC;
++
++    if (!NV_MAY_SLEEP())
++    {
++        mdelay(MilliSeconds);
++        return NV_OK;
++    }
++
++    MicroSeconds = MilliSeconds * USEC_PER_MSEC;
++    ts_end.tv_nsec = MicroSeconds * NSEC_PER_USEC;
++    ts_end.tv_sec = 0;
++    NV_TIMERADD(&ts_aux, &ts_end, &ts_end);
++
++    /* do we have a full jiffie to wait? */
++    jiffies = NV_USECS_TO_JIFFIES(MicroSeconds);
++
++    if (jiffies)
++    {
++        //
++        // If we have at least one full jiffy to wait, give up
++        // up the CPU; since we may be rescheduled before
++        // the requested timeout has expired, loop until less
++        // than a jiffie of the desired delay remains.
++        //
++        current->state = TASK_INTERRUPTIBLE;
++        do
++        {
++            schedule_timeout(jiffies);
++            ktime_get_real_ts64(&ts_aux);
++            if (NV_TIMERCMP(&ts_aux, &ts_end, <))
++            {
++                NV_TIMERSUB(&ts_end, &ts_aux, &ts_aux);
++                MicroSeconds = ts_aux.tv_nsec/NSEC_PER_USEC + ts_aux.tv_sec * USEC_PER_SEC;
++            }
++            else
++                MicroSeconds = 0;
++        } while ((jiffies = NV_USECS_TO_JIFFIES(MicroSeconds)) != 0);
++    }
++
++    if (MicroSeconds > 1000)
++    {
++        mdelay_safe_msec = MicroSeconds / 1000;
++        mdelay(mdelay_safe_msec);
++        MicroSeconds %= 1000;
++    }
++    if (MicroSeconds)
++    {
++        udelay(MicroSeconds);
++    }
++#ifdef NV_CHECK_DELAY_ACCURACY
++    ktime_get_real_ts64(&ts_aux);
++    timersub(&ts_aux, &ts_start, &ts_aux);
++    nv_printf(NV_DBG_ERRORS, "NVRM: osDelay %dmsec: %d.%06dsec\n",
++        MilliSeconds, ts_aux.tv_sec, ts_aux.tv_nsec/NSEC_PER_USEC);
++#endif
++
++    return NV_OK;
++}
++#endif
+ 
+ NvU64 NV_API_CALL os_get_cpu_frequency(void)
+ {
+@@ -1896,6 +2083,7 @@ static NV_STATUS NV_API_CALL _os_ipmi_receive_resp
+     nvipmi_resp_t           *p_resp
+ )
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+     struct ipmi_recv_msg    *rx_msg;
+     int                     err_no;
+     struct timeval          tv;
+@@ -1928,6 +2116,40 @@ static NV_STATUS NV_API_CALL _os_ipmi_receive_resp
+         os_delay(NV_IPMI_SLEEP_MS);
+         do_gettimeofday(&tv);
+     } while (NV_TIMEVAL_TO_US(tv) < (start_time + NV_IPMI_READ_TIMEOUT_US));
++#else
++    struct ipmi_recv_msg    *rx_msg;
++    int                     err_no;
++    struct timespec64       ts;
++    NvU64                   start_time;
++
++    ktime_get_real_ts64(&ts);
++    start_time = NV_TIMEVAL_TO_US(ts);
++
++    err_no = -EAGAIN;
++    do
++    {
++        unsigned long       flags;
++        struct list_head    *ent;
++
++        rx_msg = NULL;
++
++        spin_lock_irqsave(&p_priv->msg_lock, flags);
++        if (!list_empty(&p_priv->msgs))
++        {
++            ent = p_priv->msgs.next;
++            rx_msg = list_entry(ent, struct ipmi_recv_msg, link);
++            list_del(ent);
++            spin_unlock_irqrestore(&p_priv->msg_lock, flags);
++
++            err_no = 0;
++            break;
++        }
++
++        spin_unlock_irqrestore(&p_priv->msg_lock, flags);
++        os_delay(NV_IPMI_SLEEP_MS);
++        ktime_get_real_ts64(&ts);
++    } while (NV_TIMEVAL_TO_US(ts) < (start_time + NV_IPMI_READ_TIMEOUT_US));
++#endif
+ 
+     if (rx_msg != NULL)
+     {

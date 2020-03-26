@@ -1,0 +1,14 @@
+post_upgrade() {
+  echo ":: If CUDA is unavailable, run 'nvidia-modprobe'."
+  echo ""
+  echo -e "\e[31m###########################################################\e[0m"
+  echo ""
+  echo -e "\e[31m It is recommended to run mkinitcpio -P after installation\e[0m"
+  echo ""
+  echo -e "\e[31m###########################################################\e[0m"
+  echo ""
+}
+
+post_install() {
+  post_upgrade
+}

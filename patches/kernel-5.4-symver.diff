@@ -1,0 +1,13 @@
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index c00c826..40c54f6 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -3585,7 +3585,7 @@ case "$5" in
+         TAB='	'
+ 
+         if [ -f "$OUTPUT/Module.symvers" ] && \
+-             grep -e "^[^${TAB}]*${TAB}[^${TAB}]*${TAB}vmlinux" \
++             grep -e "^[^${TAB}]*${TAB}[^${TAB}]*.*${TAB}vmlinux" \
+                      "$OUTPUT/Module.symvers" >/dev/null 2>&1; then
+             exit 0
+         fi 

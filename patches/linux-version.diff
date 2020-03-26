@@ -1,0 +1,166 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
+index 1db7777..863bb77 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
+@@ -20,6 +20,8 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
++
+ #include "nvidia-drm-conftest.h"
+ 
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+index f66bbd7c9..4de87a271 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-encoder.c
+@@ -20,6 +20,8 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
++
+ #include "nvidia-drm-conftest.h" /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
+ 
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index 58fd2724a..fc9169a96 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -20,6 +20,8 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
++
+ #include "nvidia-drm-conftest.h" /* NV_DRM_AVAILABLE and NV_DRM_DRM_GEM_H_PRESENT */
+ 
+ #include "nvidia-drm-priv.h"
+
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+index 4dd12d112..44c9d8ed3 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+@@ -20,6 +20,8 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
++
+ #include "nvidia-drm-conftest.h" /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
+ 
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+ 
+diff --git a/kernel-dkms/common/inc/nv.h b/kernel-dkms/common/inc/nv.h
+index d52c2a1ef..f6dc2dc32 100644
+--- a/kernel-dkms/common/inc/nv.h
++++ b/kernel-dkms/common/inc/nv.h
+@@ -18,6 +18,8 @@
+ #include <stdarg.h>
+ #include <nv-kernel-interface-api.h>
+ 
++#include <linux/version.h>
++
+ #if !defined(NV_MIN)
+ #define NV_MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
+ #endif
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+index f276588db..7cbdbe632 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+@@ -38,6 +38,8 @@
+ 
+ #endif
+ 
++#include <linux/version.h>
++
+ struct nv_drm_gem_object;
+ 
+ struct nv_drm_gem_object_funcs {
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+index 4ccf81929..7fb59bbb3 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+@@ -29,6 +29,8 @@
+ 
+ #include "nvidia-drm-helper.h"
+ 
++#include <linux/version.h>
++
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+ 
+ #include <drm/drmP.h>
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+index 5a2bbc18c..133d8fe64 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+@@ -20,6 +20,8 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
++
+ #include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/err.h>
+ 
+diff --git a/kernel-dkms/nvidia-uvm/uvm_linux.h b/kernel-dkms/nvidia-uvm/uvm_linux.h
+index 8707ac070..990cefbd4 100644
+--- a/kernel-dkms/nvidia-uvm/uvm_linux.h
++++ b/kernel-dkms/nvidia-uvm/uvm_linux.h
+@@ -29,6 +29,8 @@
+ //
+ //
+ 
++#include <linux/version.h>
++
+ #ifndef _UVM_LINUX_H
+ #define _UVM_LINUX_H
+ 
+diff --git a/kernel-dkms/nvidia/nvlink_linux.c b/kernel-dkms/nvidia/nvlink_linux.c
+index c13b72515..db691679c 100644
+--- a/kernel-dkms/nvidia/nvlink_linux.c
++++ b/kernel-dkms/nvidia/nvlink_linux.c
+@@ -37,6 +37,8 @@
+ #include <linux/string.h>
+ #include <linux/mutex.h>
+ 
++#include <linux/version.h>
++
+ #define MAX_ERROR_STRING           512
+ 
+ #define NV_MAX_ISR_DELAY_US           20000
+ 
+diff --git a/kernel-dkms/nvidia/os-interface.c b/kernel-dkms/nvidia/os-interface.c
+index d1c889f69..88c57b2da 100644
+--- a/kernel-dkms/nvidia/os-interface.c
++++ b/kernel-dkms/nvidia/os-interface.c
+@@ -14,6 +14,8 @@
+ #include "os-interface.h"
+ #include "nv-linux.h"
+ 
++#include <linux/version.h>
++
+ #define MAX_ERROR_STRING 512
+ static char nv_error_string[MAX_ERROR_STRING];
+ nv_spinlock_t nv_error_string_lock;
+ 
+diff --git a/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c b/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
+index 1b9148ee7..4c1bd3617 100644
+--- a/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
++++ b/kernel-dkms/nvidia-modeset/nvidia-modeset-linux.c
+@@ -8,6 +8,8 @@
+  * _NVRM_COPYRIGHT_END_
+  */
+ 
++#include <linux/version.h>
++
+ #include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/slab.h>

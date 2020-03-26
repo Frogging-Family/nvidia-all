@@ -1,0 +1,12 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: wayland-eglstream
+Description: Nvidia Wayland EGLStream compositor helper libraries
+Version: 1.1.2
+Cflags: -I${includedir}
+Libs: -L${libdir} -lnvidia-egl-wayland
+Requires: eglexternalplatform >= 1.1 eglexternalplatform < 2
+ 
