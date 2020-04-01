@@ -9,6 +9,14 @@ Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
 
 Regular drivers : https://www.nvidia.com/object/unix.html
 
+
+```
+git clone https://github.com/Frogging-Family/nvidia-all.git
+cd nvidia-all
+makepkg -si
+```
+
+
 ## My DKMS driver installed with kernel X.1 doesn't work/build anymore after I upgraded to kernel X.2! Help!
 - Simply rebuild the packages so the script can detect your currently installed kernel(s) and patch your driver accordingly to fix compatibility issues.
 
