@@ -291,7 +291,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
   # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
   local -a _kernels
-  mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+  if [ -n "$_kerneloverride" ]; then
+    _kernels="$_kerneloverride"
+  else
+    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+  fi
   for _kernel in "${_kernels[@]}"; do
     # Use separate source directories
     cp -r kernel kernel-$_kernel
