@@ -44,7 +44,7 @@ fi
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
   warning "440.48.02 has been unstable for some, so 440.43.02 is recommended for vulkan dev (using \"Custom version\" option)\n"
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.07\n      2.440 series: 440.64\n      3.435 series: 435.21\n      4.430 series: 430.64\n      5.418 series: 418.113\n      6.415 series: 415.27\n      7.410 series: 410.104\n      8.396 series: 396.54\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.08\n      2.440 series: 440.64\n      3.435 series: 435.21\n      4.430 series: 430.64\n      5.418 series: 418.113\n      6.415 series: 415.27\n      7.410 series: 410.104\n      8.396 series: 396.54\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
     if [ "$CONDITION" == "2" ]; then
       echo '_driver_version=440.64' > options
       echo '_md5sum=ba746d5b5f50369139bbed47da04aa74' >> options
@@ -86,8 +86,8 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
     else
-      echo '_driver_version=440.66.07' > options
-      echo '_md5sum=76a9ab5d218f5f58580f329affc94538' >> options
+      echo '_driver_version=440.66.08' > options
+      echo '_md5sum=c248e447789ccf9ba8333172fcfd8946' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -144,7 +144,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=102
+pkgrel=103
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
