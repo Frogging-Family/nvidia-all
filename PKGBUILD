@@ -144,7 +144,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=105
+pkgrel=104
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -194,7 +194,7 @@ msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If 
 
 md5sums=("$_md5sum"
          '768a64259f7e8d8a46a13b876d6c443c'
-         '9a3bf1bc5df267caef948221026bdae6'
+         '2640eac092c220073f0668a7aaff61f7'
          '3d2894e71d81570bd00bce416d3e547d'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
