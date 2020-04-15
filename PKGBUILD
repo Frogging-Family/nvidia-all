@@ -43,7 +43,6 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  warning "440.48.02 has been unstable for some, so 440.43.02 is recommended for vulkan dev (using \"Custom version\" option)\n"
   read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.08\n      2.440 series: 440.82\n      3.435 series: 435.21\n      4.430 series: 430.64\n      5.418 series: 418.113\n      6.415 series: 415.27\n      7.410 series: 410.104\n      8.396 series: 396.54\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
     if [ "$CONDITION" == "2" ]; then
       echo '_driver_version=440.82' > options
