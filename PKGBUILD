@@ -143,7 +143,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=105
+pkgrel=106
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -213,7 +213,7 @@ md5sums=("$_md5sum"
          'c44e43638e1ab708fbdd6d7aa76afcf2'
          '84dc2d2eff2846b2f961388b153e2a89'
          '1f11f5c765e42c471b202e630e3cd407'
-         '8b0b4fd32275a4745d55ea391f23a43e')
+         'd911a0531c6f270926cacabd1dd80f02')
 
 if [ $_autoaddpatch == "true" ]; then
   # Auto-add *.patch files from $startdir to source=()

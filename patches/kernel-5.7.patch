@@ -1,7 +1,7 @@
-diff --git a/kernel/conftest.sh b/kernel/conftest.sh
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
 index 8f807a1..af29636 100755
---- a/kernel/conftest.sh
-+++ b/kernel/conftest.sh
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
 @@ -143,6 +143,7 @@ test_headers() {
      FILES="$FILES video/nv_internal.h"
      FILES="$FILES asm/book3s/64/hash-64k.h"
