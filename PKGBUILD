@@ -763,7 +763,7 @@ package_nvidia-dev-egl-wayland-tkg() {
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
-  depends=('xorg-server' 'libglvnd' 'mesa>=17.0.2-2' 'vulkan-icd-loader')
+  depends=('xorg-server' 'libglvnd' 'mesa' 'vulkan-icd-loader')
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
               'opencl-nvidia-tkg: OpenCL support'
@@ -998,7 +998,7 @@ package_lib32-opencl-nvidia-dev-tkg() {
 
 lib32-nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg' (32-bit)"
-  depends=('lib32-zlib' 'lib32-gcc-libs' 'nvidia-utils-tkg' 'lib32-libglvnd' 'lib32-mesa>=17.0.2-1' 'lib32-vulkan-icd-loader')
+  depends=('lib32-zlib' 'lib32-gcc-libs' 'nvidia-utils-tkg' 'lib32-libglvnd' 'lib32-mesa' 'lib32-vulkan-icd-loader')
   optdepends=('lib32-opencl-nvidia-tkg: OpenCL support')
   provides=("lib32-nvidia-utils=$pkgver" "lib32-nvidia-utils-tkg=$pkgver" 'lib32-vulkan-driver' 'lib32-opengl-driver' 'lib32-nvidia-libgl')
   conflicts=('lib32-nvidia-utils' 'lib32-nvidia-libgl')
