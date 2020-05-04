@@ -958,9 +958,11 @@ if [ "$_dkms" == "false" ] || [ "$_dkms" == "full" ]; then
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
 
-  # Blacklist Nouveau
+  # Blacklist Nouveau.. Twice
   mkdir -p "${pkgdir}/usr/lib/modprobe.d"
+  mkdir -p "${pkgdir}/etc/modprobe.d"
   echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+  echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/etc/modprobe.d/${pkgname}.conf"
   }
   package_nvidia-tkg() {
     nvidia-tkg
@@ -1072,9 +1074,11 @@ if [ "$_dkms" == "true" ] || [ "$_dkms" == "full" ]; then
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
     cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-    # Blacklist Nouveau
+    # Blacklist Nouveau.. Twice
     mkdir -p "${pkgdir}/usr/lib/modprobe.d"
+    mkdir -p "${pkgdir}/etc/modprobe.d"
     echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+    echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/etc/modprobe.d/${pkgname}.conf"
 
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
   }
