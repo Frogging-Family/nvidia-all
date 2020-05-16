@@ -44,38 +44,38 @@ fi
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
   read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.14\n      2.440 series: 440.82\n      3.435 series: 435.21\n      4.430 series: 430.64\n      5.418 series: 418.113\n      6.415 series: 415.27\n      7.410 series: 410.104\n      8.396 series: 396.54\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
-    if [ "$CONDITION" == "2" ]; then
+    if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=440.82' > options
       echo '_md5sum=80eb4fd64124c5cab0ebf560f84a9bfa' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "3" ]; then
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=435.21' > options
       echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "4" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "5" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "6" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "7" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "8" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" == "9" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
-      if [ "$CONDITION" == "2" ]; then
+      if [ "$CONDITION" = "2" ]; then
         echo '_driver_branch=vulkandev' >> options
         read -p "Type the desired version number (examples: 415.18.02, 396.54.09): " _driver_version;
       else
@@ -92,7 +92,7 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
 # Package type selector
   if [ -z "$_dkms" ]; then
     read -p "Build the dkms package or the regular one?`echo $'\n> 1.dkms\n  2.regular\nchoice[1-2?]: '`" CONDITION;
-      if [ "$CONDITION" == "2" ]; then
+      if [ "$CONDITION" = "2" ]; then
         echo '_dkms="false"' >> options
       else
         echo '_dkms="true"' >> options
@@ -108,17 +108,17 @@ fi
 
 _pkgname_array=()
 
-if [ "$_driver_branch" == "vulkandev" ]; then
+if [ "$_driver_branch" = "vulkandev" ]; then
   _branchname="nvidia-dev"
 else
   _branchname="nvidia"
 fi
 
 # packages
-if [ "$_dkms" == "full" ]; then
+if [ "$_dkms" = "full" ]; then
   _pkgname_array+=("$_branchname-dkms-tkg")
   _pkgname_array+=("$_branchname-tkg")
-elif [ "$_dkms" == "true" ]; then
+elif [ "$_dkms" = "true" ]; then
   _pkgname_array+=("$_branchname-dkms-tkg")
 else
   _pkgname_array+=("$_branchname-tkg")
@@ -126,24 +126,28 @@ fi
 
 _pkgname_array+=("$_branchname-utils-tkg")
 
-if [ "$_lib32" == "true" ]; then
+if [ "$_lib32" = "true" ]; then
   _pkgname_array+=("lib32-$_branchname-utils-tkg")
 fi
 
-if [ "$_opencl" == "true" ]; then
+if [ "$_opencl" = "true" ]; then
   _pkgname_array+=("opencl-$_branchname-tkg")
-  if [ "$_lib32" == "true" ]; then
+  if [ "$_lib32" = "true" ]; then
     _pkgname_array+=("lib32-opencl-$_branchname-tkg")
   fi
 fi
 
-if [ "$_eglwayland" == "true" ]; then
+if [ "$_nvsettings" = "true" ]; then
+  _pkgname_array+=("$_branchname-settings-tkg")
+fi
+
+if [ "$_eglwayland" = "true" ]; then
   _pkgname_array+=("$_branchname-egl-wayland-tkg")
 fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=110
+pkgrel=111
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -156,8 +160,8 @@ cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
 _pkg="NVIDIA-Linux-x86_64-$pkgver"
 
 # Source
-if [ "$_driver_branch" == "vulkandev" ]; then
-  if [[ $pkgver == 396* ]]; then
+if [ "$_driver_branch" = "vulkandev" ]; then
+  if [[ $pkgver = 396* ]]; then
     _source_name="NVIDIA-Linux-x86_64-$pkgver.run::https://developer.nvidia.com/linux-${pkgver//.}"
   else
     _source_name="NVIDIA-Linux-x86_64-$pkgver.run::https://developer.nvidia.com/vulkan-beta-${pkgver//.}-linux"
@@ -168,7 +172,6 @@ fi
 
 source=($_source_name
         '10-nvidia-drm-outputclass.conf'
-        '20-nvidia.conf'
         'nvidia-utils-tkg.sysusers'
         'linux-version.diff' # include linux version
         '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
@@ -193,8 +196,7 @@ source=($_source_name
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
 md5sums=("$_md5sum"
-         '768a64259f7e8d8a46a13b876d6c443c'
-         '2640eac092c220073f0668a7aaff61f7'
+         'cb27b0f4a78af78aa96c5aacae23256c'
          '3d2894e71d81570bd00bce416d3e547d'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
@@ -215,7 +217,7 @@ md5sums=("$_md5sum"
          '1f11f5c765e42c471b202e630e3cd407'
          'd911a0531c6f270926cacabd1dd80f02')
 
-if [ $_autoaddpatch == "true" ]; then
+if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
   for _patch in $(find "$startdir" -maxdepth 1 -name '*.patch' -printf "%f\n"); do
     # Don't duplicate already listed ones
@@ -241,7 +243,7 @@ _create_links() {
 
 prepare() {
   # Remove previous builds
-  [ -d "$_pkg" ] && rm -rf $_pkg
+  [ -d "$_pkg" ] && rm -rf "$_pkg"
 
   # Use custom compiler paths if defined
   if [ -n "${CUSTOM_GCC_PATH}" ]; then
@@ -250,8 +252,8 @@ prepare() {
 
   # Extract
   msg2 "Self-Extracting $_pkg.run..."
-  sh $_pkg.run -x
-  cd $_pkg
+  sh "$_pkg".run -x
+  cd "$_pkg"
 
   # linux-rt fix for newer drivers. This just passes the same value regardless of kernel type as a bypass. This was stolen from https://gitlab.manjaro.org/packages/community/realtime-kernels/linux416-rt-extramodules/blob/master/nvidia/PKGBUILD - Thanks Muhownage <3
   sed -i -e 's|PREEMPT_RT_PRESENT=1|PREEMPT_RT_PRESENT=0|g' kernel/conftest.sh
@@ -309,7 +311,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     ## kernel version variables, quirks & driver patch whitelists
 
     # https://bugs.archlinux.org/task/62142
-    if [ "$_62142_fix" == "true" ]; then
+    if [ "$_62142_fix" = "true" ]; then
       sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-$_kernel/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
     fi
 
@@ -393,7 +395,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np2 -i "$srcdir"/kernel-5.4-symver.diff
         cd ..
       fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" == "true" ]; then
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
         _54_prime="true"
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying kernel-5.4-prime.diff for $_kernel..."
@@ -441,34 +443,34 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # Cd in place
       cd "$srcdir"/"$_pkg"/kernel-$_kernel
 
-      if [ "$_patch" == "4.16" ]; then
+      if [ "$_patch" = "4.16" ]; then
         _whitelist=(${_whitelist416[@]})
       fi
-      if [ "$_patch" == "4.19" ]; then
+      if [ "$_patch" = "4.19" ]; then
         _whitelist=(${_whitelist419[@]})
       fi
-      if [ "$_patch" == "5.0" ]; then
+      if [ "$_patch" = "5.0" ]; then
         _whitelist=(${_whitelist50[@]})
       fi
-      if [ "$_patch" == "5.1" ]; then
+      if [ "$_patch" = "5.1" ]; then
         _whitelist=(${_whitelist51[@]})
       fi
-      if [ "$_patch" == "5.2" ]; then
+      if [ "$_patch" = "5.2" ]; then
         _whitelist=(${_whitelist52[@]})
       fi
-      if [ "$_patch" == "5.3" ]; then
+      if [ "$_patch" = "5.3" ]; then
         _whitelist=(${_whitelist53[@]})
       fi
-      if [ "$_patch" == "5.4" ]; then
+      if [ "$_patch" = "5.4" ]; then
         _whitelist=(${_whitelist54[@]})
       fi
-      if [ "$_patch" == "5.5" ]; then
+      if [ "$_patch" = "5.5" ]; then
         _whitelist=(${_whitelist55[@]})
       fi
-      if [ "$_patch" == "5.6" ]; then
+      if [ "$_patch" = "5.6" ]; then
         _whitelist=(${_whitelist56[@]})
       fi
-      if [ "$_patch" == "5.7" ]; then
+      if [ "$_patch" = "5.7" ]; then
         _whitelist=(${_whitelist57[@]})
       fi
 
@@ -478,7 +480,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           [[ $pkgver = $yup ]] && patchy=1
         done
 
-        if [ "$patchy" == "1" ]; then
+        if [ "$patchy" = "1" ]; then
           msg2 "Applying $_p for $_kernel..."
           patch -p2 -i "$srcdir"/$_p
         else
@@ -492,10 +494,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   done
 
   # dkms patches
-  if [ "$_dkms" == "true" ]; then
+  if [ "$_dkms" = "true" ]; then
 
     # https://bugs.archlinux.org/task/62142
-    if [ "$_62142_fix" == "true" ]; then
+    if [ "$_62142_fix" = "true" ]; then
       sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
     fi
 
@@ -503,12 +505,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     patch -Np1 -i "$srcdir"/linux-version.diff
 
     # 4.16
-    if [ "$_kernel416" == "1" ]; then
+    if [ "$_kernel416" = "1" ]; then
       patchy=0
       for yup in "${_whitelist416[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-4.16.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-4.16.patch
       else
@@ -517,12 +519,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 4.19
-    if [ "$_kernel419" == "1" ]; then
+    if [ "$_kernel419" = "1" ]; then
       patchy=0
       for yup in "${_whitelist419[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-4.19.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-4.19.patch
       else
@@ -531,12 +533,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.0
-    if [ "$_kernel50" == "1" ]; then
+    if [ "$_kernel50" = "1" ]; then
       patchy=0
       for yup in "${_whitelist50[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.0.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.0.patch
       else
@@ -545,19 +547,19 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.1
-    if [ "$_kernel51" == "1" ]; then
+    if [ "$_kernel51" = "1" ]; then
       patchy=0
       for yup in "${_whitelist51[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.1.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.1.patch
         sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
       else
         msg2 "Skipping kernel-5.1.patch as it doesn't apply to this driver version..."
       fi
-      if [ "$_low418" == "1" ]; then
+      if [ "$_low418" = "1" ]; then
         msg2 "Applying list_is_first.patch for dkms..."
         # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
         sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
@@ -567,12 +569,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.2
-    if [ "$_kernel52" == "1" ]; then
+    if [ "$_kernel52" = "1" ]; then
       patchy=0
       for yup in "${_whitelist52[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.2.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.2.patch
       else
@@ -581,12 +583,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.3
-    if [ "$_kernel53" == "1" ]; then
+    if [ "$_kernel53" = "1" ]; then
       patchy=0
       for yup in "${_whitelist53[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.3.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.3.patch
       else
@@ -595,12 +597,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.4
-    if [ "$_kernel54" == "1" ]; then
+    if [ "$_kernel54" = "1" ]; then
       patchy=0
       for yup in "${_whitelist54[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.4.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.4.patch
       else
@@ -612,12 +614,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.5
-    if [ "$_kernel55" == "1" ]; then
+    if [ "$_kernel55" = "1" ]; then
       patchy=0
       for yup in "${_whitelist55[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.5.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.5.patch
       else
@@ -626,12 +628,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.6
-    if [ "$_kernel56" == "1" ]; then
+    if [ "$_kernel56" = "1" ]; then
       patchy=0
       for yup in "${_whitelist56[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.6.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.6.patch
       else
@@ -649,12 +651,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # 5.7
-    if [ "$_kernel57" == "1" ]; then
+    if [ "$_kernel57" = "1" ]; then
       patchy=0
       for yup in "${_whitelist57[@]}"; do
         [[ $pkgver = $yup ]] && patchy=1
       done
-      if [ "$patchy" == "1" ]; then
+      if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.7.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.7.patch
       else
@@ -663,15 +665,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     fi
 
     # Legacy quirks
-    if [ "$_oldstuff" == "1" ]; then
+    if [ "$_oldstuff" = "1" ]; then
       msg2 "Applying 01-ipmi-vm.diff for dkms..."
       patch -Np1 -i "$srcdir"/01-ipmi-vm.diff
     fi
-    if [ "$_youngeryetoldstuff" == "1" ]; then
+    if [ "$_youngeryetoldstuff" = "1" ]; then
       msg2 "Applying 02-ipmi-vm.diff for dkms..."
       patch -Np1 -i "$srcdir"/02-ipmi-vm.diff
     fi
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime" == "true" ]; then
+    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime" = "true" ]; then
       msg2 "Applying kernel-5.4-prime.diff for dkms..."
       patch -Np1 -i "$srcdir"/kernel-5.4-prime.diff
     fi
@@ -723,13 +725,13 @@ package_opencl-nvidia-dev-tkg() {
 }
 
 nvidia-egl-wayland-tkg() {
-  if [[ $pkgver == 396* ]]; then
+  if [[ $pkgver = 396* ]]; then
     _eglwver="1.0.3"
-  elif [[ $pkgver == 410* ]] || [[ $pkgver == 415* ]]; then
+  elif [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]]; then
     _eglwver="1.1.0"
-  elif [[ $pkgver == 418* ]] || [[ $pkgver == 430* ]]; then
+  elif [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
     _eglwver="1.1.2"
-  elif [[ $pkgver == 435* ]]; then
+  elif [[ $pkgver = 435* ]]; then
     _eglwver="1.1.3"
   else
     _eglwver="1.1.4"
@@ -769,16 +771,15 @@ nvidia-utils-tkg() {
               'opencl-nvidia-tkg: OpenCL support'
               'xorg-server-devel: nvidia-xconfig'
               'egl-wayland-git: for alternative, more advanced Wayland library (libnvidia-egl-wayland.so)')
-  provides=("nvidia-utils=$pkgver" "nvidia-utils-tkg=$pkgver" "nvidia-settings=$pkgver" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
-  conflicts=('nvidia-utils' 'nvidia-settings' 'nvidia-libgl')
-  backup=('etc/X11/xorg.conf.d/20-nvidia.conf')
+  provides=("nvidia-utils=$pkgver" "nvidia-utils-tkg=$pkgver" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
+  conflicts=('nvidia-utils' 'nvidia-libgl')
   install=nvidia-utils-tkg.install
   cd $_pkg
 
     # X driver
     install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
 
-    if [[ $pkgver == 396* ]]; then
+    if [[ $pkgver = 396* ]]; then
       # GLX extension module for X
       install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
       ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
@@ -848,7 +849,7 @@ nvidia-utils-tkg() {
     # nvidia-tls library
     install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
 
-    if [[ $pkgver == 396* ]] || [[ $pkgver == 410* ]]; then
+    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
       install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/tls/libnvidia-tls.so.${pkgver}"
     fi
 
@@ -902,31 +903,7 @@ nvidia-utils-tkg() {
     cp -r html "${pkgdir}/usr/share/doc/nvidia/"
     ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
 
-    # GTK+ for nvidia-settings
-    install -D -m755 "libnvidia-gtk2.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gtk2.so.${pkgver}"
-    install -D -m755 "libnvidia-gtk3.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gtk3.so.${pkgver}"
-
-    # GUI for configuring the driver
-    install -Dm755 nvidia-settings "$pkgdir"/usr/bin/nvidia-settings
-    install -Dm644 nvidia-settings.1.gz "$pkgdir"/usr/share/man/man1/nvidia-settings.1.gz
-    install -Dm644 nvidia-settings.png "$pkgdir"/usr/share/pixmaps/nvidia-settings.png
-    install -Dm644 nvidia-settings.desktop "$pkgdir"/usr/share/applications/nvidia-settings.desktop
-    sed -e 's:__UTILS_PATH__:/usr/bin:' \
-        -e 's:__PIXMAP_PATH__:/usr/share/pixmaps:' \
-        -i "$pkgdir"/usr/share/applications/nvidia-settings.desktop
-
-    # Coolbits
-    if [ -n "$_coolbits" ]; then
-      sed -i "/.*\"NoLogo\" \"True\".*/a \        Option          \"Coolbits\" \"$_coolbits\"" "$srcdir"/20-nvidia.conf
-    fi
-
-    # Disable logo splash
-    install -Dm644 "$srcdir"/20-nvidia.conf "$pkgdir"/etc/X11/xorg.conf.d/20-nvidia.conf
-
     # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
-    if [ "$_PRIME_render_offload" == "true" ]; then
-      sed -i '/Option "PrimaryGPU" "yes"/d' "$srcdir"/10-nvidia-drm-outputclass.conf
-    fi
     install -Dm644 "$srcdir"/10-nvidia-drm-outputclass.conf "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
 
     install -Dm644 "$srcdir"/nvidia-utils-tkg.sysusers "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
@@ -940,7 +917,33 @@ package_nvidia-dev-utils-tkg() {
   nvidia-utils-tkg
 }
 
-if [ "$_dkms" == "false" ] || [ "$_dkms" == "full" ]; then
+nvidia-settings-tkg() {
+    pkgdesc='Tool for configuring the NVIDIA graphics driver'
+    depends=("nvidia-utils-tkg>=${pkgver}" 'gtk3')
+    provides=("nvidia-settings=${pkgver}" "nvidia-settings-tkg=${pkgver}")
+    conflicts=('nvidia-settings')
+
+    cd "$_pkg"
+
+    install -D -m755 nvidia-settings         -t "${pkgdir}/usr/bin"
+    install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
+    install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
+    install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
+    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__:/usr/share/pixmaps:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+
+    install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
+
+    # license
+    install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+package_nvidia-settings-tkg() {
+  nvidia-settings-tkg
+}
+package_nvidia-dev-settings-tkg() {
+  nvidia-settings-tkg
+}
+
+if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
   nvidia-tkg() {
     pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
     depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
@@ -958,11 +961,8 @@ if [ "$_dkms" == "false" ] || [ "$_dkms" == "full" ]; then
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
 
-  # Blacklist Nouveau.. Twice
-  mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-  mkdir -p "${pkgdir}/etc/modprobe.d"
-  echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-  echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/etc/modprobe.d/${pkgname}.conf"
+    echo "blacklist nouveau" |
+        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
   }
   package_nvidia-tkg() {
     nvidia-tkg
@@ -1036,7 +1036,7 @@ lib32-nvidia-utils-tkg() {
     # nvidia-tls library
     install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tls.so.${pkgver}"
 
-    if [[ $pkgver == 396* ]] || [[ $pkgver == 410* ]]; then
+    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
       install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/tls/libnvidia-tls.so.${pkgver}"
     fi
 
@@ -1063,7 +1063,7 @@ package_lib32-nvidia-dev-utils-tkg() {
   lib32-nvidia-utils-tkg
 }
 
-if [ "$_dkms" == "true" ] || [ "$_dkms" == "full" ]; then
+if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
     pkgdesc="NVIDIA kernel module sources (DKMS)"
     depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl')
@@ -1074,11 +1074,8 @@ if [ "$_dkms" == "true" ] || [ "$_dkms" == "full" ]; then
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
     cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-    # Blacklist Nouveau.. Twice
-    mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-    mkdir -p "${pkgdir}/etc/modprobe.d"
-    echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-    echo -e "blacklist nouveau\nblacklist nvidiafb" > "${pkgdir}/etc/modprobe.d/${pkgname}.conf"
+    echo "blacklist nouveau" |
+        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
 
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
   }
@@ -1102,7 +1099,7 @@ function exit_cleanup {
   rm -rf "${where}"/src/*
 
   # Put the built packages in a versioned dir - overwrite if needed
-  if [ "$_local_package_storing" == "true" ]; then
+  if [ "$_local_package_storing" = "true" ]; then
     rm -rf "${where}/${pkgver}-packages" && mkdir -p "${where}/${pkgver}-packages" && mv "${where}/"*.pkg.* "${where}/${pkgver}-packages"/ >/dev/null 2>&1
   fi
 
