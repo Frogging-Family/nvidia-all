@@ -3,6 +3,8 @@
 LIBGLVND compatible, with 32 bit libs and DKMS enabled out of the box (you will still be asked if you want to use the regular package). Installs for all currently installed kernels. Comes with custom patches to enhance kernel compatibility, dynamically applied when you're requesting a driver that's not compatible OOTB with your currently installed kernel(s).
 Unwanted packages can be disabled with switches in the PKGBUILD. Defaults to complete installation.
 
+Huge thanks to Isaak I. Aleksandrov who has been much faster at offering compat patches than myself for a good while now! https://gitlab.com/EULA
+
 You may need/want to add a pacman hook for nvidia depending on your setup : https://wiki.archlinux.org/index.php/NVIDIA#DRM_kernel_mode_setting
 
 Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
