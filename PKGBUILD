@@ -1096,8 +1096,8 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
     pkgdesc="NVIDIA kernel module sources (DKMS)"
     depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl')
-    provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}")
-    conflicts=('nvidia')
+    provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
+    conflicts=('nvidia' 'nvidia-dkms')
 
     cd ${_pkg}
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
