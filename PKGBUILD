@@ -43,36 +43,40 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.17\n      2.440 series: 440.82\n      3.435 series: 435.21  (kernel 5.6 or older)\n      4.430 series: 430.64  (kernel 5.5 or lower)\n      5.418 series: 418.113 (kernel 5.5 or lower)\n      6.415 series: 415.27  (kernel 5.4 or lower)\n      7.410 series: 410.104 (kernel 5.5 or lower)\n      8.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.17\n      2.450 series: 450.51 beta\n      3.440 series: 440.82\n      4.435 series: 435.21  (kernel 5.6 or older)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=450.51' > options
+      echo '_md5sum=0422b2f72070b9237daa71625f9fe28d' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=440.82' > options
       echo '_md5sum=80eb4fd64124c5cab0ebf560f84a9bfa' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=435.21' > options
       echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -147,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=114
+pkgrel=115
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -888,6 +892,8 @@ nvidia-utils-tkg() {
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
+    else
+      install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
     fi
 
     # DEBUG
