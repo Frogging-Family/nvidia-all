@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=116
+pkgrel=117
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -303,7 +303,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   if [ -n "$_kerneloverride" ]; then
     _kernels="$_kerneloverride"
   else
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
   fi
   for _kernel in "${_kernels[@]}"; do
     # Use separate source directories
@@ -714,7 +714,7 @@ build() {
     # Build for all kernels
     local _kernel
     local -a _kernels
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
 
     for _kernel in "${_kernels[@]}"; do
       cd "$srcdir"/$_pkg/kernel-$_kernel
@@ -987,7 +987,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
     # Install for all kernels
     local _kernel
     local -a _kerndels
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
 
     for _kernel in "${_kernels[@]}"; do
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
