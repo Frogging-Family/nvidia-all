@@ -43,10 +43,10 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.17\n      2.450 series: 450.51 beta\n      3.440 series: 440.100\n      4.435 series: 435.21  (kernel 5.6 or older)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 440.66.17\n      2.450 series: 450.57\n      3.440 series: 440.100\n      4.435 series: 435.21  (kernel 5.6 or older)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=450.51' > options
-      echo '_md5sum=0422b2f72070b9237daa71625f9fe28d' >> options
+      echo '_driver_version=450.57' > options
+      echo '_md5sum=f51c0f6d5b0d6075367366e01919aeb6' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=440.100' > options
@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=117
+pkgrel=118
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -444,7 +444,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # 5.8
     if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
       _kernel58="1"
-      _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450* )
+      _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 )
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
