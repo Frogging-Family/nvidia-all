@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=119
+pkgrel=120
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -196,6 +196,7 @@ source=($_source_name
         '5.6-ioremap.diff' # 5.6 additional ioremap workaround (<440.64)
         'kernel-5.7.patch' # 5.7 workaround
         'kernel-5.8.patch' # 5.8 workaround
+        '5.8-legacy.diff' # 5.8 additional vmalloc workaround (<450.57)
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -221,7 +222,8 @@ md5sums=("$_md5sum"
          '84dc2d2eff2846b2f961388b153e2a89'
          '1f11f5c765e42c471b202e630e3cd407'
          'd911a0531c6f270926cacabd1dd80f02'
-         'd1907c16b373e853018eec3232469744')
+         '589dfc0c801605018b7ccd690f06141a'
+         'd67bf0a9aa5c19f07edbaf6bd157d661')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -444,7 +446,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # 5.8
     if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
       _kernel58="1"
-      _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 )
+      _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+        msg2 "Applying 5.8-legacy.diff for $_kernel..."
+        patch -Np1 -i "$srcdir"/5.8-legacy.diff
+      fi
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -690,6 +696,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.8.patch
       else
         msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
+      fi
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+        msg2 "Applying 5.8-legacy.diff for dkms..."
+        patch -Np1 -i "$srcdir"/5.8-legacy.diff
       fi
     fi
 
