@@ -171,7 +171,7 @@ if [ "$_driver_branch" = "vulkandev" ]; then
     _source_name="NVIDIA-Linux-x86_64-$pkgver.run::https://developer.nvidia.com/vulkan-beta-${pkgver//.}-linux"
   fi
 else
-    _source_name="http://us.download.nvidia.com/XFree86/Linux-x86_64/$pkgver/NVIDIA-Linux-x86_64-$pkgver.run"
+    _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/$pkgver/NVIDIA-Linux-x86_64-$pkgver.run"
 fi
 
 source=($_source_name
