@@ -43,7 +43,7 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.06\n      2.450 series: 450.66\n      3.440 series: 440.100\n      4.435 series: 435.21  (kernel 5.6 or older)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.06\n      2.450 series: 450.66\n      3.440 series: 440.100 (kernel 5.8 or lower)\n      4.435 series: 435.21  (kernel 5.6 or lower)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=450.66' > options
       echo '_md5sum=f2fc84773487a2f4c405788afc1b85c5' >> options
@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=123
+pkgrel=124
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -197,6 +197,7 @@ source=($_source_name
         'kernel-5.7.patch' # 5.7 workaround
         'kernel-5.8.patch' # 5.8 workaround
         '5.8-legacy.diff' # 5.8 additional vmalloc workaround (<450.57)
+        'kernel-5.9.patch' # 5.9 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -223,7 +224,8 @@ md5sums=("$_md5sum"
          '1f11f5c765e42c471b202e630e3cd407'
          'd911a0531c6f270926cacabd1dd80f02'
          '589dfc0c801605018b7ccd690f06141a'
-         'd67bf0a9aa5c19f07edbaf6bd157d661')
+         'd67bf0a9aa5c19f07edbaf6bd157d661'
+         '4e418ef3c3da73039830576c6da01725')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -447,10 +449,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
       _kernel58="1"
       _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]] && [[ $pkgver != 440.100 ]]; then
         msg2 "Applying 5.8-legacy.diff for $_kernel..."
         patch -Np1 -i "$srcdir"/5.8-legacy.diff
       fi
+    fi
+
+    # 5.9
+    if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
+      _kernel59="1"
+      _whitelist59=( 396* 410* 415* 418* 430* 435* 440* 450* )
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -493,6 +501,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.8" ]; then
         _whitelist=(${_whitelist58[@]})
+      fi
+      if [ "$_patch" = "5.9" ]; then
+        _whitelist=(${_whitelist59[@]})
       fi
 
       patchy=0
@@ -697,9 +708,23 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       else
         msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
       fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]] && [[ $pkgver != 440.100 ]]; then
         msg2 "Applying 5.8-legacy.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.8-legacy.diff
+      fi
+    fi
+
+    # 5.9
+    if [ "$_kernel59" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist59[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.9.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.9.patch
+      else
+        msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
       fi
     fi
 
