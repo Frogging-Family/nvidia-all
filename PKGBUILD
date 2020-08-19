@@ -449,9 +449,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
       _kernel58="1"
       _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]] && [[ $pkgver != 440.100 ]]; then
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying 5.8-legacy.diff for $_kernel..."
-        patch -Np1 -i "$srcdir"/5.8-legacy.diff
+        patch -Np2 -i "$srcdir"/5.8-legacy.diff
+        cd ..
       fi
     fi
 
@@ -708,7 +710,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       else
         msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
       fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]] && [[ $pkgver != 440.100 ]]; then
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
         msg2 "Applying 5.8-legacy.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.8-legacy.diff
       fi
