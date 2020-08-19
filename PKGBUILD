@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=124
+pkgrel=125
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -460,7 +460,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # 5.9
     if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
       _kernel59="1"
-      _whitelist59=( 396* 410* 415* 418* 430* 435* 440* 450* )
+      _whitelist59=( 450* )
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
