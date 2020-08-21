@@ -11,12 +11,16 @@ Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
 
 Regular drivers : https://www.nvidia.com/object/unix.html
 
-
+## How to run the installer
 ```
 git clone https://github.com/Frogging-Family/nvidia-all.git
 cd nvidia-all
 makepkg -si
 ```
+Then follow the prompts.
+
+# DKMS or regular?
+DKMS is recommended as it allows for automatic module rebuilding on kernel updates. As long as you're on the same major version (5.8.x for example), you won't need to regenerate the packages on updates, which is a huge QoL feature. Regular modules can also be problematic on Manjaro due to differences in kernel hooking mechanisms compared to Arch. So if in doubt, go DKMS.
 
 
 ## My DKMS driver installed with kernel X.1 doesn't work/build anymore after I upgraded to kernel X.2! Help!
