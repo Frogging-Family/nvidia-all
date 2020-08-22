@@ -95,7 +95,7 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
     fi
 # Package type selector
   if [ -z "$_dkms" ]; then
-    read -p "Build the dkms package or the regular one?`echo $'\n> 1.dkms\n  2.regular\nchoice[1-2?]: '`" CONDITION;
+    read -p "Build the dkms package or the regular one?`echo $'\n> 1.dkms (recommended)\n  2.regular\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_dkms="false"' >> options
       else
@@ -1023,7 +1023,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
     # Install for all kernels
     local _kernel
-    local -a _kerndels
+    local -a _kernels
     mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
 
     for _kernel in "${_kernels[@]}"; do
