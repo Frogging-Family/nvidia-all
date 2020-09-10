@@ -43,7 +43,7 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.06\n      2.450 series: 450.66\n      3.440 series: 440.100 (kernel 5.8 or lower)\n      4.435 series: 435.21  (kernel 5.6 or lower)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.11\n      2.450 series: 450.66\n      3.440 series: 440.100 (kernel 5.8 or lower)\n      4.435 series: 435.21  (kernel 5.6 or lower)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=450.66' > options
       echo '_md5sum=f2fc84773487a2f4c405788afc1b85c5' >> options
@@ -89,8 +89,8 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
     else
-      echo '_driver_version=450.56.06' > options
-      echo '_md5sum=05fab086eb046900ab67f04fef449649' >> options
+      echo '_driver_version=450.56.11' > options
+      echo '_md5sum=a8116fc8372df533d3b56b0e2eef2914' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -151,7 +151,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=125
+pkgrel=126
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
