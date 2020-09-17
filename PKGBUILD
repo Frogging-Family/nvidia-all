@@ -43,40 +43,44 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.11\n      2.450 series: 450.66\n      3.440 series: 440.100 (kernel 5.8 or lower)\n      4.435 series: 435.21  (kernel 5.6 or lower)\n      5.430 series: 430.64  (kernel 5.5 or lower)\n      6.418 series: 418.113 (kernel 5.5 or lower)\n      7.415 series: 415.27  (kernel 5.4 or lower)\n      8.410 series: 410.104 (kernel 5.5 or lower)\n      9.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      10.Custom version (396.xx series or higher)\n    choice[1-10?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 450.56.11\n      2.455 series: 455.23.04 beta\n      3.450 series: 450.66\n      4.440 series: 440.100 (kernel 5.8 or lower)\n      5.435 series: 435.21  (kernel 5.6 or lower)\n      6.430 series: 430.64  (kernel 5.5 or lower)\n      7.418 series: 418.113 (kernel 5.5 or lower)\n      8.415 series: 415.27  (kernel 5.4 or lower)\n      9.410 series: 410.104 (kernel 5.5 or lower)\n      10.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=455.23.04' > options
+      echo '_md5sum=83969f9828c21cae1d99f672b3547020' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=450.66' > options
       echo '_md5sum=f2fc84773487a2f4c405788afc1b85c5' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=440.100' > options
       echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
-      echo '_driver_version=435.21' > options
-      echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
-      echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "5" ]; then
+      echo '_driver_version=435.21' > options
+      echo '_md5sum=050acb0aecc3ba15d1fc609ee82bebe' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "10" ]; then
+    elif [ "$CONDITION" = "11" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -799,8 +803,10 @@ nvidia-egl-wayland-tkg() {
     _eglwver="1.1.2"
   elif [[ $pkgver = 435* ]]; then
     _eglwver="1.1.3"
-  else
+  elif [[ $pkgver = 44* ]] && [[ $pkgver = 450* ]]; then
     _eglwver="1.1.4"
+  else
+    _eglwver="1.1.5"
   fi
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg')
@@ -931,6 +937,7 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
     else
       install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
+      install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
     fi
 
     # DEBUG
