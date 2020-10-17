@@ -155,7 +155,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=131
+pkgrel=132
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -202,6 +202,7 @@ source=($_source_name
         'kernel-5.8.patch' # 5.8 workaround
         '5.8-legacy.diff' # 5.8 additional vmalloc workaround (<450.57)
         'kernel-5.9.patch' # 5.9 workaround
+        '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -229,7 +230,8 @@ md5sums=("$_md5sum"
          'd911a0531c6f270926cacabd1dd80f02'
          '589dfc0c801605018b7ccd690f06141a'
          'd67bf0a9aa5c19f07edbaf6bd157d661'
-         '4e418ef3c3da73039830576c6da01725')
+         '888d12b9aea711e6a025835b8ad063e2'
+         '0758046ed7c50463fd0ec378e9e34f95')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -465,6 +467,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
       _kernel59="1"
       _whitelist59=( 450* )
+      if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying 5.9-gpl.diff for $_kernel..."
+        patch -Np2 -i "$srcdir"/5.9-gpl.diff
+        cd ..
+      fi
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -731,6 +739,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.9.patch
       else
         msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
+      fi
+      if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
+        msg2 "Applying 5.9-gpl.diff for dkms..."
+        patch -Np1 -i "$srcdir"/5.9-gpl.diff
       fi
     fi
 
