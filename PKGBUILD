@@ -155,7 +155,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=133
+pkgrel=134
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -466,7 +466,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # 5.9
     if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
       _kernel59="1"
-      _whitelist59=( 450* )
+      _whitelist59=( 450.5* 450.6* )
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying 5.9-gpl.diff for $_kernel..."
