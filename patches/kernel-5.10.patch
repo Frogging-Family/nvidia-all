@@ -1,0 +1,64 @@
+From 0c3e4c40305e78fd6d9899e43af6f0544a02fa6e Mon Sep 17 00:00:00 2001
+From: Joan Bruguera <joanbrugueram@gmail.com>
+Date: Mon, 26 Oct 2020 04:44:33 +0100
+Subject: [PATCH] Tentative fix for NVIDIA 455.28 driver for Linux 5.10-rc1
+
+NOTE: This does not fix the licensing problem with nvidia-uvm which also affects Linux 5.9
+---
+ common/inc/nv-linux.h                   | 6 ++++++
+ nvidia-drm/nvidia-drm-gem-user-memory.c | 7 +++++++
+ 2 files changed, 13 insertions(+)
+
+diff --git a/kernel-dkms/common/inc/nv-linux.h b/kernel-dkms/common/inc/nv-linux.h
+index 09d1e50..630f80b 100644
+--- a/kernel-dkms/common/inc/nv-linux.h
++++ b/kernel-dkms/common/inc/nv-linux.h
+@@ -11,6 +11,7 @@
+ #ifndef _NV_LINUX_H_
+ #define _NV_LINUX_H_
+ 
++#include <linux/version.h>
+ #include "nvstatus.h"
+ #include "nv-misc.h"
+ #include "nv.h"
+@@ -169,6 +170,11 @@ static inline uid_t __kuid_val(uid_t uid)
+ 
+ #include <linux/pagemap.h>
+ #include <linux/dma-mapping.h>
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
++// dma-mapping.h has been split on commit 0a0f0d8be76dcd4390ff538e7060fda34db79717,,
++// so this needs to be incldued now for the build to work
++#include <linux/dma-map-ops.h>
++#endif
+ 
+ #if defined(CONFIG_SWIOTLB) && defined(NVCPU_AARCH64)
+ #include <linux/swiotlb.h>
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
+index 737d84c..082fc11 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
+@@ -20,6 +20,7 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
+ #include "nvidia-drm-conftest.h"
+ 
+ #if defined(NV_DRM_AVAILABLE)
+@@ -60,8 +61,14 @@ static struct sg_table *__nv_drm_gem_user_memory_prime_get_sg_table(
+ {
+     struct nv_drm_gem_user_memory *nv_user_memory = to_nv_user_memory(nv_gem);
+ 
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
++    // New parameter to drm_prime_pages_to_sg (commit 707d561f77b5e2a6f90c9786bee44ee7a8dedc7e)
++    return drm_prime_pages_to_sg(nv_gem->nv_dev->dev, nv_user_memory->pages,
++                                 nv_user_memory->pages_count);
++#else
+     return drm_prime_pages_to_sg(nv_user_memory->pages,
+                                  nv_user_memory->pages_count);
++#endif
+ }
+ 
+ static void *__nv_drm_gem_user_memory_prime_vmap(
+-- 
+2.29.1

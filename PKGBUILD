@@ -155,7 +155,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=134
+pkgrel=135
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -203,6 +203,7 @@ source=($_source_name
         '5.8-legacy.diff' # 5.8 additional vmalloc workaround (<450.57)
         'kernel-5.9.patch' # 5.9 workaround
         '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
+        'kernel-5.10.patch' # 5.10 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -231,7 +232,8 @@ md5sums=("$_md5sum"
          '589dfc0c801605018b7ccd690f06141a'
          'd67bf0a9aa5c19f07edbaf6bd157d661'
          '888d12b9aea711e6a025835b8ad063e2'
-         '0758046ed7c50463fd0ec378e9e34f95')
+         '0758046ed7c50463fd0ec378e9e34f95'
+         'bcdd512edad1bad8331a8872259d2581')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -467,12 +469,22 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
       _kernel59="1"
       _whitelist59=( 450.5* 450.6* )
+    fi
+
+    # 5.9 - 5.10 quirk
+    if (( $(vercmp "$_kernel" "5.9") >= 0 )) || (( $(vercmp "$_kernel" "5.10") >= 0 )); then
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying 5.9-gpl.diff for $_kernel..."
         patch -Np2 -i "$srcdir"/5.9-gpl.diff
         cd ..
       fi
+    fi
+
+    # 5.10
+    if (( $(vercmp "$_kernel" "5.10") >= 0 )); then
+      _kernel510="1"
+      _whitelist510=( 450* 455* )
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -518,6 +530,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.9" ]; then
         _whitelist=(${_whitelist59[@]})
+      fi
+      if [ "$_patch" = "5.10" ]; then
+        _whitelist=(${_whitelist510[@]})
       fi
 
       patchy=0
@@ -740,6 +755,24 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       else
         msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
       fi
+    fi
+
+    # 5.10
+    if [ "$_kernel510" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist510[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.10.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.10.patch
+      else
+        msg2 "Skipping kernel-5.10.patch as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    # 5.9 - 5.10 quirk
+    if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
         msg2 "Applying 5.9-gpl.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.9-gpl.diff
