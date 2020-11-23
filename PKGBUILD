@@ -43,7 +43,7 @@ fi
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.46.01\n      2.455 series: 455.45.01\n      3.450 series: 450.80.02\n      4.440 series: 440.100 (kernel 5.8 or lower)\n      5.435 series: 435.21  (kernel 5.6 or lower)\n      6.430 series: 430.64  (kernel 5.5 or lower)\n      7.418 series: 418.113 (kernel 5.5 or lower)\n      8.415 series: 415.27  (kernel 5.4 or lower)\n      9.410 series: 410.104 (kernel 5.5 or lower)\n      10.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.46.02\n      2.455 series: 455.45.01\n      3.450 series: 450.80.02\n      4.440 series: 440.100 (kernel 5.8 or lower)\n      5.435 series: 435.21  (kernel 5.6 or lower)\n      6.430 series: 430.64  (kernel 5.5 or lower)\n      7.418 series: 418.113 (kernel 5.5 or lower)\n      8.415 series: 415.27  (kernel 5.4 or lower)\n      9.410 series: 410.104 (kernel 5.5 or lower)\n      10.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=455.45.01' > options
       echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
@@ -93,8 +93,8 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
     else
-      echo '_driver_version=455.46.01' > options
-      echo '_md5sum=b7a78880716daf7b16cbbe195c8c1f3e' >> options
+      echo '_driver_version=455.46.02' > options
+      echo '_md5sum=fc79aa9c3cff24502260cb2f90090dc1' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -155,7 +155,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=140
+pkgrel=141
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
