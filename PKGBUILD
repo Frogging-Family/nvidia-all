@@ -34,13 +34,6 @@ fi
 # Auto-add kernel userpatches to source
 _autoaddpatch="false"
 
-# Some people seem to believe making blank headers is a good idea
-if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ]; then
-  error "A (correctly made?) linux-headers package can't be found."
-  plain "If you're sure it's installed, blame your kernel maintainer."
-  read -p "    Press enter to proceed anyway..."
-fi
-
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
   read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.46.02\n      2.455 series: 455.45.01\n      3.450 series: 450.80.02\n      4.440 series: 440.100 (kernel 5.8 or lower)\n      5.435 series: 435.21  (kernel 5.6 or lower)\n      6.430 series: 430.64  (kernel 5.5 or lower)\n      7.418 series: 418.113 (kernel 5.5 or lower)\n      8.415 series: 415.27  (kernel 5.4 or lower)\n      9.410 series: 410.104 (kernel 5.5 or lower)\n      10.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
@@ -112,6 +105,16 @@ fi
 
 if [ -e options ]; then
   source options
+fi
+
+# Skip header check for dkms-only builds with explicit target kernel version
+if [ "$_dkms" != "true" ] || [ -z "$_kerneloverride" ]; then
+  # Some people seem to believe making blank headers is a good idea
+  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ]; then
+    error "A (correctly made?) linux-headers package can't be found."
+    plain "If you're sure it's installed, blame your kernel maintainer."
+    read -p "    Press enter to proceed anyway..."
+  fi
 fi
 
 _pkgname_array=()
