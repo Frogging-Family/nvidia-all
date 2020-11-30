@@ -155,7 +155,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=141
+pkgrel=142
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -204,6 +204,7 @@ source=($_source_name
         'kernel-5.9.patch' # 5.9 workaround
         '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
         'kernel-5.10.patch' # 5.10 workaround
+        '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -233,7 +234,8 @@ md5sums=("$_md5sum"
          'd67bf0a9aa5c19f07edbaf6bd157d661'
          '888d12b9aea711e6a025835b8ad063e2'
          '0758046ed7c50463fd0ec378e9e34f95'
-         'bcdd512edad1bad8331a8872259d2581')
+         'bcdd512edad1bad8331a8872259d2581'
+         '08bec554de265ce5fdcfdbd55fb608fc')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -324,6 +326,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     cd "$srcdir"/"$_pkg"/kernel-$_kernel
       msg2 "Applying linux-version.diff for $_kernel..."
       patch -p2 -i "$srcdir"/linux-version.diff
+
+      # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
+      if [[ $pkgver = 455* ]]; then
+        msg2 "Applying 455 crashfix for $_kernel..."
+        patch -p2 -i "$srcdir"/455-crashfix.diff
+      fi
     cd ..
 
     ## kernel version variables, quirks & driver patch whitelists
@@ -564,6 +572,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
     msg2 "Applying linux-version.diff for dkms..."
     patch -Np1 -i "$srcdir"/linux-version.diff
+
+    # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
+    if [[ $pkgver = 455* ]]; then
+      msg2 "Applying 455 crashfix for dkms..."
+      patch -Np1 -i "$srcdir"/455-crashfix.diff
+    fi
 
     # 4.16
     if [ "$_kernel416" = "1" ]; then
