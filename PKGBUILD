@@ -473,7 +473,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
     # 5.9 - 5.10 quirk
     if (( $(vercmp "$_kernel" "5.9") >= 0 )) || (( $(vercmp "$_kernel" "5.10") >= 0 )); then
-      if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
+      if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying 5.9-gpl.diff for $_kernel..."
         patch -Np2 -i "$srcdir"/5.9-gpl.diff
@@ -773,7 +773,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
     # 5.9 - 5.10 quirk
     if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
-      if [[ $pkgver = 450* ]] || [[ $pkgver = 455* ]]; then
+      if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
         msg2 "Applying 5.9-gpl.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.9-gpl.diff
       fi
