@@ -36,44 +36,48 @@ _autoaddpatch="false"
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.46.02\n      2.455 series: 455.45.01\n      3.450 series: 450.80.02\n      4.440 series: 440.100 (kernel 5.8 or lower)\n      5.435 series: 435.21  (kernel 5.6 or lower)\n      6.430 series: 430.64  (kernel 5.5 or lower)\n      7.418 series: 418.113 (kernel 5.5 or lower)\n      8.415 series: 415.27  (kernel 5.4 or lower)\n      9.410 series: 410.104 (kernel 5.5 or lower)\n      10.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.46.02\n      2.460 series: 460.27.04\n      3.455 series: 455.45.01\n      4.450 series: 450.80.02\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=460.27.04' > options
+      echo '_md5sum=9c0658fac62f9bece335bd8314778e45' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=455.45.01' > options
       echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=450.80.02' > options
       echo '_md5sum=c68b3500fb5ceb17a0fcebcbb143dad8' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=440.100' > options
       echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=435.21' > options
       echo '_md5sum=050acb0aecc3ba15d1fc609ee82bebe' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "10" ]; then
+    elif [ "$CONDITION" = "11" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "11" ]; then
+    elif [ "$CONDITION" = "12" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -158,7 +162,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=142
+pkgrel=143
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -327,14 +331,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     cp -r kernel kernel-$_kernel
 
     cd "$srcdir"/"$_pkg"/kernel-$_kernel
+    if [[ $pkgver != 460* ]]; then
       msg2 "Applying linux-version.diff for $_kernel..."
       patch -p2 -i "$srcdir"/linux-version.diff
+    fi
 
-      # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
-      if [[ $pkgver = 455* ]]; then
-        msg2 "Applying 455 crashfix for $_kernel..."
-        patch -p2 -i "$srcdir"/455-crashfix.diff
-      fi
+    # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
+    if [[ $pkgver = 455* ]]; then
+      msg2 "Applying 455 crashfix for $_kernel..."
+      patch -p2 -i "$srcdir"/455-crashfix.diff
+    fi
     cd ..
 
     ## kernel version variables, quirks & driver patch whitelists
@@ -573,8 +579,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
     fi
 
-    msg2 "Applying linux-version.diff for dkms..."
-    patch -Np1 -i "$srcdir"/linux-version.diff
+    if [[ $pkgver != 460* ]]; then
+      msg2 "Applying linux-version.diff for dkms..."
+      patch -Np1 -i "$srcdir"/linux-version.diff
+    fi
 
     # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
     if [[ $pkgver = 455* ]]; then
