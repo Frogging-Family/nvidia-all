@@ -162,7 +162,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=144
+pkgrel=145
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
