@@ -211,6 +211,7 @@ source=($_source_name
         'kernel-5.9.patch' # 5.9 workaround
         '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
         'kernel-5.10.patch' # 5.10 workaround
+        'kernel-5.11.patch' # 5.11 workaround
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
 )
 
@@ -242,6 +243,7 @@ md5sums=("$_md5sum"
          '888d12b9aea711e6a025835b8ad063e2'
          '0758046ed7c50463fd0ec378e9e34f95'
          'bcdd512edad1bad8331a8872259d2581'
+         '1f513f0f2752ede3e4c74c95c6942b81'
          '08bec554de265ce5fdcfdbd55fb608fc')
 
 if [ "$_autoaddpatch" = "true" ]; then
@@ -504,6 +506,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       _whitelist510=( 450* 455.2* 455.3* )
     fi
 
+    # 5.11
+    # Used 5.10 config as template. Commented out on first Kernel 5.11 commit
+    # if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
+      # _kernel511="1"
+      # _whitelist511=( 450* 455.2* 455.3* )
+    # fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -551,6 +560,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$_patch" = "5.10" ]; then
         _whitelist=(${_whitelist510[@]})
       fi
+      # Used 5.10 config as template. Commented out on first Kernel 5.11 commit
+      # if [ "$_patch" = "5.11" ]; then
+      #   _whitelist=(${_whitelist511[@]})
+      # fi
 
       patchy=0
       if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -796,8 +809,8 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
-    # 5.9 - 5.10 quirk
-    if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
+    # 5.9 - 5.11 quirk
+    if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ] [ "$_kernel511" = "1" ]; then
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
         msg2 "Applying 5.9-gpl.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.9-gpl.diff
@@ -924,8 +937,8 @@ nvidia-utils-tkg() {
     if [[ $pkgver = 396* ]]; then
       # GLX extension module for X
       install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
-      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
-      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"	# X doesn't find glx otherwise
+      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1" # X doesn't find glx otherwise
+      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so" # X doesn't find glx otherwise
     else
       # GLX extension module for X
       install -D -m755 "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.${pkgver}"
