@@ -167,6 +167,7 @@ arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
+makedepends=('pahole')
 options=('!strip')
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
@@ -1251,7 +1252,7 @@ package_lib32-nvidia-dev-utils-tkg() {
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
     pkgdesc="NVIDIA kernel module sources (DKMS)"
-    depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl')
+    depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
     provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
     conflicts=('nvidia' 'nvidia-dkms')
 
