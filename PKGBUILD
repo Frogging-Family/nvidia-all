@@ -162,11 +162,12 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=145
+pkgrel=146
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
+makedepends=('pahole')
 options=('!strip')
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
@@ -211,6 +212,7 @@ source=($_source_name
         'kernel-5.9.patch' # 5.9 workaround
         '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
         'kernel-5.10.patch' # 5.10 workaround
+        'kernel-5.11.patch' # 5.11 workaround
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
 )
 
@@ -242,6 +244,7 @@ md5sums=("$_md5sum"
          '888d12b9aea711e6a025835b8ad063e2'
          '0758046ed7c50463fd0ec378e9e34f95'
          'bcdd512edad1bad8331a8872259d2581'
+         '50c676a110fad2e0faa4c4e4b8488a66'
          '08bec554de265ce5fdcfdbd55fb608fc')
 
 if [ "$_autoaddpatch" = "true" ]; then
@@ -504,6 +507,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       _whitelist510=( 450* 455.2* 455.3* )
     fi
 
+    # 5.11
+    if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
+      _kernel511="1"
+      _whitelist511=( 460* )
+    fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -550,6 +559,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.10" ]; then
         _whitelist=(${_whitelist510[@]})
+      fi
+      if [ "$_patch" = "5.11" ]; then
+        _whitelist=(${_whitelist511[@]})
       fi
 
       patchy=0
@@ -793,6 +805,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.10.patch
       else
         msg2 "Skipping kernel-5.10.patch as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    # 5.11
+    if [ "$_kernel511" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist511[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.11.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.11.patch
+      else
+        msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
       fi
     fi
 
@@ -1226,7 +1252,7 @@ package_lib32-nvidia-dev-utils-tkg() {
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
     pkgdesc="NVIDIA kernel module sources (DKMS)"
-    depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl')
+    depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
     provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
     conflicts=('nvidia' 'nvidia-dkms')
 
