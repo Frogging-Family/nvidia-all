@@ -36,7 +36,7 @@ _autoaddpatch="false"
 
 # Package type selector
 if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.02\n      2.460 series: 460.32.03\n      3.455 series: 455.45.01\n      4.450 series: 450.80.02\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
+  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.03\n      2.460 series: 460.32.03\n      3.455 series: 455.45.01\n      4.450 series: 450.80.02\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
     if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=460.32.03' > options
       echo '_md5sum=360228c8de0e47f4245c7e2b108ef6cd' >> options
@@ -90,8 +90,8 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
     else
-      echo '_driver_version=455.50.02' > options
-      echo '_md5sum=9759b90fff3bd8243589aef9785bf874' >> options
+      echo '_driver_version=455.50.03' > options
+      echo '_md5sum=2c3905c86da4f2f95059d11284ad690c' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -162,7 +162,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=147
+pkgrel=148
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
