@@ -514,7 +514,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
       _kernel511="1"
       _whitelist511=( 460.27* 460.32* )
-      if [[ $pkgver != 460.32* ]]; then
+      if [[ $pkgver = 460.27* ]]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying 5.11-legacy.diff for $_kernel..."
         patch -Np2 -i "$srcdir"/5.11-legacy.diff
@@ -826,13 +826,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       done
       if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.11.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.11.patch
-        if [[ $pkgver != 460.32* ]]; then
-          msg2 "Applying 5.11-legacy.diff for $_kernel..."
-          patch -Np1 -i "$srcdir"/5.11-legacy.diff
-        fi
+        patch -Np1 -i "$srcdir"/kernel-5.11.patch   
       else
         msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
+      fi
+      if [[ $pkgver = 460.27* ]]; then
+        msg2 "Applying 5.11-legacy.diff for $_kernel..."
+        patch -Np1 -i "$srcdir"/5.11-legacy.diff
       fi
     fi
 
