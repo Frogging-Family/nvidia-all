@@ -35,8 +35,22 @@ fi
 _autoaddpatch="false"
 
 # Package type selector
-if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
-  read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.03\n      2.460 series: 460.39\n      3.455 series: 455.45.01\n      4.450 series: 450.102.04\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
+if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; then
+  # Unset this just in case another prompt using CONDITION is ever added before this code.
+  unset CONDITION
+  if [ "$_driver_version" = "latest" ]; then
+    if [ "$_driver_branch" = "regular" ]; then
+      CONDITION="2"
+    elif [ "$_driver_branch" = "vulkandev" ]; then
+      CONDITION="1"
+    else
+      error "\"latest\" driver specified, but without branch. Make sure _driver_branch is set."
+    fi
+  fi
+  if [[ -z $CONDITION ]]; then
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.03\n      2.460 series: 460.39\n      3.455 series: 455.45.01\n      4.450 series: 450.102.04\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
+  fi
+    # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
       echo '_driver_version=460.39' > options
       echo '_md5sum=79365687506ff548f9504e9fe0e0bc03' >> options
@@ -89,6 +103,7 @@ if [ -z "$_driver_version" ] || [ -z "$_driver_branch" ] && [ ! -e options ]; th
       fi
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
+    # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
       echo '_driver_version=455.50.03' > options
       echo '_md5sum=2c3905c86da4f2f95059d11284ad690c' >> options
@@ -110,6 +125,8 @@ fi
 if [ -e options ]; then
   source options
 fi
+
+msg2 "Building driver version $_driver_version on branch $_driver_branch."
 
 # Skip header check for dkms-only builds with explicit target kernel version
 if [ "$_dkms" != "true" ] || [ -z "$_kerneloverride" ]; then
