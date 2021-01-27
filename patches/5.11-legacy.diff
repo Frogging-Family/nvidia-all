@@ -1,0 +1,14 @@
+diff --git a/kernel-dkms/common/inc/nv-linux.h b/kernel-dkms/common/inc/nv-linux.h
+index db9706d..3ee157e 100644
+--- a/kernel-dkms/common/inc/nv-linux.h
++++ b/kernel-dkms/common/inc/nv-linux.h
+@@ -117,7 +117,9 @@
+
+ #include <linux/moduleparam.h>      /* module_param()                   */
+ #include <asm/tlbflush.h>           /* flush_tlb(), flush_tlb_all()     */
++#if defined(NV_ASM_KMAP_TYPES_H_PRESENT)
+ #include <asm/kmap_types.h>         /* page table entry lookup          */
++#endif
+
+ #include <linux/pci.h>              /* pci_find_class, etc              */
+ #include <linux/interrupt.h>        /* tasklets, interrupt helpers      */

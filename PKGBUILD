@@ -213,6 +213,7 @@ source=($_source_name
         '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
         'kernel-5.10.patch' # 5.10 workaround
         'kernel-5.11.patch' # 5.11 workaround
+        '5.11-legacy.diff' # 5.11 additional workaround (<460.32.03)
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
 )
 
@@ -245,6 +246,7 @@ md5sums=("$_md5sum"
          '0758046ed7c50463fd0ec378e9e34f95'
          'bcdd512edad1bad8331a8872259d2581'
          '50c676a110fad2e0faa4c4e4b8488a66'
+         '8764cc714e61363cc8f818315957ad17'
          '08bec554de265ce5fdcfdbd55fb608fc')
 
 if [ "$_autoaddpatch" = "true" ]; then
@@ -511,7 +513,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # 5.11
     if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
       _kernel511="1"
-      _whitelist511=( 460.32* )
+      _whitelist511=( 460.27* 460.32* )
+      if [[ $pkgver != 460.32* ]]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying 5.11-legacy.diff for $_kernel..."
+        patch -Np2 -i "$srcdir"/5.11-legacy.diff
+        cd ..
+      fi
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -819,6 +827,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.11.patch for dkms..."
         patch -Np1 -i "$srcdir"/kernel-5.11.patch
+        if [[ $pkgver != 460.32* ]]; then
+          msg2 "Applying 5.11-legacy.diff for $_kernel..."
+          patch -Np1 -i "$srcdir"/5.11-legacy.diff
+        fi
       else
         msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
       fi
