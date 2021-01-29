@@ -334,10 +334,7 @@ diff --git a/kernel-dkms/nvidia/nvidia.Kbuild b/kernel-dkms/nvidia/nvidia.Kbuild
 index 90579de..c6f3614 100644
 --- a/kernel-dkms/nvidia/nvidia.Kbuild
 +++ b/kernel-dkms/nvidia/nvidia.Kbuild
-@@ -172,6 +172,7 @@ NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_tegra_dce_client_ip
- NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_dram_clk_to_mc_clk
- NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_get_dram_num_channels
- NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_tegra_dram_types
+@@ -172,3 +172,4 @@
 +NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_close_fd
  
  NV_CONFTEST_TYPE_COMPILE_TESTS += acpi_op_remove
