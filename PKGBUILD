@@ -28,7 +28,7 @@ source "$where"/customization.cfg
 
 # Load external configuration file if present. Available variable values will overwrite customization.cfg ones.
 if [ -e "$_EXT_CONFIG_PATH" ]; then
-  source "$_EXT_CONFIG_PATH" && msg2 "External configuration file $_EXT_CONFIG_PATH will be used to override customization.cfg values." && plain ""
+  source "$_EXT_CONFIG_PATH" && msg2 "External configuration file '$_EXT_CONFIG_PATH' will be used to override customization.cfg values." && plain ""
 fi
 
 # Auto-add kernel userpatches to source
@@ -129,11 +129,13 @@ fi
 # Check if the version we are going for is newer or not if enabled
 if [[ "$_only_update_if_newer" == "true" ]]; then
   # Check current version, if possible 
-  if hash nvidia-smi 2>/dev/null; then
-    # We have enough tools to get the current version
-    # returns a string, like "460.39"
-    _current_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader)
-    msg2 "Found version $_current_version installed"
+  if pacman -Qs "nvidia-utils" >/dev/null; then
+    # We have enough packages installed to get the version
+    # returns a string, like "460.39" or "455.45.01"
+    # HACK Checks the first nvidia-utils match, does not catch potential missmatches and other stuff
+    _current_version=$(pacman -Q "nvidia-utils" | grep -oP '\d+(\.\d+)+' | head -n 1)
+    _current_package_example=$(pacman -Q "nvidia-utils" | grep -oP '[a-z]+(\-[a-z]+)+' | head -n 1)
+    msg2 "Found version $_current_version installed (from package '$_current_package_example')"
 
     ## HACK Stupid string compare
     ## TODO Ensure that nvidia versions do not differ from this format
@@ -155,7 +157,8 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
     fi
   else
     warning "'\$_only_update_if_newer' is enabled, but no installed driver found."
-    msg2 "Continuing on as if '\$_only_update_if_newer' was not enabled."
+    warning "Continuing on as if '\$_only_update_if_newer' was not enabled."
+    plain ""
   fi
 fi
 
