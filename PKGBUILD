@@ -28,7 +28,7 @@ source "$where"/customization.cfg
 
 # Load external configuration file if present. Available variable values will overwrite customization.cfg ones.
 if [ -e "$_EXT_CONFIG_PATH" ]; then
-  source "$_EXT_CONFIG_PATH" && msg2 "External configuration file $_EXT_CONFIG_PATH will be used to override customization.cfg values." && msg2 ""
+  source "$_EXT_CONFIG_PATH" && msg2 "External configuration file $_EXT_CONFIG_PATH will be used to override customization.cfg values." && plain ""
 fi
 
 # Auto-add kernel userpatches to source
@@ -124,6 +124,39 @@ fi
 
 if [ -e options ]; then
   source options
+fi
+
+# Check if the version we are going for is newer or not if enabled
+if [[ "$_only_update_if_newer" == "true" ]]; then
+  # Check current version, if possible 
+  if hash nvidia-smi 2>/dev/null; then
+    # We have enough tools to get the current version
+    # returns a string, like "460.39"
+    _current_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader)
+    msg2 "Found version $_current_version installed"
+
+    ## HACK Stupid string compare
+    ## TODO Ensure that nvidia versions do not differ from this format
+    if [[ $_driver_version > $_current_version ]]; then
+      # We have a newer version to install, do nothing
+      msg2 "Selected version ($_driver_version, $_driver_branch) is newer than installed version, continuing."
+    else
+      # Older version, or at least not newer version
+      msg2 "Selected version ($_driver_version, $_driver_branch) is not newer than installed version, exiting."
+      plain ""
+      if [ -e "$_EXT_CONFIG_PATH" ]; then
+        plain "If this is not intended, have a look at '$_EXT_CONFIG_PATH'"
+      else
+        plain "If this is not intended, have a look at '"$where"/customization.cfg'"
+      fi
+
+      # We shouldn't have done anything yet, so no cleanup needed?
+      exit 0
+    fi
+  else
+    warning "'\$_only_update_if_newer' is enabled, but no installed driver found."
+    msg2 "Continuing on as if '\$_only_update_if_newer' was not enabled."
+  fi
 fi
 
 msg2 "Building driver version $_driver_version on branch $_driver_branch."
