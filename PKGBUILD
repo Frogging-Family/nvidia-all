@@ -215,7 +215,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=154
+pkgrel=155
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -268,6 +268,7 @@ source=($_source_name
         'kernel-5.11.patch' # 5.11 workaround
         '5.11-legacy.diff' # 5.11 additional workaround (<460.32.03)
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
+        'kernel-5.12.patch' # 5.12 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -300,7 +301,8 @@ md5sums=("$_md5sum"
          'bcdd512edad1bad8331a8872259d2581'
          'fd0d6e14e675a61f32279558678cfc36'
          '8764cc714e61363cc8f818315957ad17'
-         '08bec554de265ce5fdcfdbd55fb608fc')
+         '08bec554de265ce5fdcfdbd55fb608fc'
+         '539fef68f4466c4d8cce40bb2fe0e7d9')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -575,6 +577,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
+    # 5.12
+    if (( $(vercmp "$_kernel" "5.12") >= 0 )); then
+      _kernel512="1"
+      _whitelist512=( 455.50* 460.* )
+    fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -624,6 +632,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.11" ]; then
         _whitelist=(${_whitelist511[@]})
+      fi
+      if [ "$_patch" = "5.12" ]; then
+        _whitelist=(${_whitelist512[@]})
       fi
 
       patchy=0
@@ -894,6 +905,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
         msg2 "Applying 5.9-gpl.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.9-gpl.diff
+      fi
+    fi
+
+    # 5.12
+    if [ "$_kernel512" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist512[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.12.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.12.patch
+      else
+        msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
       fi
     fi
 
