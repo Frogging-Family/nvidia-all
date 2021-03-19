@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.10\n      2.460 series: 460.67\n      3.455 series: 455.45.01\n      4.450 series: 450.102.04\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.10 (kernel 5.11 or lower)\n      2.460 series: 460.67\n      3.455 series: 455.45.01 (kernel 5.11 or lower)\n      4.450 series: 450.102.04 (kernel 5.11 or lower)\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      12.Custom version (396.xx series or higher)\n    choice[1-12?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -268,7 +268,6 @@ source=($_source_name
         'kernel-5.11.patch' # 5.11 workaround
         '5.11-legacy.diff' # 5.11 additional workaround (<460.32.03)
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
-        'kernel-5.12.patch' # 5.12 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -301,8 +300,7 @@ md5sums=("$_md5sum"
          'bcdd512edad1bad8331a8872259d2581'
          'fd0d6e14e675a61f32279558678cfc36'
          '8764cc714e61363cc8f818315957ad17'
-         '08bec554de265ce5fdcfdbd55fb608fc'
-         '539fef68f4466c4d8cce40bb2fe0e7d9')
+         '08bec554de265ce5fdcfdbd55fb608fc')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -577,12 +575,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
-    # 5.12
-    if (( $(vercmp "$_kernel" "5.12") >= 0 )); then
-      _kernel512="1"
-      _whitelist512=( 455.50* 460.* )
-    fi
-
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -632,9 +624,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.11" ]; then
         _whitelist=(${_whitelist511[@]})
-      fi
-      if [ "$_patch" = "5.12" ]; then
-        _whitelist=(${_whitelist512[@]})
       fi
 
       patchy=0
@@ -905,20 +894,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
         msg2 "Applying 5.9-gpl.diff for dkms..."
         patch -Np1 -i "$srcdir"/5.9-gpl.diff
-      fi
-    fi
-
-    # 5.12
-    if [ "$_kernel512" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist512[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.12.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.12.patch
-      else
-        msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
       fi
     fi
 
