@@ -1101,7 +1101,7 @@ nvidia-utils-tkg() {
     else
       install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
     fi
-    if [[ $pkgver = 455* ]]; then
+    if (( ${pkgver%%.*} >= 455 )); then
       install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
     fi
 
