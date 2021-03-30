@@ -1178,7 +1178,7 @@ nvidia-utils-tkg() {
 
     # gsp firmware
     if (( ${pkgver%%.*} >= 465 )); then
-      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/gsp.bin"
+      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
     fi
 
     # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
