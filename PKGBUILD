@@ -372,7 +372,9 @@ DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[3]="nvidia-drm"\
 DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[4]="nvidia-peermem"\
-DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' dkms.conf
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[5]="nvidia-ib-peermem-stub"\
+DEST_MODULE_LOCATION[5]="/kernel/drivers/video"' dkms.conf
   else
     sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
@@ -1238,6 +1240,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       if (( ${pkgver%%.*} >= 465 )); then
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       fi
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
