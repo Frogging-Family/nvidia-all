@@ -362,7 +362,19 @@ prepare() {
   sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
   sed -i 's/__JOBS/`nproc`/' dkms.conf
   sed -i 's/__DKMS_MODULES//' dkms.conf
-  sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+  if (( ${pkgver%%.*} >= 465 )); then
+    sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' dkms.conf
+  else
+    sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[1]="nvidia-uvm"\
 DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
@@ -370,6 +382,7 @@ BUILT_MODULE_NAME[2]="nvidia-modeset"\
 DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[3]="nvidia-drm"\
 DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
+  fi
 
   # Gift for linux-rt guys
   sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' dkms.conf
@@ -1163,6 +1176,11 @@ nvidia-utils-tkg() {
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
     fi
 
+    # gsp firmware
+    if (( ${pkgver%%.*} >= 465 )); then
+      install -D -m644 firmware/gsp.bin "${pkgdir}/lib/firmware/gsp.bin"
+    fi
+
     # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
     install -Dm644 "$srcdir"/10-nvidia-drm-outputclass.conf "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
 
@@ -1218,6 +1236,9 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
     for _kernel in "${_kernels[@]}"; do
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+      if (( ${pkgver%%.*} >= 465 )); then
+        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+      fi
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
 
