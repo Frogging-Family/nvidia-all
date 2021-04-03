@@ -156,7 +156,10 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
         plain "If this is not intended, have a look at '"$where"/customization.cfg'"
       fi
 
-      # We shouldn't have done anything yet, so no cleanup needed?
+      # We have to clean up "options"
+      rm -f "${where}"/options
+      # TODO Do we need to clean up something more?
+      # TODO Should the exit_cleanup be called? (requires reorganization of script)
       exit 0
     fi
   else
