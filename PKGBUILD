@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.14\n      2.465 series: 465.24.02\n      3.460 series: 460.73.01\n      4.455 series: 455.45.01\n      5.450 series: 450.102.04 (kernel 5.11 or lower)\n      6.440 series: 440.100 (kernel 5.8 or lower)\n      7.435 series: 435.21  (kernel 5.6 or lower)\n      8.430 series: 430.64  (kernel 5.5 or lower)\n      9.418 series: 418.113 (kernel 5.5 or lower)\n      10.415 series: 415.27  (kernel 5.4 or lower)\n      11.410 series: 410.104 (kernel 5.5 or lower)\n      12.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      13.Custom version (396.xx series or higher)\n    choice[1-13?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.14\n      2.465 series: 465.27\n      3.460 series: 460.73.01\n      4.455 series: 455.45.01\n      5.450 series: 450.119.03\n      6.440 series: 440.100 (kernel 5.8 or lower)\n      7.435 series: 435.21  (kernel 5.6 or lower)\n      8.430 series: 430.64  (kernel 5.5 or lower)\n      9.418 series: 418.113 (kernel 5.5 or lower)\n      10.415 series: 415.27  (kernel 5.4 or lower)\n      11.410 series: 410.104 (kernel 5.5 or lower)\n      12.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      13.Custom version (396.xx series or higher)\n    choice[1-13?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=465.24.02' > options
-      echo '_md5sum=0907aff66d676386852477b5e6dc8238' >> options
+      echo '_driver_version=465.27' > options
+      echo '_md5sum=212e7765216ca3961409637360acce4c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=460.73.01' > options
@@ -64,8 +64,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "5" ]; then
-      echo '_driver_version=450.102.04' > options
-      echo '_md5sum=53420bfb97c75b5ff1ef72e7f4810596' >> options
+      echo '_driver_version=450.119.03' > options
+      echo '_md5sum=b2725b8c15a364582be90c5fa1d6690f' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=440.100' > options
@@ -222,7 +222,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=161
+pkgrel=162
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
