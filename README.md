@@ -1,4 +1,4 @@
-# Nvidia driver 460-396 series AIO installer
+# Nvidia driver 465-396 series AIO installer
 
 LIBGLVND compatible, with 32 bit libs and DKMS enabled out of the box (you will still be asked if you want to use the regular package). Installs for all currently installed kernels. Comes with custom patches to enhance kernel compatibility, dynamically applied when you're requesting a driver that's not compatible OOTB with your currently installed kernel(s).
 Unwanted packages can be disabled with switches in the PKGBUILD. Defaults to complete installation.
