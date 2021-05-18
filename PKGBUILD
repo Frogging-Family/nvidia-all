@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.19\n      2.465 series: 465.27\n      3.460 series: 460.80\n      4.455 series: 455.45.01\n      5.450 series: 450.119.03\n      6.440 series: 440.100 (kernel 5.8 or lower)\n      7.435 series: 435.21  (kernel 5.6 or lower)\n      8.430 series: 430.64  (kernel 5.5 or lower)\n      9.418 series: 418.113 (kernel 5.5 or lower)\n      10.415 series: 415.27  (kernel 5.4 or lower)\n      11.410 series: 410.104 (kernel 5.5 or lower)\n      12.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      13.Custom version (396.xx series or higher)\n    choice[1-13?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.19\n      2.465 series: 465.31\n      3.460 series: 460.80\n      4.455 series: 455.45.01\n      5.450 series: 450.119.03\n      6.440 series: 440.100 (kernel 5.8 or lower)\n      7.435 series: 435.21  (kernel 5.6 or lower)\n      8.430 series: 430.64  (kernel 5.5 or lower)\n      9.418 series: 418.113 (kernel 5.5 or lower)\n      10.415 series: 415.27  (kernel 5.4 or lower)\n      11.410 series: 410.104 (kernel 5.5 or lower)\n      12.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      13.Custom version (396.xx series or higher)\n    choice[1-13?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=465.27' > options
-      echo '_md5sum=212e7765216ca3961409637360acce4c' >> options
+      echo '_driver_version=465.31' > options
+      echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=460.80' > options
@@ -132,7 +132,7 @@ fi
 
 # Check if the version we are going for is newer or not if enabled
 if [[ "$_only_update_if_newer" == "true" ]]; then
-  # Check current version, if possible 
+  # Check current version, if possible
   if pacman -Qs "nvidia-utils" >/dev/null; then
     # We have enough packages installed to get the version
     # returns a string, like "460.39" or "455.45.01"
@@ -222,7 +222,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=164
+pkgrel=165
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -356,7 +356,7 @@ prepare() {
   if [[ $pkgver = 440.26 ]]; then
     sed -i -e 's|$CC $CFLAGS -c conftest_headers$$.c|LC_ALL=C $CC $CFLAGS -c conftest_headers$$.c|g' kernel/conftest.sh
   fi
-  
+
   # 440.58.01 Unfrogging
   if [[ $pkgver = 440.58.01 ]]; then
     sed -i -e '/bug/d' nvidia-application-profiles-440.58.01-rc
@@ -912,7 +912,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       done
       if [ "$patchy" = "1" ]; then
         msg2 "Applying kernel-5.11.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.11.patch   
+        patch -Np1 -i "$srcdir"/kernel-5.11.patch
       else
         msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
       fi
