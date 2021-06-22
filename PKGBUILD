@@ -48,54 +48,58 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.19\n      2.465 series: 465.31\n      3.460 series: 460.84\n      4.455 series: 455.45.01\n      5.450 series: 450.119.03\n      6.440 series: 440.100 (kernel 5.8 or lower)\n      7.435 series: 435.21  (kernel 5.6 or lower)\n      8.430 series: 430.64  (kernel 5.5 or lower)\n      9.418 series: 418.113 (kernel 5.5 or lower)\n      10.415 series: 415.27  (kernel 5.4 or lower)\n      11.410 series: 410.104 (kernel 5.5 or lower)\n      12.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      13.Custom version (396.xx series or higher)\n    choice[1-13?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 455.50.19\n      2.470 series: 470.42.01\n      3.465 series: 465.31\n      4.460 series: 460.84\n      5.455 series: 455.45.01\n      6.450 series: 450.119.03\n      7.440 series: 440.100 (kernel 5.8 or lower)\n      8.435 series: 435.21  (kernel 5.6 or lower)\n      9.430 series: 430.64  (kernel 5.5 or lower)\n      10.418 series: 418.113 (kernel 5.5 or lower)\n      11.415 series: 415.27  (kernel 5.4 or lower)\n      12.410 series: 410.104 (kernel 5.5 or lower)\n      13.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      14.Custom version (396.xx series or higher)\n    choice[1-14?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=470.42.01' > options
+      echo '_md5sum=3d834af2a63df310736bfa99b258dd8c' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=465.31' > options
       echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=460.84' > options
       echo '_md5sum=629d4f2a0d6f593aa4cf9b73983d3c8b' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=455.45.01' > options
       echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=450.119.03' > options
       echo '_md5sum=b2725b8c15a364582be90c5fa1d6690f' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=440.100' > options
       echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=435.21' > options
       echo '_md5sum=050acb0aecc3ba15d1fc609ee82bebe' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "10" ]; then
+    elif [ "$CONDITION" = "11" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "11" ]; then
+    elif [ "$CONDITION" = "12" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "12" ]; then
+    elif [ "$CONDITION" = "13" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "13" ]; then
+    elif [ "$CONDITION" = "14" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -222,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=166
+pkgrel=167
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -367,7 +371,18 @@ prepare() {
   sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
   sed -i 's/__JOBS/`nproc`/' dkms.conf
   sed -i 's/__DKMS_MODULES//' dkms.conf
-  if (( ${pkgver%%.*} >= 465 )); then
+  if (( ${pkgver%%.*} >= 470 )); then
+      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' dkms.conf
+  elif (( ${pkgver%%.*} = 465 )); then
     sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[1]="nvidia-uvm"\
@@ -1015,8 +1030,10 @@ nvidia-egl-wayland-tkg() {
     _eglwver="1.1.3"
   elif [[ $pkgver = 44* ]] || [[ $pkgver = 450* ]]; then
     _eglwver="1.1.4"
-  else
+  elif [[ $pkgver = 455* ]] || [[ $pkgver = 460* ]]; then
     _eglwver="1.1.5"
+  else
+    _eglwver="1.1.7"
   fi
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg')
@@ -1142,11 +1159,27 @@ nvidia-utils-tkg() {
     # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
     install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ptxjitcompiler.so.${pkgver}"
 
+    # nvvm
+    if [[ $pkgver = 470* ]]; then
+       install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
+    fi
+
+    # wine nvngx lib
+    if [[ $pkgver = 470* ]]; then
+      install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/_nvngx.dll"
+      install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvngx.dll"
+    fi
+
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
     else
       install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
+
+      if (( ${pkgver%%.*} >= 470 )); then
+        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvngx.dll"
+        install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/_nvngx.dll"
+      fi
     fi
     if (( ${pkgver%%.*} >= 455 )); then
       install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
@@ -1266,7 +1299,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
     for _kernel in "${_kernels[@]}"; do
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      if (( ${pkgver%%.*} >= 465 )); then
+      if [[ ${pkgver%%.*} = 465 ]]; then
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       fi
@@ -1335,7 +1368,7 @@ lib32-nvidia-utils-tkg() {
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
     fi
 
-    # misc
+
     install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
     install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fbc.so.${pkgver}"
     install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
