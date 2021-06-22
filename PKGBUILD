@@ -226,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=167
+pkgrel=168
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1166,8 +1166,8 @@ nvidia-utils-tkg() {
 
     # wine nvngx lib
     if [[ $pkgver = 470* ]]; then
-      install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/_nvngx.dll"
-      install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvngx.dll"
+      install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
+      install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
     fi
 
     # Fat (multiarchitecture) binary loader
