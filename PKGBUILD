@@ -1030,7 +1030,7 @@ nvidia-egl-wayland-tkg() {
     _eglwver="1.1.3"
   elif [[ $pkgver = 44* ]] || [[ $pkgver = 450* ]]; then
     _eglwver="1.1.4"
-  elif [[ $pkgver = 455* ]] || [[ $pkgver = 460* ]]; then
+  elif [[ $pkgver = 455* ]] || [[ $pkgver = 460* ]] || [[ $pkgver = 465* ]]; then
     _eglwver="1.1.5"
   else
     _eglwver="1.1.7"
