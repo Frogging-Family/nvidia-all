@@ -1164,21 +1164,16 @@ nvidia-utils-tkg() {
        install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
     fi
 
-    # wine nvngx lib
-    if [[ $pkgver = 470* ]]; then
-      install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
-      install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
-    fi
-
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
     else
       install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
 
+      # wine nvngx lib
       if (( ${pkgver%%.*} >= 470 )); then
-        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvngx.dll"
-        install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/_nvngx.dll"
+        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
+        install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
       fi
     fi
     if (( ${pkgver%%.*} >= 455 )); then
