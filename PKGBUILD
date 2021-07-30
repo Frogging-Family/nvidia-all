@@ -226,12 +226,11 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=169
+pkgrel=170
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
-makedepends=('pahole')
 options=('!strip')
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
@@ -280,6 +279,7 @@ source=($_source_name
         '5.11-legacy.diff' # 5.11 additional workaround (<460.32.03)
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
         'kernel-5.12.patch' # 5.12 workaround
+        'kernel-5.14.patch' # 5.14 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -313,7 +313,8 @@ md5sums=("$_md5sum"
          'fd0d6e14e675a61f32279558678cfc36'
          '8764cc714e61363cc8f818315957ad17'
          '08bec554de265ce5fdcfdbd55fb608fc'
-         '3980770412a1d4d7bd3a16c9042200df')
+         '3980770412a1d4d7bd3a16c9042200df'
+         'f5fd091893f513d2371654e83049f099')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -620,6 +621,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       _whitelist512=( 455.4* 455.5* )
     fi
 
+    # 5.14
+    if (( $(vercmp "$_kernel" "5.14") >= 0 )); then
+      _kernel514="1"
+      _whitelist514=( 465* 470* )
+    fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -672,6 +679,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.12" ]; then
         _whitelist=(${_whitelist512[@]})
+      fi
+      if [ "$_patch" = "5.14" ]; then
+        _whitelist=(${_whitelist514[@]})
       fi
 
       patchy=0
@@ -956,6 +966,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.12.patch
       else
         msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    # 5.14
+    if [ "$_kernel514" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist514[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.14.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.14.patch
+      else
+        msg2 "Skipping kernel-5.14.patch as it doesn't apply to this driver version..."
       fi
     fi
 
