@@ -226,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=172
+pkgrel=173
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1166,6 +1166,9 @@ nvidia-utils-tkg() {
     fi
     if [ -e nvidia_layers.json ]; then
       install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/explicit_layer.d/nvidia_layers.json"
+    fi
+    if [[ $pkgver = 470.6* ]]; then
+      install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
     fi
 
     # VDPAU
