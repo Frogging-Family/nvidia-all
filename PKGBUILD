@@ -1069,6 +1069,10 @@ nvidia-egl-wayland-tkg() {
     ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so.1
     ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so
 
+    if [[ $pkgver = 470.63* ]]; then
+	    install -Dm755 libnvidia-vulkan-producer.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-vulkan-producer.so."${pkgver}"
+    fi
+
     install -Dm755 10_nvidia_wayland.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json
     install -Dm755 "$where"/egl-wayland/licenses/egl-wayland/COPYING "${pkgdir}"/usr/share/licenses/egl-wayland/COPYING
     install -Dm755 "$where"/egl-wayland/pkgconfig/wayland-eglstream-protocols.pc "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
