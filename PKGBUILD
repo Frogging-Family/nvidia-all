@@ -226,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=177
+pkgrel=178
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -331,12 +331,14 @@ _create_links() {
   # create missing soname links
   for _lib in $(find "$pkgdir" -name '*.so*' | grep -v 'xorg/'); do
     # Get soname/base name
-    _soname=$(dirname "$_lib")/$(readelf -d "$_lib" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
-    _base=$(echo "$_soname" | sed -r 's/(.*).so.*/\1.so/')
+    if [[ $_lib != *libnvidia-vulkan-producer.* ]]; then # Workaround no SONAME entry for libnvidia-vulkan-producer.so
+      _soname=$(dirname "$_lib")/$(readelf -d "$_lib" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
+      _base=$(echo "$_soname" | sed -r 's/(.*).so.*/\1.so/')
 
-    # Create missing links
-    [ -e "$_soname" ] || ln -s $(basename "$_lib") "$_soname"
-    [ -e "$_base" ] || ln -s $(basename "$_soname") "$_base"
+      # Create missing links
+      [ -e "$_soname" ] || ln -vs $(basename "$_lib") "$_soname"
+      [ -e "$_base" ] || ln -vs $(basename "$_soname") "$_base"
+    fi
   done
 }
 
