@@ -1,0 +1,24 @@
+# Make sure device nodes are present even when the DDX is not started for the Wayland/EGLStream case
+KERNEL=="nvidia", RUN+="/usr/bin/bash -c '/usr/bin/mknod -Z -m 666 /dev/nvidiactl c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) 255'"
+KERNEL=="nvidia", RUN+="/usr/bin/bash -c 'for i in $$(cat /proc/driver/nvidia/gpus/*/information | grep Minor | cut -d \  -f 4); do /usr/bin/mknod -Z -m 666 /dev/nvidia$${i} c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) $${i}; done'"
+KERNEL=="nvidia_modeset", RUN+="/usr/bin/bash -c '/usr/bin/mknod -Z -m 666 /dev/nvidia-modeset c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) 254'"
+KERNEL=="nvidia_uvm", RUN+="/usr/bin/bash -c '/usr/bin/mknod -Z -m 666 /dev/nvidia-uvm c $$(grep nvidia-uvm /proc/devices | cut -d \  -f 1) 0'"
+KERNEL=="nvidia_uvm", RUN+="/usr/bin/bash -c '/usr/bin/mknod -Z -m 666 /dev/nvidia-uvm-tools c $$(grep nvidia-uvm /proc/devices | cut -d \  -f 1) 1'"
+
+# Enable runtime PM for NVIDIA VGA/3D controller devices
+ACTION=="bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x03[0-9]*", TEST=="power/control", ATTR{power/control}="auto"
+# Enable runtime PM for NVIDIA Audio devices
+ACTION=="bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x040300", TEST=="power/control", ATTR{power/control}="auto"
+# Enable runtime PM for NVIDIA USB xHCI Host Controller devices
+ACTION=="bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c0330", TEST=="power/control", ATTR{power/control}="auto"
+# Enable runtime PM for NVIDIA USB Type-C UCSI devices
+ACTION=="bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c8000", TEST=="power/control", ATTR{power/control}="auto"
+
+# Disable runtime PM for NVIDIA VGA/3D controller devices
+ACTION=="unbind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x03[0-9]*", TEST=="power/control", ATTR{power/control}="on"
+# Disable runtime PM for NVIDIA Audio devices
+ACTION=="unbind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x040300", TEST=="power/control", ATTR{power/control}="on"
+# Disable runtime PM for NVIDIA USB xHCI Host Controller devices
+ACTION=="unbind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c0330", TEST=="power/control", ATTR{power/control}="on"
+# Disable runtime PM for NVIDIA USB Type-C UCSI devices
+ACTION=="unbind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c8000", TEST=="power/control", ATTR{power/control}="on"
