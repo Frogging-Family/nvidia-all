@@ -226,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=178
+pkgrel=180
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1334,8 +1334,10 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
 
-    echo "blacklist nouveau" |
+    echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+    echo "nvidia-uvm" |
+        install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
   }
   package_nvidia-tkg() {
     nvidia-tkg
@@ -1449,8 +1451,10 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
     cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-    echo "blacklist nouveau" |
+    echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+    echo "nvidia-uvm" |
+        install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
 
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
   }
