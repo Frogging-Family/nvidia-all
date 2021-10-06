@@ -1302,7 +1302,7 @@ nvidia-settings-tkg() {
     install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
     install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
     install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
-    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__:/usr/share/pixmaps:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
 
     install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
 
