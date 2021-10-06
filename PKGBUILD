@@ -226,7 +226,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=179
+pkgrel=178
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -252,7 +252,6 @@ fi
 source=($_source_name
         '10-nvidia-drm-outputclass.conf'
         'nvidia-utils-tkg.sysusers'
-        '60-nvidia.rules'
         'linux-version.diff' # include linux version
         '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
         '02-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (addon for 410+)
@@ -288,7 +287,6 @@ msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If 
 md5sums=("$_md5sum"
          'cb27b0f4a78af78aa96c5aacae23256c'
          '3d2894e71d81570bd00bce416d3e547d'
-         '3d32130235acc5ab514e1021f7f5c439'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
          '14460615a9d4e247c8d9bcae8776ed48'
@@ -1279,8 +1277,6 @@ nvidia-utils-tkg() {
 
     install -Dm644 "$srcdir"/nvidia-utils-tkg.sysusers "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
 
-    install -Dm644 "$srcdir"/60-nvidia.rules "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
-
     _create_links
 }
 package_nvidia-utils-tkg() {
@@ -1338,7 +1334,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       find "$pkgdir" -name '*.ko' -exec gzip -n {} +
     done
 
-    echo -e "blacklist nouveau\nblacklist lbm-nouveau\nalias nouveau off\nalias lbm-nouveau off" |
+    echo "blacklist nouveau" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
   }
   package_nvidia-tkg() {
@@ -1453,7 +1449,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
     cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-    echo -e "blacklist nouveau\nblacklist lbm-nouveau\nalias nouveau off\nalias lbm-nouveau off" |
+    echo "blacklist nouveau" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
 
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
