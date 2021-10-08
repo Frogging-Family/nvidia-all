@@ -1483,6 +1483,7 @@ function exit_cleanup {
   rm -f "${where}"/*.install
   rm -f "${where}"/*.patch
   rm -f "${where}"/*.diff
+  rm -f "${where}"/*.hook
   rm -f "${where}"/nvidia-utils-tkg.sysusers
   rm -rf "${where}"/egl-wayland
   rm -rf "${where}"/src/*
