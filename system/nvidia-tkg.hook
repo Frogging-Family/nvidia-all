@@ -1,0 +1,16 @@
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+Target=nvidia-tkg
+Target=nvidia-dkms-tkg
+Target=nvidia-dev-tkg
+Target=nvidia-dev-dkms-tkg
+
+[Action]
+Description=Update Nvidia modules in initcpio
+Depends=mkinitcpio
+When=PostTransaction
+NeedsTargets
+Exec=/usr/bin/mkinitcpio -P
