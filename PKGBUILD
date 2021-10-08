@@ -252,6 +252,7 @@ fi
 source=($_source_name
         '10-nvidia-drm-outputclass.conf'
         'nvidia-utils-tkg.sysusers'
+        '60-nvidia.rules'
         'nvidia-tkg.hook'
         'linux-version.diff' # include linux version
         '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
@@ -288,6 +289,7 @@ msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If 
 md5sums=("$_md5sum"
          'cb27b0f4a78af78aa96c5aacae23256c'
          '3d2894e71d81570bd00bce416d3e547d'
+         '3d32130235acc5ab514e1021f7f5c439'
          'f2166eb150cfdc9d2dd8ec380c3e5583'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
@@ -1278,6 +1280,8 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/10-nvidia-drm-outputclass.conf "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
 
     install -Dm644 "$srcdir"/nvidia-utils-tkg.sysusers "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
+
+    install -Dm644 "$srcdir"/60-nvidia.rules "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
 
     _create_links
 }
