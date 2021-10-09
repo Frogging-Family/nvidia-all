@@ -375,6 +375,12 @@ prepare() {
 
   cp -a kernel kernel-dkms
   cd kernel-dkms
+
+  # workaround for dkms+clang
+  if [[ $_force_clang_usage = "true" ]]; then
+    sed -i "s/'make'/'make' CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip/" dkms.conf
+  fi
+
   sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
   sed -i 's/__JOBS/`nproc`/' dkms.conf
   sed -i 's/__DKMS_MODULES//' dkms.conf
@@ -1454,6 +1460,10 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
     provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
     conflicts=('nvidia' 'nvidia-dkms')
+
+    if [[ $_force_clang_usage = "true" ]]; then
+      depends+=('llvm' 'clang' 'lld')
+    fi
 
     cd ${_pkg}
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
