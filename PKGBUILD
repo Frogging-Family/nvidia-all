@@ -1030,7 +1030,7 @@ build() {
       msg2 "Building Nvidia module for $_kernel..."
 
       if [[ $_force_clang_usage = "true" ]] && [[ ! -z $(strings /usr/lib/modules/$_kernel/vmlinuz | grep llvm) ]]; then
-        export CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip
+        export IGNORE_CC_MISMATCH=1 CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip
       fi
 
       make SYSSRC=/usr/lib/modules/$_kernel/build modules
