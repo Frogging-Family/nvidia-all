@@ -231,6 +231,11 @@ arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
+
+if [[ $_force_clang_usage = "true" ]]; then
+  depends=('llvm' 'clang' 'lld')
+fi
+
 options=('!strip')
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
@@ -1023,6 +1028,11 @@ build() {
 
       # Build module
       msg2 "Building Nvidia module for $_kernel..."
+
+      if [[ $_force_clang_usage = "true" ]]; then
+        export CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip
+      fi
+
       make SYSSRC=/usr/lib/modules/$_kernel/build modules
     done
   fi
@@ -1460,10 +1470,6 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
     provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
     conflicts=('nvidia' 'nvidia-dkms')
-
-    if [[ $_force_clang_usage = "true" ]]; then
-      depends+=('llvm' 'clang' 'lld')
-    fi
 
     cd ${_pkg}
     install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
