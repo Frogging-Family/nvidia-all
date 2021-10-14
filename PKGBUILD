@@ -1171,6 +1171,7 @@ nvidia-utils-tkg() {
     # Allocator library
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
+      mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
     fi
 
     if [[ $pkgver != 396* ]]; then
