@@ -230,7 +230,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=182
+pkgrel=183
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1070,6 +1070,7 @@ nvidia-egl-wayland-tkg() {
     _eglwver="1.1.7"
   else
     _eglwver="1.1.9"
+    _eglgver="1.1.0"
   fi
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg')
@@ -1081,7 +1082,16 @@ nvidia-egl-wayland-tkg() {
     ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so.1
     ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so
 
+    if [ -n "${_eglgver:-}" ]; then
+        install -Dm755 libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so."${_eglgver}"
+        ln -s libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so.1
+        ln -s libnvidia-egl-gbm.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so
+    fi
+
     install -Dm755 10_nvidia_wayland.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json
+    if [[ -e 15_nvidia_gbm.json ]]; then
+        install -Dm755 15_nvidia_gbm.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json
+    fi
     install -Dm755 "$where"/egl-wayland/licenses/egl-wayland/COPYING "${pkgdir}"/usr/share/licenses/egl-wayland/COPYING
     install -Dm755 "$where"/egl-wayland/pkgconfig/wayland-eglstream-protocols.pc "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     install -Dm755 "$where"/egl-wayland/pkgconfig/wayland-eglstream.pc "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
