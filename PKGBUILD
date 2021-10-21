@@ -1073,7 +1073,7 @@ nvidia-egl-wayland-tkg() {
     _eglgver="1.1.0"
   fi
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
-  depends=('nvidia-utils-tkg')
+  depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
   cd $_pkg
