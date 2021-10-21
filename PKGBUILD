@@ -385,13 +385,14 @@ prepare() {
   cp -a kernel kernel-dkms
   cd kernel-dkms
 
-  # workaround for dkms+clang
-  if [[ $_force_clang_usage = "true" ]]; then
-    sed -i "s/'make'/'make' CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip/" dkms.conf
-  fi
-
   sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
   sed -i 's/__JOBS/`nproc`/' dkms.conf
+
+  if [[ $_force_clang_usage = "true" ]]; then
+    sed -i '1s/^/if [[ ! -z $(strings $kernel_source_dir\/vmlinux 2>\/dev\/null | grep llvm) ]]; then\n  LLVM_UTILS="CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip" \nfi\n\n/' dkms.conf
+    sed -i 's/-j`nproc`/${LLVM_UTILS} -j`nproc`/' dkms.conf
+  fi
+
   sed -i 's/__DKMS_MODULES//' dkms.conf
   if (( ${pkgver%%.*} >= 470 )); then
       sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
