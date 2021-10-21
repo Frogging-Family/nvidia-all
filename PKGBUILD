@@ -236,7 +236,7 @@ url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
 
-if [[ $_force_clang_usage = "true" ]]; then
+if [[ $_compiler = "llvm" ]]; then
   depends=('llvm' 'clang' 'lld')
 fi
 
@@ -388,7 +388,7 @@ prepare() {
   sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
   sed -i 's/__JOBS/`nproc`/' dkms.conf
 
-  if [[ $_force_clang_usage = "true" ]]; then
+  if [[ $_compiler = "llvm" ]]; then
     sed -i '1s/^/if [[ ! -z $(strings $kernel_source_dir\/vmlinux 2>\/dev\/null | grep llvm) ]]; then\n  LLVM_UTILS="CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip" \nfi\n\n/' dkms.conf
     sed -i 's/-j`nproc`/${LLVM_UTILS} -j`nproc`/' dkms.conf
   fi
@@ -1034,7 +1034,7 @@ build() {
       # Build module
       msg2 "Building Nvidia module for $_kernel..."
 
-      if [[ $_force_clang_usage = "true" ]] && [[ ! -z $(strings /usr/lib/modules/$_kernel/build/vmlinux | grep llvm) ]]; then
+      if [[ $_compiler = "llvm" ]] && [[ ! -z $(strings /usr/lib/modules/$_kernel/build/vmlinux | grep llvm) ]]; then
         export IGNORE_CC_MISMATCH=1 CC=clang CXX=clang++ LD=ld.lld AS=llvm-as AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJSIZE=llvm-size STRIP=llvm-strip
       fi
 
