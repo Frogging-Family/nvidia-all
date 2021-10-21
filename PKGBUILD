@@ -360,7 +360,9 @@ prepare() {
   [ -d "$_pkg" ] && rm -rf "$_pkg"
 
   # Use custom compiler paths if defined
-  if [ -n "${CUSTOM_GCC_PATH}" ]; then
+  if [ "$_compiler" = "llvm" ] && [ -n "${CUSTOM_LLVM_PATH}" ]; then
+    PATH=${CUSTOM_LLVM_PATH}/bin:${CUSTOM_LLVM_PATH}/lib:${CUSTOM_LLVM_PATH}/include:${PATH}
+  elif [ -n "${CUSTOM_GCC_PATH}" ]; then
     PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
   fi
 
