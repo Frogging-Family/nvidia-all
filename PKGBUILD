@@ -337,17 +337,29 @@ fi
 
 _create_links() {
   # create missing soname links
-  for _lib in $(find "$pkgdir" -name '*.so*' | grep -v 'xorg/'); do
-    # Get soname/base name
+  find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
     if [[ $_lib != *libnvidia-vulkan-producer.* ]]; then # Workaround no SONAME entry for libnvidia-vulkan-producer.so
-      _soname=$(dirname "$_lib")/$(readelf -d "$_lib" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
-      _base=$(echo "$_soname" | sed -r 's/(.*).so.*/\1.so/')
+      _dirname="$(dirname "${_lib}")"
+      _original="$(basename "${_lib}")"
+      _soname="$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)" # Get soname/base name
+      _base="$(echo ${_soname} | sed -r 's/(.*)\.so.*/\1.so/')"
+
+      cd "${_dirname}"
 
       # Create missing links
-      [ -e "$_soname" ] || ln -vs $(basename "$_lib") "$_soname"
-      [ -e "$_base" ] || ln -vs $(basename "$_soname") "$_base"
+      if ! [[ -z "${_soname}" ]]; then # if not empty
+        if ! [[ -e "./${_soname}" ]]; then
+          ln -s $(basename "${_lib}") "./${_soname}"
+        fi
+      fi
+      if ! [[ -z "${_base}" ]]; then # if not empty (if _soname is empty, _base should be too)
+        if ! [[ -e "./${_base}" ]]; then
+          ln -s "./${_soname}" "./${_base}"
+        fi
+      fi
     fi
   done
+  cd "${where}"
 }
 
 prepare() {
