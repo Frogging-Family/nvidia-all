@@ -1375,10 +1375,8 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
     echo "nvidia-uvm" |
         install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
-        
-    if [[ $(pacman -Qq initramfs) = "mkinitcpio" ]]; then
-      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-    fi
+
+    install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
   }
   package_nvidia-tkg() {
     nvidia-tkg
@@ -1498,10 +1496,8 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     echo "nvidia-uvm" |
         install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
 
-    if [[ $(pacman -Qq initramfs) = "mkinitcpio" ]]; then
-      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-    fi
-      
+    install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
   }
   package_nvidia-dkms-tkg() {
