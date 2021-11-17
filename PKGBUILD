@@ -1376,7 +1376,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
     echo "nvidia-uvm" |
         install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
         
-    if [[ $(pacman -Qq initramfs) = "mknitcpio" ]]; then
+    if [[ $(pacman -Qq initramfs) = "mkinitcpio" ]]; then
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
     fi
   }
@@ -1498,7 +1498,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
     echo "nvidia-uvm" |
         install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
 
-    if [[ $(pacman -Qq initramfs) = "mknitcpio" ]]; then
+    if [[ $(pacman -Qq initramfs) = "mkinitcpio" ]]; then
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
     fi
       
