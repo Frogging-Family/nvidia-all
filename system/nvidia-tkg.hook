@@ -10,7 +10,6 @@ Target=nvidia-dev-dkms-tkg
 
 [Action]
 Description=Update Nvidia modules in initcpio
-Depends=mkinitcpio
 When=PostTransaction
 NeedsTargets
-Exec=/usr/bin/mkinitcpio -P
+Exec=/bin/sh -c '[[ -f /usr/bin/mkinitcpio ]] && mkinitcpio -P || echo -e "\e[31m mkinitcpio not found, please update initramfs manually\e[0m"'
