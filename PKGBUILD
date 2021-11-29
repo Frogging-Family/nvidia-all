@@ -651,9 +651,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       _whitelist514=( 465* 470.4* 470.5* )
     fi
 
+    # 5.16
     if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
       _kernel516="1"
-      _whitelist516=( 495* 465* 470.4* 470.5* )
+      _whitelist516=( 470.8* 495*)
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
