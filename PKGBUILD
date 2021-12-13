@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.05\n      2.495 series: 495.44\n      3.470 series: 470.74\n      4.465 series: 465.31\n      5.460 series: 460.91.03\n      6.455 series: 455.45.01\n      7.450 series: 450.119.03\n      8.440 series: 440.100 (kernel 5.8 or lower)\n      9.435 series: 435.21  (kernel 5.6 or lower)\n      10.430 series: 430.64  (kernel 5.5 or lower)\n      11.418 series: 418.113 (kernel 5.5 or lower)\n      12.415 series: 415.27  (kernel 5.4 or lower)\n      13.410 series: 410.104 (kernel 5.5 or lower)\n      14.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      15.Custom version (396.xx series or higher)\n    choice[1-15?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.16\n      2.495 series: 495.44\n      3.470 series: 470.86\n      4.465 series: 465.31\n      5.460 series: 460.91.03\n      6.455 series: 455.45.01\n      7.450 series: 450.119.03\n      8.440 series: 440.100 (kernel 5.8 or lower)\n      9.435 series: 435.21  (kernel 5.6 or lower)\n      10.430 series: 430.64  (kernel 5.5 or lower)\n      11.418 series: 418.113 (kernel 5.5 or lower)\n      12.415 series: 415.27  (kernel 5.4 or lower)\n      13.410 series: 410.104 (kernel 5.5 or lower)\n      14.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      15.Custom version (396.xx series or higher)\n    choice[1-15?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -56,8 +56,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=3730580acbd0d2145e870f7896d4db83' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=470.74' > options
-      echo '_md5sum=279cbf4e1155a02e6a9f65e988794516' >> options
+      echo '_driver_version=470.86' > options
+      echo '_md5sum=6620e8c931b5e33c5860793e5242edcf' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=465.31' > options
@@ -117,8 +117,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=470.62.05' > options
-      echo '_md5sum=03db3d336ebe8bc112fecb705330ad2a' >> options
+      echo '_driver_version=470.62.16' > options
+      echo '_md5sum=a53a82bf85ec3d8fab6d0dafa016ca49' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -182,7 +182,7 @@ msg2 "Building driver version $_driver_version on branch $_driver_branch."
 # Skip header check for dkms-only builds with explicit target kernel version
 if [ "$_dkms" != "true" ] || [ -z "$_kerneloverride" ]; then
   # Some people seem to believe making blank headers is a good idea
-  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ]; then
+  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-zen-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-hardened-headers | head -c1 | wc -c) -eq 0 ]; then
     error "A (correctly made?) linux-headers package can't be found."
     plain "If you're sure it's installed, blame your kernel maintainer."
     read -p "    Press enter to proceed anyway..."
@@ -230,7 +230,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=183
+pkgrel=189
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -286,6 +286,7 @@ source=($_source_name
         '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
         'kernel-5.12.patch' # 5.12 workaround
         'kernel-5.14.patch' # 5.14 workaround
+        'kernel-5.16.patch' # 5.16 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -294,7 +295,7 @@ md5sums=("$_md5sum"
          'cb27b0f4a78af78aa96c5aacae23256c'
          '3d2894e71d81570bd00bce416d3e547d'
          '3d32130235acc5ab514e1021f7f5c439'
-         'f2166eb150cfdc9d2dd8ec380c3e5583'
+         '5aec90d8d2e09b29e595270a0d3ecbf8'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
          '14460615a9d4e247c8d9bcae8776ed48'
@@ -322,7 +323,8 @@ md5sums=("$_md5sum"
          '8764cc714e61363cc8f818315957ad17'
          '08bec554de265ce5fdcfdbd55fb608fc'
          '3980770412a1d4d7bd3a16c9042200df'
-         'f5fd091893f513d2371654e83049f099')
+         'f5fd091893f513d2371654e83049f099'
+         'd684ca11fdc9894c14ead69cb35a5946')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -337,17 +339,29 @@ fi
 
 _create_links() {
   # create missing soname links
-  for _lib in $(find "$pkgdir" -name '*.so*' | grep -v 'xorg/'); do
-    # Get soname/base name
+  find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
     if [[ $_lib != *libnvidia-vulkan-producer.* ]]; then # Workaround no SONAME entry for libnvidia-vulkan-producer.so
-      _soname=$(dirname "$_lib")/$(readelf -d "$_lib" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
-      _base=$(echo "$_soname" | sed -r 's/(.*).so.*/\1.so/')
+      _dirname="$(dirname "${_lib}")"
+      _original="$(basename "${_lib}")"
+      _soname="$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)" # Get soname/base name
+      _base="$(echo ${_soname} | sed -r 's/(.*)\.so.*/\1.so/')"
+
+      cd "${_dirname}"
 
       # Create missing links
-      [ -e "$_soname" ] || ln -vs $(basename "$_lib") "$_soname"
-      [ -e "$_base" ] || ln -vs $(basename "$_soname") "$_base"
+      if ! [[ -z "${_soname}" ]]; then # if not empty
+        if ! [[ -e "./${_soname}" ]]; then
+          ln -s $(basename "${_lib}") "./${_soname}"
+        fi
+      fi
+      if ! [[ -z "${_base}" ]]; then # if not empty (if _soname is empty, _base should be too)
+        if ! [[ -e "./${_base}" ]]; then
+          ln -s "./${_soname}" "./${_base}"
+        fi
+      fi
     fi
   done
+  cd "${where}"
 }
 
 prepare() {
@@ -637,6 +651,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       _whitelist514=( 465* 470.4* 470.5* )
     fi
 
+    # 5.16
+    if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
+      _kernel516="1"
+      _whitelist516=( 470.8* 495*)
+    fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -692,6 +712,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.14" ]; then
         _whitelist=(${_whitelist514[@]})
+      fi
+
+      if [ "$_patch" = "5.16" ]; then
+        _whitelist=(${_whitelist516[@]})
       fi
 
       patchy=0
@@ -990,6 +1014,19 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.14.patch
       else
         msg2 "Skipping kernel-5.14.patch as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    if [ "$_kernel516" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist516[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.16.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.16.patch
+      else
+        msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
       fi
     fi
 
