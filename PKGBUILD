@@ -234,7 +234,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=191
+pkgrel=192
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1021,6 +1021,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
+    # 5.16
     if [ "$_kernel516" = "1" ]; then
       patchy=0
       for yup in "${_whitelist516[@]}"; do
@@ -1078,6 +1079,9 @@ opencl-nvidia-tkg() {
   # OpenCL
   install -Dm644 nvidia.icd "$pkgdir"/etc/OpenCL/vendors/nvidia.icd
   install -Dm755 libnvidia-compiler.so.$pkgver "$pkgdir"/usr/lib/libnvidia-compiler.so.$pkgver
+  if [[ -e libnvidia-compiler-next.so.${pkgver} ]]; then
+    install -Dm755 libnvidia-compiler-next.so.$pkgver "$pkgdir"/usr/lib/libnvidia-compiler-next.so.$pkgver
+  fi
   install -Dm755 libnvidia-opencl.so.$pkgver "$pkgdir"/usr/lib/libnvidia-opencl.so.$pkgver
 
   # create missing soname links
