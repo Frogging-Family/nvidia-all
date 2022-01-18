@@ -234,7 +234,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=192
+pkgrel=193
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -291,6 +291,7 @@ source=($_source_name
         'kernel-5.12.patch' # 5.12 workaround
         'kernel-5.14.patch' # 5.14 workaround
         'kernel-5.16.patch' # 5.16 workaround
+        'kernel-5.16-std.patch' # 5.16 workaround for 470.xx
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -328,7 +329,8 @@ md5sums=("$_md5sum"
          '08bec554de265ce5fdcfdbd55fb608fc'
          '3980770412a1d4d7bd3a16c9042200df'
          'f5fd091893f513d2371654e83049f099'
-         'd684ca11fdc9894c14ead69cb35a5946')
+         'd684ca11fdc9894c14ead69cb35a5946'
+         '0f987607c98eb6faeb7d691213de6a70')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -659,6 +661,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
       _kernel516="1"
       _whitelist516=( 470.8* 470.9* 495*)
+      _whitelist516std=( 470.* )
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -1032,6 +1035,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.16.patch
       else
         msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
+      fi
+      patchy=0
+      for yup in "${_whitelist516std[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.16-std.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.16-std.patch
+      else
+        msg2 "Skipping kernel-5.16-std.patch as it doesn't apply to this driver version..."
       fi
     fi
 
