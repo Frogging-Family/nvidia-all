@@ -291,7 +291,7 @@ source=($_source_name
         'kernel-5.12.patch' # 5.12 workaround
         'kernel-5.14.patch' # 5.14 workaround
         'kernel-5.16.patch' # 5.16 workaround
-        'kernel-5.16-std.patch' # 5.16 workaround for 470.xx
+        'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -661,7 +661,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
       _kernel516="1"
       _whitelist516=( 470.8* 470.9* 495*)
-      _whitelist516std=( 470.* )
+      if [[ $pkgver = 470.62.* ]]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying kernel-5.16-std.diff for $_kernel..."
+        patch -Np2 -i "$srcdir"/kernel-5.16-std.diff
+        cd ..
+      fi
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -720,7 +725,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$_patch" = "5.14" ]; then
         _whitelist=(${_whitelist514[@]})
       fi
-
       if [ "$_patch" = "5.16" ]; then
         _whitelist=(${_whitelist516[@]})
       fi
@@ -1036,15 +1040,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       else
         msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
       fi
-      patchy=0
-      for yup in "${_whitelist516std[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.16-std.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.16-std.patch
+      if [[ $pkgver = 470.62.* ]]; then
+        msg2 "Applying kernel-5.16-std.diff for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
       else
-        msg2 "Skipping kernel-5.16-std.patch as it doesn't apply to this driver version..."
+        msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
       fi
     fi
 
