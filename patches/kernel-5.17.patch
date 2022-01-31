@@ -1,0 +1,35 @@
+From 026a2a54a234cdb7bf78c17be7ea29d8dcf9f390 Mon Sep 17 00:00:00 2001
+From: Joan Bruguera <joanbrugueram@gmail.com>
+Date: Sun, 23 Jan 2022 16:28:18 +0100
+Subject: [PATCH] Tentative fix for NVIDIA 470.94 driver for Linux 5.17-rc1
+
+See also: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=359745d78351c6f5442435f81549f0207ece28aa
+
+---
+ common/inc/nv-procfs-utils.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/common/inc/nv-procfs-utils.h b/common/inc/nv-procfs-utils.h
+index 7c3e1a3..462eac1 100644
+--- a/kernel-dkms/common/inc/nv-procfs-utils.h
++++ b/kernel-dkms/common/inc/nv-procfs-utils.h
+@@ -10,6 +10,7 @@
+ #ifndef _NV_PROCFS_UTILS_H
+ #define _NV_PROCFS_UTILS_H
+ 
++#include <linux/version.h>
+ #include "conftest.h"
+ 
+ #ifdef CONFIG_PROC_FS
+@@ -87,6 +88,8 @@ typedef struct file_operations nv_proc_ops_t;
+ 
+ #if defined(NV_PDE_DATA_PRESENT)
+ # define NV_PDE_DATA(inode) PDE_DATA(inode)
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
++# define NV_PDE_DATA(inode) pde_data(inode)
+ #else
+ # define NV_PDE_DATA(inode) PDE(inode)->data
+ #endif
+-- 
+2.34.1
+

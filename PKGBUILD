@@ -234,7 +234,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=195
+pkgrel=196
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -292,6 +292,7 @@ source=($_source_name
         'kernel-5.14.patch' # 5.14 workaround
         'kernel-5.16.patch' # 5.16 workaround
         'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
+        'kernel-5.17.patch' # 5.17 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -330,7 +331,8 @@ md5sums=("$_md5sum"
          '3980770412a1d4d7bd3a16c9042200df'
          'f5fd091893f513d2371654e83049f099'
          'd684ca11fdc9894c14ead69cb35a5946'
-         '0f987607c98eb6faeb7d691213de6a70')
+         '0f987607c98eb6faeb7d691213de6a70'
+         'a70bc9cbbc7e8563b48985864a11de71')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -669,6 +671,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
+    # 5.17
+    if (( $(vercmp "$_kernel" "5.17") >= 0 )); then
+      _kernel517="1"
+      _whitelist517=( 470* 495*)
+    fi
+
     # Loop patches (linux-4.15.patch, lol.patch, ...)
     for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
       # Patch version (4.15, "", ...)
@@ -727,6 +735,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
       if [ "$_patch" = "5.16" ]; then
         _whitelist=(${_whitelist516[@]})
+      fi
+      if [ "$_patch" = "5.17" ]; then
+        _whitelist=(${_whitelist517[@]})
       fi
 
       patchy=0
@@ -1045,6 +1056,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
       else
         msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    # 5.17
+    if [ "$_kernel517" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist517[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.17.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.17.patch
+      else
+        msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
       fi
     fi
 
