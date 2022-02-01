@@ -1371,6 +1371,11 @@ nvidia-utils-tkg() {
       install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
       install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
+      # nvidia-powerd
+      if [ -e nvidia-powerd ]; then
+        install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+        install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+      fi
     fi
 
     # gsp firmware
