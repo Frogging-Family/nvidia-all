@@ -48,62 +48,66 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.16\n      2.495 series: 495.46\n      3.470 series: 470.94\n      4.465 series: 465.31\n      5.460 series: 460.91.03\n      6.455 series: 455.45.01\n      7.450 series: 450.119.03\n      8.440 series: 440.100 (kernel 5.8 or lower)\n      9.435 series: 435.21  (kernel 5.6 or lower)\n      10.430 series: 430.64  (kernel 5.5 or lower)\n      11.418 series: 418.113 (kernel 5.5 or lower)\n      12.415 series: 415.27  (kernel 5.4 or lower)\n      13.410 series: 410.104 (kernel 5.5 or lower)\n      14.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      15.Custom version (396.xx series or higher)\n    choice[1-15?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.22\n      2.510 series: 510.47.03\n      3.495 series: 495.46\n      4.470 series: 470.103.01\n      5.465 series: 465.31\n      6.460 series: 460.91.03\n      7.455 series: 455.45.01\n      7.450 series: 450.119.03\n      9.440 series: 440.100 (kernel 5.8 or lower)\n      10.435 series: 435.21  (kernel 5.6 or lower)\n      11.430 series: 430.64  (kernel 5.5 or lower)\n      12.418 series: 418.113 (kernel 5.5 or lower)\n      13.415 series: 415.27  (kernel 5.4 or lower)\n      14.410 series: 410.104 (kernel 5.5 or lower)\n      15.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      16.Custom version (396.xx series or higher)\n    choice[1-16?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=510.47.03' > options
+      echo '_md5sum=1059d74ba891c412dcc8ae448fecd4ef' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=495.46' > options
       echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=470.94' > options
-      echo '_md5sum=dc073d2b85d429e185fa5521b527784c' >> options
-      echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
+      echo '_driver_version=470.103.01' > options
+      echo '_md5sum=f4ea68e482f51f7b358c8bec6162c27a' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=465.31' > options
       echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=460.91.03' > options
       echo '_md5sum=15c5ada08bdb25d757d90e0f21b6f270' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=455.45.01' > options
       echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=450.119.03' > options
       echo '_md5sum=b2725b8c15a364582be90c5fa1d6690f' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       echo '_driver_version=440.100' > options
       echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=435.21' > options
       echo '_md5sum=050acb0aecc3ba15d1fc609ee82bebe' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "10" ]; then
+    elif [ "$CONDITION" = "11" ]; then
       echo '_driver_version=430.64' > options
       echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "11" ]; then
+    elif [ "$CONDITION" = "12" ]; then
       echo '_driver_version=418.113' > options
       echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "12" ]; then
+    elif [ "$CONDITION" = "13" ]; then
       echo '_driver_version=415.27' > options
       echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "13" ]; then
+    elif [ "$CONDITION" = "14" ]; then
       echo '_driver_version=410.104' > options
       echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "14" ]; then
+    elif [ "$CONDITION" = "15" ]; then
       echo '_driver_version=396.54' > options
       echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "15" ]; then
+    elif [ "$CONDITION" = "16" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -117,8 +121,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=470.62.16' > options
-      echo '_md5sum=a53a82bf85ec3d8fab6d0dafa016ca49' >> options
+      echo '_driver_version=470.62.22' > options
+      echo '_md5sum=903c9e5dce1d1f76403c9e14499239da' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -230,7 +234,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=190
+pkgrel=197
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -287,6 +291,8 @@ source=($_source_name
         'kernel-5.12.patch' # 5.12 workaround
         'kernel-5.14.patch' # 5.14 workaround
         'kernel-5.16.patch' # 5.16 workaround
+        'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
+        'kernel-5.17.patch' # 5.17 workaround
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -324,7 +330,9 @@ md5sums=("$_md5sum"
          '08bec554de265ce5fdcfdbd55fb608fc'
          '3980770412a1d4d7bd3a16c9042200df'
          'f5fd091893f513d2371654e83049f099'
-         'd684ca11fdc9894c14ead69cb35a5946')
+         'd684ca11fdc9894c14ead69cb35a5946'
+         '0f987607c98eb6faeb7d691213de6a70'
+         'a70bc9cbbc7e8563b48985864a11de71')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
@@ -450,9 +458,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   fi
   for _kernel in "${_kernels[@]}"; do
     # Use separate source directories
-    cp -r kernel kernel-$_kernel
+    cp -r kernel kernel-"$_kernel"
 
-    cd "$srcdir"/"$_pkg"/kernel-$_kernel
+    cd "$srcdir"/"$_pkg"/kernel-"$_kernel"
     if (( ${pkgver%%.*} <= 455 )); then
       msg2 "Applying linux-version.diff for $_kernel..."
       patch -p2 -i "$srcdir"/linux-version.diff
@@ -655,6 +663,18 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
       _kernel516="1"
       _whitelist516=( 470.8* 470.9* 495*)
+      if [[ $pkgver = 470.62.* ]]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying kernel-5.16-std.diff for $_kernel..."
+        patch -Np2 -i "$srcdir"/kernel-5.16-std.diff
+        cd ..
+      fi
+    fi
+
+    # 5.17
+    if (( $(vercmp "$_kernel" "5.17") >= 0 )); then
+      _kernel517="1"
+      _whitelist517=( 470.62.* 495*)
     fi
 
     # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -713,9 +733,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$_patch" = "5.14" ]; then
         _whitelist=(${_whitelist514[@]})
       fi
-
       if [ "$_patch" = "5.16" ]; then
         _whitelist=(${_whitelist516[@]})
+      fi
+      if [ "$_patch" = "5.17" ]; then
+        _whitelist=(${_whitelist517[@]})
       fi
 
       patchy=0
@@ -1017,6 +1039,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
     fi
 
+    # 5.16
     if [ "$_kernel516" = "1" ]; then
       patchy=0
       for yup in "${_whitelist516[@]}"; do
@@ -1027,6 +1050,26 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patch -Np1 -i "$srcdir"/kernel-5.16.patch
       else
         msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
+      fi
+      if [[ $pkgver = 470.62.* ]]; then
+        msg2 "Applying kernel-5.16-std.diff for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
+      else
+        msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
+      fi
+    fi
+
+    # 5.17
+    if [ "$_kernel517" = "1" ]; then
+      patchy=0
+      for yup in "${_whitelist517[@]}"; do
+        [[ $pkgver = $yup ]] && patchy=1
+      done
+      if [ "$patchy" = "1" ]; then
+        msg2 "Applying kernel-5.17.patch for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.17.patch
+      else
+        msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
       fi
     fi
 
@@ -1074,6 +1117,9 @@ opencl-nvidia-tkg() {
   # OpenCL
   install -Dm644 nvidia.icd "$pkgdir"/etc/OpenCL/vendors/nvidia.icd
   install -Dm755 libnvidia-compiler.so.$pkgver "$pkgdir"/usr/lib/libnvidia-compiler.so.$pkgver
+  if [[ -e libnvidia-compiler-next.so.${pkgver} ]]; then
+    install -Dm755 libnvidia-compiler-next.so.$pkgver "$pkgdir"/usr/lib/libnvidia-compiler-next.so.$pkgver
+  fi
   install -Dm755 libnvidia-opencl.so.$pkgver "$pkgdir"/usr/lib/libnvidia-opencl.so.$pkgver
 
   # create missing soname links
@@ -1325,6 +1371,11 @@ nvidia-utils-tkg() {
       install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
       install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
+      # nvidia-powerd
+      if [ -e nvidia-powerd ]; then
+        install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+        install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+      fi
     fi
 
     # gsp firmware
