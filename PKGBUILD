@@ -334,7 +334,7 @@ md5sums=("$_md5sum"
          'd684ca11fdc9894c14ead69cb35a5946'
          '0f987607c98eb6faeb7d691213de6a70'
          'a70bc9cbbc7e8563b48985864a11de71'
-         'd06182b5430a493004dc916dfb80f6ab')
+         '8d8ee9f89cfd18f8b3b9f64c2c7630e9')
 
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
