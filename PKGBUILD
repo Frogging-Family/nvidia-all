@@ -239,7 +239,7 @@ arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
-options=('!strip')
+options=(!strip !lto)
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
 
