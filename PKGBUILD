@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.26\n      2.510 series: 510.60.02\n      3.495 series: 495.46\n      4.470 series: 470.103.01\n      5.465 series: 465.31\n      6.460 series: 460.91.03\n      7.455 series: 455.45.01\n      7.450 series: 450.119.03\n      9.440 series: 440.100 (kernel 5.8 or lower)\n      10.435 series: 435.21  (kernel 5.6 or lower)\n      11.430 series: 430.64  (kernel 5.5 or lower)\n      12.418 series: 418.113 (kernel 5.5 or lower)\n      13.415 series: 415.27  (kernel 5.4 or lower)\n      14.410 series: 410.104 (kernel 5.5 or lower)\n      15.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      16.Custom version (396.xx series or higher)\n    choice[1-16?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 470.62.26\n      2.510 series: 510.68.02\n      3.495 series: 495.46\n      4.470 series: 470.103.01\n      5.465 series: 465.31\n      6.460 series: 460.91.03\n      7.455 series: 455.45.01\n      7.450 series: 450.119.03\n      9.440 series: 440.100 (kernel 5.8 or lower)\n      10.435 series: 435.21  (kernel 5.6 or lower)\n      11.430 series: 430.64  (kernel 5.5 or lower)\n      12.418 series: 418.113 (kernel 5.5 or lower)\n      13.415 series: 415.27  (kernel 5.4 or lower)\n      14.410 series: 410.104 (kernel 5.5 or lower)\n      15.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n      16.Custom version (396.xx series or higher)\n    choice[1-16?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=510.60.02' > options
-      echo '_md5sum=2288e18f3b767e66d465fb4add1df080' >> options
+      echo '_driver_version=510.68.02' > options
+      echo '_md5sum=be606c556150a97a3886cdda3aa10142' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=495.46' > options
@@ -234,7 +234,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=201
+pkgrel=202
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1399,6 +1399,7 @@ nvidia-utils-tkg() {
       # nvidia-powerd
       if [ -e nvidia-powerd ]; then
         install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+        install -D -m644 nvidia-dbus.conf "${pkgdir}/etc/dbus-1/system.d/nvidia-dbus.conf"
         install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
       fi
     fi
