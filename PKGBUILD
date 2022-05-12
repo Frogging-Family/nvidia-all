@@ -146,6 +146,23 @@ if [ -e options ]; then
   source options
 fi
 
+if [ "$_open_source_modules" != "false" ]; then
+  # Open source kernel module availability check
+  if [ -z "$_open_source" ] && [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
+    if [ -z "$_open_source_modules" ]; then
+      msg2 " - Open source kernel modules available - "
+      plain "Do you want to use it instead of the proprietary one?"
+      read -rp "`echo $'    > N/y : '`" _open_source;
+    fi
+    if [[ "$_open_source" =~ [yY] ]] || [ "$_open_source_modules" = "true" ]; then
+      echo '_open_source="y"' >> options
+      source options
+    fi
+  else
+    msg2 "No open source kernel module available"
+  fi
+fi
+
 # Check if the version we are going for is newer or not if enabled
 if [[ "$_only_update_if_newer" == "true" ]]; then
   # Check current version, if possible
@@ -206,13 +223,19 @@ else
 fi
 
 # packages
-if [ "$_dkms" = "full" ]; then
-  _pkgname_array+=("$_branchname-dkms-tkg")
-  _pkgname_array+=("$_branchname-tkg")
-elif [ "$_dkms" = "true" ]; then
-  _pkgname_array+=("$_branchname-dkms-tkg")
+if [ "$_open_source" = "y" ]; then
+  __branchname="nvidia-open"
 else
-  _pkgname_array+=("$_branchname-tkg")
+  __branchname="$_branchname"
+fi
+
+if [ "$_dkms" = "full" ]; then
+  _pkgname_array+=("$__branchname-dkms-tkg")
+  _pkgname_array+=("$__branchname-tkg")
+elif [ "$_dkms" = "true" ]; then
+  _pkgname_array+=("$__branchname-dkms-tkg")
+else
+  _pkgname_array+=("$__branchname-tkg")
 fi
 
 _pkgname_array+=("$_branchname-utils-tkg")
@@ -238,7 +261,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=205
+pkgrel=206
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -258,7 +281,7 @@ if [ "$_driver_branch" = "vulkandev" ]; then
     _source_name="NVIDIA-Linux-x86_64-$pkgver.run::https://developer.nvidia.com/vulkan-beta-${pkgver//.}-linux"
   fi
 else
-    _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/$pkgver/NVIDIA-Linux-x86_64-$pkgver.run"
+  _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/$pkgver/NVIDIA-Linux-x86_64-$pkgver.run"
 fi
 
 source=($_source_name
@@ -338,6 +361,11 @@ md5sums=("$_md5sum"
          '0f987607c98eb6faeb7d691213de6a70'
          'a70bc9cbbc7e8563b48985864a11de71')
 
+if [ "$_open_source" = "y" ]; then
+  source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
+  md5sums+=("SKIP")
+fi
+
 if [ "$_autoaddpatch" = "true" ]; then
   # Auto-add *.patch files from $startdir to source=()
   for _patch in $(find "$startdir" -maxdepth 1 -name '*.patch' -printf "%f\n"); do
@@ -388,28 +416,60 @@ prepare() {
   # Extract
   msg2 "Self-Extracting $_pkg.run..."
   sh "$_pkg".run -x
-  cd "$_pkg"
 
-  # linux-rt fix for newer drivers. This just passes the same value regardless of kernel type as a bypass. This was stolen from https://gitlab.manjaro.org/packages/community/realtime-kernels/linux416-rt-extramodules/blob/master/nvidia/PKGBUILD - Thanks Muhownage <3
-  sed -i -e 's|PREEMPT_RT_PRESENT=1|PREEMPT_RT_PRESENT=0|g' kernel/conftest.sh
+  if [ "$_open_source" = "y" ]; then
+    cd open-gpu-kernel-modules-${pkgver}
+    # Attempt to make this reproducible
+    sed -i "s/^HOSTNAME.*/HOSTNAME = echo archlinux"/ utils.mk
+    sed -i "s/^WHOAMI.*/WHOAMI = echo archlinux-builder"/ utils.mk
+    sed -i "s/^DATE.*/DATE = date -r version.mk"/ utils.mk
 
-  # non-english locale workaround for 440.26
-  if [[ $pkgver = 440.26 ]]; then
-    sed -i -e 's|$CC $CFLAGS -c conftest_headers$$.c|LC_ALL=C $CC $CFLAGS -c conftest_headers$$.c|g' kernel/conftest.sh
-  fi
+    sed -i "s/__VERSION_STRING/${pkgver}/" kernel-open/dkms.conf
+    sed -i 's/__JOBS/`nproc`/' kernel-open/dkms.conf
+    sed -i 's/__EXCLUDE_MODULES//' kernel-open/dkms.conf
+    sed -i 's/__DKMS_MODULES//' kernel-open/dkms.conf
+    sed -i '$i\
+BUILT_MODULE_NAME[0]="nvidia"\
+BUILT_MODULE_LOCATION[0]="kernel-open"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+BUILT_MODULE_LOCATION[1]="kernel-open"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+BUILT_MODULE_LOCATION[2]="kernel-open"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+BUILT_MODULE_LOCATION[3]="kernel-open"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+BUILT_MODULE_LOCATION[4]="kernel-open"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
-  # 440.58.01 Unfrogging
-  if [[ $pkgver = 440.58.01 ]]; then
-    sed -i -e '/bug/d' nvidia-application-profiles-440.58.01-rc
-  fi
+    # Clean version for later copying for DKMS
+    cp -r ../open-gpu-kernel-modules-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
+  else
+    cd "$_pkg"
 
-  cp -a kernel kernel-dkms
-  cd kernel-dkms
-  sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
-  sed -i 's/__JOBS/`nproc`/' dkms.conf
-  sed -i 's/__DKMS_MODULES//' dkms.conf
-  if (( ${pkgver%%.*} >= 470 )); then
-      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+    # linux-rt fix for newer drivers. This just passes the same value regardless of kernel type as a bypass. This was stolen from https://gitlab.manjaro.org/packages/community/realtime-kernels/linux416-rt-extramodules/blob/master/nvidia/PKGBUILD - Thanks Muhownage <3
+    sed -i -e 's|PREEMPT_RT_PRESENT=1|PREEMPT_RT_PRESENT=0|g' kernel/conftest.sh
+
+    # non-english locale workaround for 440.26
+    if [[ $pkgver = 440.26 ]]; then
+      sed -i -e 's|$CC $CFLAGS -c conftest_headers$$.c|LC_ALL=C $CC $CFLAGS -c conftest_headers$$.c|g' kernel/conftest.sh
+    fi
+
+    # 440.58.01 Unfrogging
+    if [[ $pkgver = 440.58.01 ]]; then
+      sed -i -e '/bug/d' nvidia-application-profiles-440.58.01-rc
+    fi
+
+    cp -a kernel kernel-dkms
+    cd kernel-dkms
+    sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
+    sed -i 's/__JOBS/`nproc`/' dkms.conf
+    sed -i 's/__DKMS_MODULES//' dkms.conf
+    if (( ${pkgver%%.*} >= 470 )); then
+        sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[1]="nvidia-uvm"\
 DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
@@ -419,8 +479,8 @@ BUILT_MODULE_NAME[3]="nvidia-drm"\
 DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[4]="nvidia-peermem"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' dkms.conf
-  elif (( ${pkgver%%.*} = 465 )); then
-    sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+    elif (( ${pkgver%%.*} = 465 )); then
+      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[1]="nvidia-uvm"\
 DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
@@ -432,8 +492,8 @@ BUILT_MODULE_NAME[4]="nvidia-peermem"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[5]="nvidia-ib-peermem-stub"\
 DEST_MODULE_LOCATION[5]="/kernel/drivers/video"' dkms.conf
-  else
-    sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+    else
+      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
 DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[1]="nvidia-uvm"\
 DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
@@ -441,672 +501,679 @@ BUILT_MODULE_NAME[2]="nvidia-modeset"\
 DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
 BUILT_MODULE_NAME[3]="nvidia-drm"\
 DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
-  fi
-
-  # Gift for linux-rt guys
-  sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' dkms.conf
-
-  cd ../
-  bsdtar -xf nvidia-persistenced-init.tar.bz2
-
-  if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
-    sed -i 's/__NV_VK_ICD__/libGLX_nvidia.so.0/' nvidia_icd.json.template
-  fi
-
-  # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
-  local -a _kernels
-  if [ -n "$_kerneloverride" ]; then
-    _kernels="$_kerneloverride"
-  else
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-  fi
-  for _kernel in "${_kernels[@]}"; do
-    # Use separate source directories
-    cp -r kernel kernel-"$_kernel"
-
-    cd "$srcdir"/"$_pkg"/kernel-"$_kernel"
-    if (( ${pkgver%%.*} <= 455 )); then
-      msg2 "Applying linux-version.diff for $_kernel..."
-      patch -p2 -i "$srcdir"/linux-version.diff
     fi
 
-    # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
-    # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
-    if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
-      msg2 "Applying 455 crashfix for $_kernel..."
-      patch -p2 -i "$srcdir"/455-crashfix.diff
-    fi
-    cd ..
+    # Gift for linux-rt guys
+    sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' dkms.conf
 
-    ## kernel version variables, quirks & driver patch whitelists
+    cd ../
+    bsdtar -xf nvidia-persistenced-init.tar.bz2
 
-    # https://bugs.archlinux.org/task/62142
-    if [ "$_62142_fix" = "true" ]; then
-      sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-$_kernel/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
+    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
+      sed -i 's/__NV_VK_ICD__/libGLX_nvidia.so.0/' nvidia_icd.json.template
     fi
 
-    # 4.16
-    if (( $(vercmp "$_kernel" "4.16") >= 0 )); then
-      _kernel416="1"
-      _whitelist416=( 396* 410* 415* 418.3* 418.4* 418.52.0* 418.52.10 418.52.14 )
+    # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
+    local -a _kernels
+    if [ -n "$_kerneloverride" ]; then
+      _kernels="$_kerneloverride"
+    else
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
+    for _kernel in "${_kernels[@]}"; do
+      # Use separate source directories
+      cp -r kernel kernel-"$_kernel"
 
-    # 4.19
-    if (( $(vercmp "$_kernel" "4.19") >= 0 )); then
-      _kernel419="1"
-      _whitelist419=( 396* )
-    fi
-
-    # 4.20
-    if (( $(vercmp "$_kernel" "4.20") >= 0 )); then
-      # Fix for "unknown type name 'ipmi_user_t'" (required for older than 2018.12.7 drivers when used on 4.20+)
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 410.5* ]] || [[ $pkgver = 410.6* ]] || [[ $pkgver = 410.7* ]] || [[ $pkgver = 415.1* ]]; then
-        _oldstuff="1"
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 01-ipmi-vm.diff for $_kernel..."
-        patch -p2 -i "$srcdir"/01-ipmi-vm.diff
-        if [[ $pkgver != 396* ]]; then
-          _youngeryetoldstuff="1"
-          msg2 "Applying 02-ipmi-vm.diff for $_kernel..."
-          patch -p2 -i "$srcdir"/02-ipmi-vm.diff
-        fi
-        cd ..
-      else
-        msg2 "Skipping ipmi-vm fixes (not needed for this driver/kernel combination)"
+      cd "$srcdir"/"$_pkg"/kernel-"$_kernel"
+      if (( ${pkgver%%.*} <= 455 )); then
+        msg2 "Applying linux-version.diff for $_kernel..."
+        patch -p2 -i "$srcdir"/linux-version.diff
       fi
-    fi
 
-    # 5.0
-    if (( $(vercmp "$_kernel" "5.0") >= 0 )); then
-      _kernel50="1"
-      _whitelist50=( 396* 410.5* 410.6* 410.7* 410.9* 415* )
-    fi
+      # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
+      # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
+      if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
+        msg2 "Applying 455 crashfix for $_kernel..."
+        patch -p2 -i "$srcdir"/455-crashfix.diff
+      fi
+      cd ..
 
-    # 5.1
-    if (( $(vercmp "$_kernel" "5.1") >= 0 )); then
-      _kernel51="1"
-      _whitelist51=( 396* 410* 415* 418.3* 418.4* 418.52.0* 418.52.10 )
-      if [[ $pkgver != 430* ]]; then
-        sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.3* ]] || [[ $pkgver = 418.4* ]]; then
-          _low418="1"
+      ## kernel version variables, quirks & driver patch whitelists
+
+      # https://bugs.archlinux.org/task/62142
+      if [ "$_62142_fix" = "true" ]; then
+        sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-$_kernel/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
+      fi
+
+      # 4.16
+      if (( $(vercmp "$_kernel" "4.16") >= 0 )); then
+        _kernel416="1"
+        _whitelist416=( 396* 410* 415* 418.3* 418.4* 418.52.0* 418.52.10 418.52.14 )
+      fi
+
+      # 4.19
+      if (( $(vercmp "$_kernel" "4.19") >= 0 )); then
+        _kernel419="1"
+        _whitelist419=( 396* )
+      fi
+
+      # 4.20
+      if (( $(vercmp "$_kernel" "4.20") >= 0 )); then
+        # Fix for "unknown type name 'ipmi_user_t'" (required for older than 2018.12.7 drivers when used on 4.20+)
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 410.5* ]] || [[ $pkgver = 410.6* ]] || [[ $pkgver = 410.7* ]] || [[ $pkgver = 415.1* ]]; then
+          _oldstuff="1"
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
-          msg2 "Applying list_is_first.diff for $_kernel..."
-          # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
-          sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
-          sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
-          patch -Np2 -i "$srcdir"/list_is_first.diff
+          msg2 "Applying 01-ipmi-vm.diff for $_kernel..."
+          patch -p2 -i "$srcdir"/01-ipmi-vm.diff
+          if [[ $pkgver != 396* ]]; then
+            _youngeryetoldstuff="1"
+            msg2 "Applying 02-ipmi-vm.diff for $_kernel..."
+            patch -p2 -i "$srcdir"/02-ipmi-vm.diff
+          fi
           cd ..
         else
-          msg2 "Skipping list_is_first fixes (not needed for this driver/kernel combination)"
+          msg2 "Skipping ipmi-vm fixes (not needed for this driver/kernel combination)"
         fi
       fi
-    fi
 
-    # 5.2
-    if (( $(vercmp "$_kernel" "5.2") >= 0 )); then
-      _kernel52="1"
-      _whitelist52=( 396* 410* 415* 418.3* 418.4* 418.56 418.7* 418.52.0* 418.52.10 418.52.14 )
-    fi
-
-    # 5.3
-    if (( $(vercmp "$_kernel" "5.3") >= 0 )); then
-      _kernel53="1"
-      _whitelist53=( 396* 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* )
-    fi
-
-    # 5.4
-    if (( $(vercmp "$_kernel" "5.4") >= 0 )); then
-      _kernel54="1"
-      _whitelist54=( 396* 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* 430.0* 430.1* 430.2* 430.3* 430.4* 430.5* 435.1* 435.21* 435.24* 435.27.01 )
-      if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying kernel-5.4-symver.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/kernel-5.4-symver.diff
-        cd ..
-      fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
-        _54_prime="true"
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying kernel-5.4-prime.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/kernel-5.4-prime.diff
-        cd ..
-      fi
-    fi
-
-    # 5.5
-    if (( $(vercmp "$_kernel" "5.5") >= 0 )); then
-      _kernel55="1"
-      _whitelist55=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.43.01 440.44 )
-    fi
-
-    # 5.6
-    if (( $(vercmp "$_kernel" "5.6") >= 0 )); then
-      _kernel56="1"
-      _whitelist56=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.4* 440.5* 440.6* )
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 5.6-legacy-includes.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.6-legacy-includes.diff
-        msg2 "Applying 5.6-ioremap.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.6-ioremap.diff
-        cd ..
-      elif [[ $pkgver = 440.5* ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 5.6-ioremap.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.6-ioremap.diff
-        cd ..
-      fi
-    fi
-
-    # 5.7
-    if (( $(vercmp "$_kernel" "5.7") >= 0 )); then
-      _kernel57="1"
-      _whitelist57=( 396* 410* 415* 418* 430* 435* 440* )
-    fi
-
-    # 5.8
-    if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
-      _kernel58="1"
-      _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 5.8-legacy.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.8-legacy.diff
-        cd ..
-      fi
-    fi
-
-    # 5.9
-    if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
-      _kernel59="1"
-      _whitelist59=( 450.5* 450.6* )
-    fi
-
-    # 5.9 - 5.10 quirk
-    if (( $(vercmp "$_kernel" "5.9") >= 0 )) || (( $(vercmp "$_kernel" "5.10") >= 0 )); then
-      if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 5.9-gpl.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.9-gpl.diff
-        cd ..
-      fi
-    fi
-
-    # 5.10
-    if (( $(vercmp "$_kernel" "5.10") >= 0 )); then
-      _kernel510="1"
-      _whitelist510=( 450.5* 450.6* 450.8* 455.2* 455.3* )
-    fi
-
-    # 5.11
-    if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
-      _kernel511="1"
-      _whitelist511=( 455.45* 455.50.0* 455.50.10 455.50.12 455.50.14 460.27* 460.32* )
-      if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying 5.11-legacy.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/5.11-legacy.diff
-        cd ..
-      fi
-    fi
-
-    # 5.12
-    if (( $(vercmp "$_kernel" "5.12") >= 0 )); then
-      _kernel512="1"
-      _whitelist512=( 455.4* 455.5* )
-    fi
-
-    # 5.14
-    if (( $(vercmp "$_kernel" "5.14") >= 0 )); then
-      _kernel514="1"
-      _whitelist514=( 465* 470.4* 470.5* )
-    fi
-
-    # 5.16
-    if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
-      _kernel516="1"
-      _whitelist516=( 470.8* 470.9* 495*)
-      if [[ $pkgver = 470.62.* ]]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
-        msg2 "Applying kernel-5.16-std.diff for $_kernel..."
-        patch -Np2 -i "$srcdir"/kernel-5.16-std.diff
-        cd ..
-      fi
-    fi
-
-    # 5.17
-    if (( $(vercmp "$_kernel" "5.17") >= 0 )); then
-      _kernel517="1"
-      _whitelist517=( 470.62.* 495*)
-    fi
-
-    # Loop patches (linux-4.15.patch, lol.patch, ...)
-    for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
-      # Patch version (4.15, "", ...)
-      _patch=$(echo $_p | grep -Po "\d+\.\d+")
-
-      # Cd in place
-      cd "$srcdir"/"$_pkg"/kernel-$_kernel
-
-      if [ "$_patch" = "4.16" ]; then
-        _whitelist=(${_whitelist416[@]})
-      fi
-      if [ "$_patch" = "4.19" ]; then
-        _whitelist=(${_whitelist419[@]})
-      fi
-      if [ "$_patch" = "5.0" ]; then
-        _whitelist=(${_whitelist50[@]})
-      fi
-      if [ "$_patch" = "5.1" ]; then
-        _whitelist=(${_whitelist51[@]})
-      fi
-      if [ "$_patch" = "5.2" ]; then
-        _whitelist=(${_whitelist52[@]})
-      fi
-      if [ "$_patch" = "5.3" ]; then
-        _whitelist=(${_whitelist53[@]})
-      fi
-      if [ "$_patch" = "5.4" ]; then
-        _whitelist=(${_whitelist54[@]})
-      fi
-      if [ "$_patch" = "5.5" ]; then
-        _whitelist=(${_whitelist55[@]})
-      fi
-      if [ "$_patch" = "5.6" ]; then
-        _whitelist=(${_whitelist56[@]})
-      fi
-      if [ "$_patch" = "5.7" ]; then
-        _whitelist=(${_whitelist57[@]})
-      fi
-      if [ "$_patch" = "5.8" ]; then
-        _whitelist=(${_whitelist58[@]})
-      fi
-      if [ "$_patch" = "5.9" ]; then
-        _whitelist=(${_whitelist59[@]})
-      fi
-      if [ "$_patch" = "5.10" ]; then
-        _whitelist=(${_whitelist510[@]})
-      fi
-      if [ "$_patch" = "5.11" ]; then
-        _whitelist=(${_whitelist511[@]})
-      fi
-      if [ "$_patch" = "5.12" ]; then
-        _whitelist=(${_whitelist512[@]})
-      fi
-      if [ "$_patch" = "5.14" ]; then
-        _whitelist=(${_whitelist514[@]})
-      fi
-      if [ "$_patch" = "5.16" ]; then
-        _whitelist=(${_whitelist516[@]})
-      fi
-      if [ "$_patch" = "5.17" ]; then
-        _whitelist=(${_whitelist517[@]})
+      # 5.0
+      if (( $(vercmp "$_kernel" "5.0") >= 0 )); then
+        _kernel50="1"
+        _whitelist50=( 396* 410.5* 410.6* 410.7* 410.9* 415* )
       fi
 
-      patchy=0
-      if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
-        for yup in "${_whitelist[@]}"; do
-          [[ $pkgver = $yup ]] && patchy=1
-        done
-
-        if [ "$patchy" = "1" ]; then
-          msg2 "Applying $_p for $_kernel..."
-          patch -p2 -i "$srcdir"/$_p
-        else
-          msg2 "Skipping $_p as it doesn't apply to this driver version..."
+      # 5.1
+      if (( $(vercmp "$_kernel" "5.1") >= 0 )); then
+        _kernel51="1"
+        _whitelist51=( 396* 410* 415* 418.3* 418.4* 418.52.0* 418.52.10 )
+        if [[ $pkgver != 430* ]]; then
+          sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
+          if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.3* ]] || [[ $pkgver = 418.4* ]]; then
+            _low418="1"
+            cd "$srcdir"/"$_pkg"/kernel-$_kernel
+            msg2 "Applying list_is_first.diff for $_kernel..."
+            # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
+            sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
+            sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
+            patch -Np2 -i "$srcdir"/list_is_first.diff
+            cd ..
+          else
+            msg2 "Skipping list_is_first fixes (not needed for this driver/kernel combination)"
+          fi
         fi
       fi
+
+      # 5.2
+      if (( $(vercmp "$_kernel" "5.2") >= 0 )); then
+        _kernel52="1"
+        _whitelist52=( 396* 410* 415* 418.3* 418.4* 418.56 418.7* 418.52.0* 418.52.10 418.52.14 )
+      fi
+
+      # 5.3
+      if (( $(vercmp "$_kernel" "5.3") >= 0 )); then
+        _kernel53="1"
+        _whitelist53=( 396* 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* )
+      fi
+
+      # 5.4
+      if (( $(vercmp "$_kernel" "5.4") >= 0 )); then
+        _kernel54="1"
+        _whitelist54=( 396* 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* 430.0* 430.1* 430.2* 430.3* 430.4* 430.5* 435.1* 435.21* 435.24* 435.27.01 )
+        if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-5.4-symver.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/kernel-5.4-symver.diff
+          cd ..
+        fi
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
+          _54_prime="true"
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-5.4-prime.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/kernel-5.4-prime.diff
+          cd ..
+        fi
+      fi
+
+      # 5.5
+      if (( $(vercmp "$_kernel" "5.5") >= 0 )); then
+        _kernel55="1"
+        _whitelist55=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.43.01 440.44 )
+      fi
+
+      # 5.6
+      if (( $(vercmp "$_kernel" "5.6") >= 0 )); then
+        _kernel56="1"
+        _whitelist56=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.4* 440.5* 440.6* )
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying 5.6-legacy-includes.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.6-legacy-includes.diff
+          msg2 "Applying 5.6-ioremap.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.6-ioremap.diff
+          cd ..
+        elif [[ $pkgver = 440.5* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying 5.6-ioremap.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.6-ioremap.diff
+          cd ..
+        fi
+      fi
+
+      # 5.7
+      if (( $(vercmp "$_kernel" "5.7") >= 0 )); then
+        _kernel57="1"
+        _whitelist57=( 396* 410* 415* 418* 430* 435* 440* )
+      fi
+
+      # 5.8
+      if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
+        _kernel58="1"
+        _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying 5.8-legacy.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.8-legacy.diff
+          cd ..
+        fi
+      fi
+
+      # 5.9
+      if (( $(vercmp "$_kernel" "5.9") >= 0 )); then
+        _kernel59="1"
+        _whitelist59=( 450.5* 450.6* )
+      fi
+
+      # 5.9 - 5.10 quirk
+      if (( $(vercmp "$_kernel" "5.9") >= 0 )) || (( $(vercmp "$_kernel" "5.10") >= 0 )); then
+        if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying 5.9-gpl.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.9-gpl.diff
+          cd ..
+        fi
+      fi
+
+      # 5.10
+      if (( $(vercmp "$_kernel" "5.10") >= 0 )); then
+        _kernel510="1"
+        _whitelist510=( 450.5* 450.6* 450.8* 455.2* 455.3* )
+      fi
+
+      # 5.11
+      if (( $(vercmp "$_kernel" "5.11") >= 0 )); then
+        _kernel511="1"
+        _whitelist511=( 455.45* 455.50.0* 455.50.10 455.50.12 455.50.14 460.27* 460.32* )
+        if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying 5.11-legacy.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/5.11-legacy.diff
+          cd ..
+        fi
+      fi
+
+      # 5.12
+      if (( $(vercmp "$_kernel" "5.12") >= 0 )); then
+        _kernel512="1"
+        _whitelist512=( 455.4* 455.5* )
+      fi
+
+      # 5.14
+      if (( $(vercmp "$_kernel" "5.14") >= 0 )); then
+        _kernel514="1"
+        _whitelist514=( 465* 470.4* 470.5* )
+      fi
+
+      # 5.16
+      if (( $(vercmp "$_kernel" "5.16") >= 0 )); then
+        _kernel516="1"
+        _whitelist516=( 470.8* 470.9* 495*)
+        if [[ $pkgver = 470.62.* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-5.16-std.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/kernel-5.16-std.diff
+          cd ..
+        fi
+      fi
+
+      # 5.17
+      if (( $(vercmp "$_kernel" "5.17") >= 0 )); then
+        _kernel517="1"
+        _whitelist517=( 470.62.* 495*)
+      fi
+
+      # Loop patches (linux-4.15.patch, lol.patch, ...)
+      for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
+        # Patch version (4.15, "", ...)
+        _patch=$(echo $_p | grep -Po "\d+\.\d+")
+
+        # Cd in place
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+
+        if [ "$_patch" = "4.16" ]; then
+          _whitelist=(${_whitelist416[@]})
+        fi
+        if [ "$_patch" = "4.19" ]; then
+          _whitelist=(${_whitelist419[@]})
+        fi
+        if [ "$_patch" = "5.0" ]; then
+          _whitelist=(${_whitelist50[@]})
+        fi
+        if [ "$_patch" = "5.1" ]; then
+          _whitelist=(${_whitelist51[@]})
+        fi
+        if [ "$_patch" = "5.2" ]; then
+          _whitelist=(${_whitelist52[@]})
+        fi
+        if [ "$_patch" = "5.3" ]; then
+          _whitelist=(${_whitelist53[@]})
+        fi
+        if [ "$_patch" = "5.4" ]; then
+          _whitelist=(${_whitelist54[@]})
+        fi
+        if [ "$_patch" = "5.5" ]; then
+          _whitelist=(${_whitelist55[@]})
+        fi
+        if [ "$_patch" = "5.6" ]; then
+          _whitelist=(${_whitelist56[@]})
+        fi
+        if [ "$_patch" = "5.7" ]; then
+          _whitelist=(${_whitelist57[@]})
+        fi
+        if [ "$_patch" = "5.8" ]; then
+          _whitelist=(${_whitelist58[@]})
+        fi
+        if [ "$_patch" = "5.9" ]; then
+          _whitelist=(${_whitelist59[@]})
+        fi
+        if [ "$_patch" = "5.10" ]; then
+          _whitelist=(${_whitelist510[@]})
+        fi
+        if [ "$_patch" = "5.11" ]; then
+          _whitelist=(${_whitelist511[@]})
+        fi
+        if [ "$_patch" = "5.12" ]; then
+          _whitelist=(${_whitelist512[@]})
+        fi
+        if [ "$_patch" = "5.14" ]; then
+          _whitelist=(${_whitelist514[@]})
+        fi
+        if [ "$_patch" = "5.16" ]; then
+          _whitelist=(${_whitelist516[@]})
+        fi
+        if [ "$_patch" = "5.17" ]; then
+          _whitelist=(${_whitelist517[@]})
+        fi
+
+        patchy=0
+        if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
+          for yup in "${_whitelist[@]}"; do
+            [[ $pkgver = $yup ]] && patchy=1
+          done
+
+          if [ "$patchy" = "1" ]; then
+            msg2 "Applying $_p for $_kernel..."
+            patch -p2 -i "$srcdir"/$_p
+          else
+            msg2 "Skipping $_p as it doesn't apply to this driver version..."
+          fi
+        fi
+      done
+
+      cd ..
+
     done
 
-    cd ..
+    # dkms patches
+    if [ "$_dkms" = "true" ]; then
 
-  done
+      # https://bugs.archlinux.org/task/62142
+      if [ "$_62142_fix" = "true" ]; then
+        sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
+      fi
 
-  # dkms patches
-  if [ "$_dkms" = "true" ]; then
+      if (( ${pkgver%%.*} <= 455 )); then
+        msg2 "Applying linux-version.diff for dkms..."
+        patch -Np1 -i "$srcdir"/linux-version.diff
+      fi
 
-    # https://bugs.archlinux.org/task/62142
-    if [ "$_62142_fix" = "true" ]; then
-      sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "$srcdir/$_pkg/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
-    fi
+      # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
+      # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
+      if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
+        msg2 "Applying 455 crashfix for dkms..."
+        patch -Np1 -i "$srcdir"/455-crashfix.diff
+      fi
 
-    if (( ${pkgver%%.*} <= 455 )); then
-      msg2 "Applying linux-version.diff for dkms..."
-      patch -Np1 -i "$srcdir"/linux-version.diff
-    fi
+      # 4.16
+      if [ "$_kernel416" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist416[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-4.16.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-4.16.patch
+        else
+          msg2 "Skipping kernel-4.16.patch as it doesn't apply to this driver version..."
+        fi
+      fi
 
-    # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
-    # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
-    if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
-      msg2 "Applying 455 crashfix for dkms..."
-      patch -Np1 -i "$srcdir"/455-crashfix.diff
-    fi
+      # 4.19
+      if [ "$_kernel419" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist419[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-4.19.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-4.19.patch
+        else
+          msg2 "Skipping kernel-4.19.patch as it doesn't apply to this driver version..."
+        fi
+      fi
 
-    # 4.16
-    if [ "$_kernel416" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist416[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-4.16.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-4.16.patch
-      else
-        msg2 "Skipping kernel-4.16.patch as it doesn't apply to this driver version..."
+      # 5.0
+      if [ "$_kernel50" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist50[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.0.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.0.patch
+        else
+          msg2 "Skipping kernel-5.0.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 4.19
-    if [ "$_kernel419" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist419[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-4.19.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-4.19.patch
-      else
-        msg2 "Skipping kernel-4.19.patch as it doesn't apply to this driver version..."
+      # 5.1
+      if [ "$_kernel51" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist51[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.1.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.1.patch
+          sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
+        else
+          msg2 "Skipping kernel-5.1.patch as it doesn't apply to this driver version..."
+        fi
+        if [ "$_low418" = "1" ]; then
+          msg2 "Applying list_is_first.patch for dkms..."
+          # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
+          sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
+          sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
+          patch -Np1 -i "$srcdir"/list_is_first.diff
+        fi
       fi
-    fi
 
-    # 5.0
-    if [ "$_kernel50" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist50[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.0.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.0.patch
-      else
-        msg2 "Skipping kernel-5.0.patch as it doesn't apply to this driver version..."
+      # 5.2
+      if [ "$_kernel52" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist52[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.2.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.2.patch
+        else
+          msg2 "Skipping kernel-5.2.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.1
-    if [ "$_kernel51" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist51[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.1.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.1.patch
-        sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
-      else
-        msg2 "Skipping kernel-5.1.patch as it doesn't apply to this driver version..."
+      # 5.3
+      if [ "$_kernel53" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist53[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.3.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.3.patch
+        else
+          msg2 "Skipping kernel-5.3.patch as it doesn't apply to this driver version..."
+        fi
       fi
-      if [ "$_low418" = "1" ]; then
-        msg2 "Applying list_is_first.patch for dkms..."
-        # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
-        sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
-        sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
-        patch -Np1 -i "$srcdir"/list_is_first.diff
-      fi
-    fi
 
-    # 5.2
-    if [ "$_kernel52" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist52[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.2.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.2.patch
-      else
-        msg2 "Skipping kernel-5.2.patch as it doesn't apply to this driver version..."
+      # 5.4
+      if [ "$_kernel54" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist54[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.4.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.4.patch
+        else
+          msg2 "Skipping kernel-5.4.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
+          patch -Np1 -i "$srcdir"/kernel-5.4-symver.diff
+        fi
       fi
-    fi
 
-    # 5.3
-    if [ "$_kernel53" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist53[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.3.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.3.patch
-      else
-        msg2 "Skipping kernel-5.3.patch as it doesn't apply to this driver version..."
+      # 5.5
+      if [ "$_kernel55" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist55[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.5.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.5.patch
+        else
+          msg2 "Skipping kernel-5.5.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.4
-    if [ "$_kernel54" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist54[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.4.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.4.patch
-      else
-        msg2 "Skipping kernel-5.4.patch as it doesn't apply to this driver version..."
+      # 5.6
+      if [ "$_kernel56" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist56[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.6.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.6.patch
+        else
+          msg2 "Skipping kernel-5.6.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
+          msg2 "Applying 5.6-legacy-includes.diff for dkms..."
+          patch -Np1 -i "$srcdir"/5.6-legacy-includes.diff
+          msg2 "Applying 5.6-ioremap.diff for dkms..."
+          patch -Np1 -i "$srcdir"/5.6-ioremap.diff
+        elif [[ $pkgver = 440.5* ]]; then
+          msg2 "Applying 5.6-ioremap.diff for dkms..."
+          patch -Np1 -i "$srcdir"/5.6-ioremap.diff
+        fi
       fi
-      if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
-        patch -Np1 -i "$srcdir"/kernel-5.4-symver.diff
-      fi
-    fi
 
-    # 5.5
-    if [ "$_kernel55" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist55[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.5.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.5.patch
-      else
-        msg2 "Skipping kernel-5.5.patch as it doesn't apply to this driver version..."
+      # 5.7
+      if [ "$_kernel57" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist57[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.7.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.7.patch
+        else
+          msg2 "Skipping kernel-5.7.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.6
-    if [ "$_kernel56" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist56[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.6.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.6.patch
-      else
-        msg2 "Skipping kernel-5.6.patch as it doesn't apply to this driver version..."
+      # 5.8
+      if [ "$_kernel58" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist58[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.8.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.8.patch
+        else
+          msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+          msg2 "Applying 5.8-legacy.diff for dkms..."
+          patch -Np1 -i "$srcdir"/5.8-legacy.diff
+        fi
       fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
-        msg2 "Applying 5.6-legacy-includes.diff for dkms..."
-        patch -Np1 -i "$srcdir"/5.6-legacy-includes.diff
-        msg2 "Applying 5.6-ioremap.diff for dkms..."
-        patch -Np1 -i "$srcdir"/5.6-ioremap.diff
-      elif [[ $pkgver = 440.5* ]]; then
-        msg2 "Applying 5.6-ioremap.diff for dkms..."
-        patch -Np1 -i "$srcdir"/5.6-ioremap.diff
-      fi
-    fi
 
-    # 5.7
-    if [ "$_kernel57" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist57[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.7.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.7.patch
-      else
-        msg2 "Skipping kernel-5.7.patch as it doesn't apply to this driver version..."
+      # 5.9
+      if [ "$_kernel59" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist59[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.9.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.9.patch
+        else
+          msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.8
-    if [ "$_kernel58" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist58[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.8.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.8.patch
-      else
-        msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
+      # 5.10
+      if [ "$_kernel510" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist510[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.10.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.10.patch
+        else
+          msg2 "Skipping kernel-5.10.patch as it doesn't apply to this driver version..."
+        fi
       fi
-      if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
-        msg2 "Applying 5.8-legacy.diff for dkms..."
-        patch -Np1 -i "$srcdir"/5.8-legacy.diff
-      fi
-    fi
 
-    # 5.9
-    if [ "$_kernel59" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist59[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.9.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.9.patch
-      else
-        msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
+      # 5.11
+      if [ "$_kernel511" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist511[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.11.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.11.patch
+        else
+          msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
+          msg2 "Applying 5.11-legacy.diff for $_kernel..."
+          patch -Np1 -i "$srcdir"/5.11-legacy.diff
+        fi
       fi
-    fi
 
-    # 5.10
-    if [ "$_kernel510" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist510[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.10.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.10.patch
-      else
-        msg2 "Skipping kernel-5.10.patch as it doesn't apply to this driver version..."
+      # 5.9 - 5.10 quirk
+      if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
+        if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
+          msg2 "Applying 5.9-gpl.diff for dkms..."
+          patch -Np1 -i "$srcdir"/5.9-gpl.diff
+        fi
       fi
-    fi
 
-    # 5.11
-    if [ "$_kernel511" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist511[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.11.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.11.patch
-      else
-        msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
+      # 5.12
+      if [ "$_kernel512" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist512[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.12.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.12.patch
+        else
+          msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
+        fi
       fi
-      if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
-        msg2 "Applying 5.11-legacy.diff for $_kernel..."
-        patch -Np1 -i "$srcdir"/5.11-legacy.diff
-      fi
-    fi
 
-    # 5.9 - 5.10 quirk
-    if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
-      if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
-        msg2 "Applying 5.9-gpl.diff for dkms..."
-        patch -Np1 -i "$srcdir"/5.9-gpl.diff
+      # 5.14
+      if [ "$_kernel514" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist514[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.14.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.14.patch
+        else
+          msg2 "Skipping kernel-5.14.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.12
-    if [ "$_kernel512" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist512[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.12.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.12.patch
-      else
-        msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
+      # 5.16
+      if [ "$_kernel516" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist516[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.16.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.16.patch
+        else
+          msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 470.62.* ]]; then
+          msg2 "Applying kernel-5.16-std.diff for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
+        else
+          msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.14
-    if [ "$_kernel514" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist514[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.14.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.14.patch
-      else
-        msg2 "Skipping kernel-5.14.patch as it doesn't apply to this driver version..."
+      # 5.17
+      if [ "$_kernel517" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist517[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-5.17.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-5.17.patch
+        else
+          msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
+        fi
       fi
-    fi
 
-    # 5.16
-    if [ "$_kernel516" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist516[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.16.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.16.patch
-      else
-        msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
+      # Legacy quirks
+      if [ "$_oldstuff" = "1" ]; then
+        msg2 "Applying 01-ipmi-vm.diff for dkms..."
+        patch -Np1 -i "$srcdir"/01-ipmi-vm.diff
       fi
-      if [[ $pkgver = 470.62.* ]]; then
-        msg2 "Applying kernel-5.16-std.diff for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
-      else
-        msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
+      if [ "$_youngeryetoldstuff" = "1" ]; then
+        msg2 "Applying 02-ipmi-vm.diff for dkms..."
+        patch -Np1 -i "$srcdir"/02-ipmi-vm.diff
       fi
-    fi
-
-    # 5.17
-    if [ "$_kernel517" = "1" ]; then
-      patchy=0
-      for yup in "${_whitelist517[@]}"; do
-        [[ $pkgver = $yup ]] && patchy=1
-      done
-      if [ "$patchy" = "1" ]; then
-        msg2 "Applying kernel-5.17.patch for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.17.patch
-      else
-        msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
+      if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime" = "true" ]; then
+        msg2 "Applying kernel-5.4-prime.diff for dkms..."
+        patch -Np1 -i "$srcdir"/kernel-5.4-prime.diff
       fi
-    fi
-
-    # Legacy quirks
-    if [ "$_oldstuff" = "1" ]; then
-      msg2 "Applying 01-ipmi-vm.diff for dkms..."
-      patch -Np1 -i "$srcdir"/01-ipmi-vm.diff
-    fi
-    if [ "$_youngeryetoldstuff" = "1" ]; then
-      msg2 "Applying 02-ipmi-vm.diff for dkms..."
-      patch -Np1 -i "$srcdir"/02-ipmi-vm.diff
-    fi
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime" = "true" ]; then
-      msg2 "Applying kernel-5.4-prime.diff for dkms..."
-      patch -Np1 -i "$srcdir"/kernel-5.4-prime.diff
     fi
   fi
 }
 
 build() {
-  if [ "$_dkms" != "true" ]; then
-    # Build for all kernels
-    local _kernel
-    local -a _kernels
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+  if [ "$_open_source" != "y" ]; then
+    if [ "$_dkms" != "true" ]; then
+      # Build for all kernels
+      local _kernel
+      local -a _kernels
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
 
-    for _kernel in "${_kernels[@]}"; do
-      cd "$srcdir"/$_pkg/kernel-$_kernel
+      for _kernel in "${_kernels[@]}"; do
+        cd "$srcdir"/$_pkg/kernel-$_kernel
 
-      # Build module
-      msg2 "Building Nvidia module for $_kernel..."
-      make SYSSRC=/usr/lib/modules/$_kernel/build modules
-    done
+        # Build module
+        msg2 "Building Nvidia module for $_kernel..."
+        make SYSSRC=/usr/lib/modules/$_kernel/build modules
+      done
+    fi
+  else
+    cd open-gpu-kernel-modules-${pkgver}
+    export CFLAGS="${CFLAGS/-fno-plt/}"
+    make SYSSRC="/usr/src/linux"
   fi
 }
 
@@ -1350,8 +1417,10 @@ nvidia-utils-tkg() {
     # nvidia-persistenced
     install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
     install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
-    install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
-    sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+    if [ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]; then
+      install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+      sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+    fi
 
     # application profiles
     install -D -m644 nvidia-application-profiles-${pkgver}-rc "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
@@ -1431,40 +1500,63 @@ package_nvidia-dev-settings-tkg() {
 }
 
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
-  nvidia-tkg() {
-    pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
-    depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
-    provides=("nvidia=$pkgver" "nvidia-tkg>=$pkgver")
-    conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
-    install=nvidia-tkg.install
+  if [ "$_open_source" = "y" ]; then
+    nvidia-open-tkg() {
+      depends+=('linux')
+      conflicts=('NVIDIA-MODULE')
+      provides=('NVIDIA-MODULE')
 
-    # Install for all kernels
-    local _kernel
-    local -a _kernels
-    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      cd open-gpu-kernel-modules-${pkgver}
+      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
+      install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
+      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
+      find "${pkgdir}" -name '*.ko' -exec xz {} +
 
-    for _kernel in "${_kernels[@]}"; do
-      install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      if [[ ${pkgver%%.*} = 465 ]]; then
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      fi
-      find "$pkgdir" -name '*.ko' -exec gzip -n {} +
-    done
+      # Force module to load even on unsupported GPUs
+      mkdir -p "$pkgdir"/usr/lib/modprobe.d
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
-    echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-    echo "nvidia-uvm" |
-        install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
+    }
+    package_nvidia-open-tkg() {
+      nvidia-open-tkg
+    }
+  else
+    nvidia-tkg() {
+      pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
+      depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
+      provides=("nvidia=$pkgver" "nvidia-tkg>=$pkgver")
+      conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
+      install=nvidia-tkg.install
 
-    install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-  }
-  package_nvidia-tkg() {
-    nvidia-tkg
-  }
-  package_nvidia-dev-tkg() {
-    nvidia-tkg
-  }
+      # Install for all kernels
+      local _kernel
+      local -a _kernels
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+
+      for _kernel in "${_kernels[@]}"; do
+        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        if [[ ${pkgver%%.*} = 465 ]]; then
+          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        fi
+        find "$pkgdir" -name '*.ko' -exec gzip -n {} +
+      done
+
+      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      echo "nvidia-uvm" |
+          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+
+      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+    }
+    package_nvidia-tkg() {
+      nvidia-tkg
+    }
+    package_nvidia-dev-tkg() {
+      nvidia-tkg
+    }
+  fi
 fi
 
 lib32-opencl-nvidia-tkg() {
@@ -1562,31 +1654,53 @@ package_lib32-nvidia-dev-utils-tkg() {
 }
 
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
-  nvidia-dkms-tkg() {
-    pkgdesc="NVIDIA kernel module sources (DKMS)"
-    depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
-    provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
-    conflicts=('nvidia' 'nvidia-dkms')
+  if [ "$_open_source" = "y" ]; then
+    nvidia-open-dkms-tkg() {
+      depends+=('dkms')
+      conflicts=('nvidia-open' 'NVIDIA-MODULE')
+      provides=('nvidia-open' 'NVIDIA-MODULE')
 
-    cd ${_pkg}
-    install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
-    cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
+      install -dm 755 "${pkgdir}"/usr/src
+      # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
+      cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-$pkgver"
+      mv "${pkgdir}/usr/src/nvidia-$pkgver/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-$pkgver/dkms.conf"
 
-    echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-    echo "nvidia-uvm" |
-        install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      # Force module to load even on unsupported GPUs
+      mkdir -p "$pkgdir"/usr/lib/modprobe.d
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
-    install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      install -Dm644 open-gpu-kernel-modules-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
+    }
+    package_nvidia-open-dkms-tkg() {
+      nvidia-open-dkms-tkg
+    }
+  else
+    nvidia-dkms-tkg() {
+      pkgdesc="NVIDIA kernel module sources (DKMS)"
+      depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
+      provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
+      conflicts=('nvidia' 'nvidia-dkms')
 
-    install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
-  }
-  package_nvidia-dkms-tkg() {
-    nvidia-dkms-tkg
-  }
-  package_nvidia-dev-dkms-tkg() {
-    nvidia-dkms-tkg
-  }
+      cd ${_pkg}
+      install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
+      cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
+
+      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      echo "nvidia-uvm" |
+          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+
+      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+
+      install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
+    }
+    package_nvidia-dkms-tkg() {
+      nvidia-dkms-tkg
+    }
+    package_nvidia-dev-dkms-tkg() {
+      nvidia-dkms-tkg
+    }
+  fi
 fi
 
 function exit_cleanup {
