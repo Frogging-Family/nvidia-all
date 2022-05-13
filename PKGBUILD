@@ -266,7 +266,7 @@ arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
 optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
-options=(!strip !lto)
+options=(!strip !lto !buildflags)
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
 
@@ -1172,7 +1172,6 @@ build() {
     fi
   else
     cd open-gpu-kernel-modules-${pkgver}
-    export CFLAGS="${CFLAGS/-fno-plt/}"
     make SYSSRC="/usr/src/linux"
   fi
 }
