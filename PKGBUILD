@@ -154,6 +154,7 @@ if [ "$_open_source_modules" != "false" ]; then
   if [ -z "$_open_source" ] && [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
     if [ -z "$_open_source_modules" ]; then
       msg2 " - Open source kernel modules available - "
+      warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER"
       plain "Do you want to use it instead of the proprietary one?"
       read -rp "`echo $'    > N/y : '`" _open_source;
     fi
