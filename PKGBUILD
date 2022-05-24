@@ -1520,6 +1520,11 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
+
+      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+
+      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
     }
     package_nvidia-open-tkg() {
       nvidia-open-tkg
