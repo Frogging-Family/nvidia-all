@@ -151,20 +151,23 @@ fi
 
 if [ "$_open_source_modules" != "false" ]; then
   # Open source kernel module availability check
-  if [ -z "$_open_source" ] && [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
+  if [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
     if [ -z "$_open_source_modules" ]; then
       msg2 " - Open source kernel modules available - "
       warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER"
       plain "Do you want to use it instead of the proprietary one?"
       read -rp "`echo $'    > N/y : '`" _open_source;
-    fi
-    if [[ "$_open_source" =~ [yY] ]] || [ "$_open_source_modules" = "true" ]; then
-      echo '_open_source="y"' >> options
-      source options
+      if [[ "$_open_source" =~ [yY] ]]; then
+        echo '_open_source_modules="true"' >> options
+      else
+        echo '_open_source_modules="false"' >> options
+      fi
     fi
   else
     msg2 "No open source kernel module available"
+    echo '_open_source_modules="false"' >> options
   fi
+  source options
 fi
 
 # Check if the version we are going for is newer or not if enabled
@@ -227,7 +230,7 @@ else
 fi
 
 # packages
-if [ "$_open_source" = "y" ]; then
+if [ "$_open_source_modules" = "true" ]; then
   __branchname="nvidia-open"
 else
   __branchname="$_branchname"
@@ -365,7 +368,7 @@ md5sums=("$_md5sum"
          '0f987607c98eb6faeb7d691213de6a70'
          'a70bc9cbbc7e8563b48985864a11de71')
 
-if [ "$_open_source" = "y" ]; then
+if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
   md5sums+=("SKIP")
 fi
@@ -421,7 +424,7 @@ prepare() {
   msg2 "Self-Extracting $_pkg.run..."
   sh "$_pkg".run -x
 
-  if [ "$_open_source" = "y" ]; then
+  if [ "$_open_source_modules" = "true" ]; then
     cd open-gpu-kernel-modules-${pkgver}
     # Attempt to make this reproducible
     sed -i "s/^HOSTNAME.*/HOSTNAME = echo archlinux"/ utils.mk
@@ -1503,7 +1506,7 @@ package_nvidia-dev-settings-tkg() {
 }
 
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
-  if [ "$_open_source" = "y" ]; then
+  if [ "$_open_source_modules" = "true" ]; then
     nvidia-open-tkg() {
       depends+=('linux')
       conflicts=('NVIDIA-MODULE')
@@ -1662,7 +1665,7 @@ package_lib32-nvidia-dev-utils-tkg() {
 }
 
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
-  if [ "$_open_source" = "y" ]; then
+  if [ "$_open_source_modules" = "true" ]; then
     nvidia-open-dkms-tkg() {
       depends+=('dkms')
       conflicts=('nvidia-open' 'NVIDIA-MODULE')
