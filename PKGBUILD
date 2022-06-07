@@ -273,7 +273,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=209
+pkgrel=210
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -301,6 +301,7 @@ source=($_source_name
         'nvidia-utils-tkg.sysusers'
         '60-nvidia.rules'
         'nvidia-tkg.hook'
+        'nvidia-open-gcc-ibt-sls.diff'
         'linux-version.diff' # include linux version
         '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
         '02-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (addon for 410+)
@@ -341,6 +342,7 @@ md5sums=("$_md5sum"
          '3d2894e71d81570bd00bce416d3e547d'
          '3d32130235acc5ab514e1021f7f5c439'
          '651328cb5a86f5bb44a4ebc30290e925'
+         '9b1543768ea75320fd0d2315de66d1c8'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
          '14460615a9d4e247c8d9bcae8776ed48'
@@ -431,6 +433,10 @@ prepare() {
 
   if [ "$_open_source_modules" = "true" ]; then
     cd open-gpu-kernel-modules-${pkgver}
+
+    # Fix for https://bugs.archlinux.org/task/74886
+    patch -Np1 --no-backup-if-mismatch -i "$srcdir"/nvidia-open-gcc-ibt-sls.diff
+
     # Attempt to make this reproducible
     sed -i "s/^HOSTNAME.*/HOSTNAME = echo archlinux"/ utils.mk
     sed -i "s/^WHOAMI.*/WHOAMI = echo archlinux-builder"/ utils.mk
