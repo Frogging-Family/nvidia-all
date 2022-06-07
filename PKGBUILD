@@ -147,28 +147,27 @@ fi
 
 if [ -e options ]; then
   source options
-fi
-
-if [ "$_open_source_modules" != "false" ]; then
-  # Open source kernel module availability check
-  if [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
-    if [ -z "$_open_source_modules" ]; then
-      msg2 " - Open source kernel modules available - "
-      warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
-      warning "PRIME SUPPORT AND POWER MANAGEMENT ARE NOTABLY MISSING CURRENTLY."
-      plain "Do you want to use it instead of the proprietary one?"
-      read -rp "`echo $'    > N/y : '`" _open_source;
-      if [[ "$_open_source" =~ [yY] ]]; then
-        echo '_open_source_modules="true"' >> options
-      else
-        echo '_open_source_modules="false"' >> options
+  if [ "$_open_source_modules" != "false" ]; then
+    # Open source kernel module availability check
+    if [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
+      if [ -z "$_open_source_modules" ]; then
+        msg2 " - Open source kernel modules available - "
+        warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
+        warning "PRIME SUPPORT AND POWER MANAGEMENT ARE NOTABLY MISSING CURRENTLY."
+        plain "Do you want to use it instead of the proprietary one?"
+        read -rp "`echo $'    > N/y : '`" _open_source;
+        if [[ "$_open_source" =~ [yY] ]]; then
+          echo '_open_source_modules="true"' >> options
+        else
+          echo '_open_source_modules="false"' >> options
+        fi
       fi
+    else
+      msg2 "No open source kernel module available"
+      echo '_open_source_modules="false"' >> options
     fi
-  else
-    msg2 "No open source kernel module available"
-    echo '_open_source_modules="false"' >> options
+    source options
   fi
-  source options
 fi
 
 # Check if the version we are going for is newer or not if enabled
@@ -224,15 +223,20 @@ fi
 
 _pkgname_array=()
 
+# optional series in pkgname
+if [ "$_series_in_pkgname" = "true" ]; then
+  _series="-${_driver_version%%.*}xx"
+fi
+
 if [ "$_driver_branch" = "vulkandev" ]; then
-  _branchname="nvidia-dev"
+  _branchname="nvidia$_series-dev"
 else
-  _branchname="nvidia"
+  _branchname="nvidia$_series"
 fi
 
 # packages
 if [ "$_open_source_modules" = "true" ]; then
-  __branchname="nvidia-open"
+  __branchname="nvidia$_series-open"
 else
   __branchname="$_branchname"
 fi
@@ -1207,12 +1211,11 @@ opencl-nvidia-tkg() {
   install -d "$pkgdir"/usr/share/licenses/
   ln -s nvidia-utils "$pkgdir"/usr/share/licenses/opencl-nvidia
 }
-package_opencl-nvidia-tkg() {
+source /dev/stdin <<EOF
+package_opencl-$_branchname-tkg() {
   opencl-nvidia-tkg
 }
-package_opencl-nvidia-dev-tkg() {
-  opencl-nvidia-tkg
-}
+EOF
 
 nvidia-egl-wayland-tkg() {
   if [[ $pkgver = 396* ]]; then
@@ -1262,12 +1265,11 @@ nvidia-egl-wayland-tkg() {
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
 }
-package_nvidia-egl-wayland-tkg() {
+source /dev/stdin <<EOF
+package_$_branchname-egl-wayland-tkg() {
   nvidia-egl-wayland-tkg
 }
-package_nvidia-dev-egl-wayland-tkg() {
-  nvidia-egl-wayland-tkg
-}
+EOF
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
@@ -1473,12 +1475,11 @@ nvidia-utils-tkg() {
 
     _create_links
 }
-package_nvidia-utils-tkg() {
+source /dev/stdin <<EOF
+package_$_branchname-utils-tkg() {
   nvidia-utils-tkg
 }
-package_nvidia-dev-utils-tkg() {
-  nvidia-utils-tkg
-}
+EOF
 
 nvidia-settings-tkg() {
     pkgdesc='Tool for configuring the NVIDIA graphics driver'
@@ -1499,16 +1500,15 @@ nvidia-settings-tkg() {
     # license
     install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
-package_nvidia-settings-tkg() {
+source /dev/stdin <<EOF
+package_$_branchname-settings-tkg() {
   nvidia-settings-tkg
 }
-package_nvidia-dev-settings-tkg() {
-  nvidia-settings-tkg
-}
+EOF
 
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
+  nvidia-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
-    nvidia-open-tkg() {
       depends+=('linux')
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
@@ -1529,12 +1529,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
           install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-    }
-    package_nvidia-open-tkg() {
-      nvidia-open-tkg
-    }
   else
-    nvidia-tkg() {
       pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
       depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
       provides=("nvidia=$pkgver" "nvidia-tkg>=$pkgver")
@@ -1561,14 +1556,13 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
           install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-    }
-    package_nvidia-tkg() {
-      nvidia-tkg
-    }
-    package_nvidia-dev-tkg() {
-      nvidia-tkg
-    }
   fi
+  }
+source /dev/stdin <<EOF
+  package_$__branchname-tkg() {
+    nvidia-tkg
+  }
+EOF
 fi
 
 lib32-opencl-nvidia-tkg() {
@@ -1590,12 +1584,11 @@ lib32-opencl-nvidia-tkg() {
   install -d "$pkgdir"/usr/share/licenses/
   ln -s nvidia-utils/ "$pkgdir"/usr/share/licenses/lib32-opencl-nvidia
 }
-package_lib32-opencl-nvidia-tkg() {
+source /dev/stdin <<EOF
+package_lib32-opencl-$_branchname-tkg() {
   lib32-opencl-nvidia-tkg
 }
-package_lib32-opencl-nvidia-dev-tkg() {
-  lib32-opencl-nvidia-tkg
-}
+EOF
 
 lib32-nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg' (32-bit)"
@@ -1658,16 +1651,15 @@ lib32-nvidia-utils-tkg() {
     mkdir -p "${pkgdir}/usr/share/licenses"
     ln -s nvidia-utils/ "${pkgdir}/usr/share/licenses/${pkgname}"
 }
-package_lib32-nvidia-utils-tkg() {
+source /dev/stdin <<EOF
+package_lib32-$_branchname-utils-tkg() {
   lib32-nvidia-utils-tkg
 }
-package_lib32-nvidia-dev-utils-tkg() {
-  lib32-nvidia-utils-tkg
-}
+EOF
 
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
+  nvidia-dkms-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
-    nvidia-open-dkms-tkg() {
       depends+=('dkms')
       conflicts=('nvidia-open' 'NVIDIA-MODULE')
       provides=('nvidia-open' 'NVIDIA-MODULE')
@@ -1682,12 +1674,8 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
       install -Dm644 open-gpu-kernel-modules-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
-    }
-    package_nvidia-open-dkms-tkg() {
-      nvidia-open-dkms-tkg
-    }
   else
-    nvidia-dkms-tkg() {
+
       pkgdesc="NVIDIA kernel module sources (DKMS)"
       depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
       provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
@@ -1705,14 +1693,13 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
-    }
-    package_nvidia-dkms-tkg() {
-      nvidia-dkms-tkg
-    }
-    package_nvidia-dev-dkms-tkg() {
-      nvidia-dkms-tkg
-    }
   fi
+  }
+source /dev/stdin <<EOF
+  package_$__branchname-dkms-tkg() {
+    nvidia-dkms-tkg
+  }
+EOF
 fi
 
 function exit_cleanup {
