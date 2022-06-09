@@ -1,6 +1,8 @@
 post_upgrade() {
-  echo ":: If CUDA is unavailable, run 'nvidia-modprobe'."
+  echo "If you run into trouble with CUDA not being available, run nvidia-modprobe first."
+  echo "If you use GDM on Wayland, you might have to run systemctl enable --now nvidia-resume.service"
 }
+# https://gitlab.gnome.org/GNOME/gdm/-/issues/784
 
 post_install() {
   post_upgrade
