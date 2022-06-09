@@ -1223,25 +1223,26 @@ package_opencl-$_branchname-tkg() {
 }
 EOF
 
+if [[ $pkgver = 396* ]]; then
+  _eglwver="1.0.3"
+elif [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]]; then
+  _eglwver="1.1.0"
+elif [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
+  _eglwver="1.1.2"
+elif [[ $pkgver = 435* ]]; then
+  _eglwver="1.1.3"
+elif [[ $pkgver = 44* ]] || [[ $pkgver = 450* ]]; then
+  _eglwver="1.1.4"
+elif [[ $pkgver = 455* ]] || [[ $pkgver = 460* ]] || [[ $pkgver = 465* ]]; then
+  _eglwver="1.1.5"
+elif [[ $pkgver = 470* ]]; then
+  _eglwver="1.1.7"
+else
+  _eglwver="1.1.9"
+  _eglgver="1.1.0"
+fi
+
 nvidia-egl-wayland-tkg() {
-  if [[ $pkgver = 396* ]]; then
-    _eglwver="1.0.3"
-  elif [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]]; then
-    _eglwver="1.1.0"
-  elif [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
-    _eglwver="1.1.2"
-  elif [[ $pkgver = 435* ]]; then
-    _eglwver="1.1.3"
-  elif [[ $pkgver = 44* ]] || [[ $pkgver = 450* ]]; then
-    _eglwver="1.1.4"
-  elif [[ $pkgver = 455* ]] || [[ $pkgver = 460* ]] || [[ $pkgver = 465* ]]; then
-    _eglwver="1.1.5"
-  elif [[ $pkgver = 470* ]]; then
-    _eglwver="1.1.7"
-  else
-    _eglwver="1.1.9"
-    _eglgver="1.1.0"
-  fi
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
@@ -1252,16 +1253,7 @@ nvidia-egl-wayland-tkg() {
     ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so.1
     ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so
 
-    if [ -n "${_eglgver:-}" ]; then
-        install -Dm755 libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so."${_eglgver}"
-        ln -s libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so.1
-        ln -s libnvidia-egl-gbm.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so
-    fi
-
     install -Dm755 10_nvidia_wayland.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json
-    if [[ -e 15_nvidia_gbm.json ]]; then
-        install -Dm755 15_nvidia_gbm.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json
-    fi
     install -Dm755 "$where"/egl-wayland/licenses/egl-wayland/COPYING "${pkgdir}"/usr/share/licenses/egl-wayland/COPYING
     install -Dm755 "$where"/egl-wayland/pkgconfig/wayland-eglstream-protocols.pc "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     install -Dm755 "$where"/egl-wayland/pkgconfig/wayland-eglstream.pc "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
@@ -1341,6 +1333,16 @@ nvidia-utils-tkg() {
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
       mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
+    fi
+
+    # egl-gbm
+    if [ -n "${_eglgver:-}" ]; then
+        install -Dm755 libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so."${_eglgver}"
+        ln -s libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so.1
+        ln -s libnvidia-egl-gbm.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-gbm.so
+    fi
+    if [[ -e 15_nvidia_gbm.json ]]; then
+        install -Dm755 15_nvidia_gbm.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json
     fi
 
     if [[ $pkgver != 396* ]]; then
