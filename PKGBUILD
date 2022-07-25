@@ -153,7 +153,7 @@ if [ -e options ]; then
       if [ -z "$_open_source_modules" ]; then
         msg2 " - Open source kernel modules available - "
         warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
-        warning "PRIME SUPPORT AND POWER MANAGEMENT ARE NOTABLY MISSING CURRENTLY."
+        warning "PRIME SUPPORT, VRR AND POWER MANAGEMENT ARE NOTABLY MISSING CURRENTLY."
         plain "Do you want to use it instead of the proprietary one?"
         read -rp "`echo $'    > N/y : '`" _open_source;
         if [[ "$_open_source" =~ [yY] ]]; then
