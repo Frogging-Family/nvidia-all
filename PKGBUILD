@@ -273,7 +273,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=216
+pkgrel=217
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -333,6 +333,7 @@ source=($_source_name
         'kernel-5.16.patch' # 5.16 workaround
         'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
         'kernel-5.17.patch' # 5.17 workaround
+        'kernel-6.0.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -373,7 +374,8 @@ md5sums=("$_md5sum"
          'f5fd091893f513d2371654e83049f099'
          'd684ca11fdc9894c14ead69cb35a5946'
          '0f987607c98eb6faeb7d691213de6a70'
-         'a70bc9cbbc7e8563b48985864a11de71')
+         'a70bc9cbbc7e8563b48985864a11de71'
+         '31128900574dec9ebdb753db50ef4f16')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -759,6 +761,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist517=( 470.62.* 495*)
       fi
 
+      # 6.0
+      if (( $(vercmp "$_kernel" "6.0") >= 0 )); then
+        _kernel60="1"
+        _whitelist60=( 515.6* )
+      fi
+
       # Loop patches (linux-4.15.patch, lol.patch, ...)
       for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
@@ -820,6 +828,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "5.17" ]; then
           _whitelist=(${_whitelist517[@]})
+        fi
+        if [ "$_patch" = "6.0" ]; then
+          _whitelist=(${_whitelist60[@]})
         fi
 
         patchy=0
@@ -1152,6 +1163,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-5.17.patch
         else
           msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.0
+      if [ "$_kernel60" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist60[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.0.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.0.patch
+        else
+          msg2 "Skipping kernel-6.0.patch as it doesn't apply to this driver version..."
         fi
       fi
 
