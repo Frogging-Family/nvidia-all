@@ -334,6 +334,7 @@ source=($_source_name
         'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
         'kernel-5.17.patch' # 5.17 workaround
         'kernel-6.0.patch'
+        'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -375,7 +376,8 @@ md5sums=("$_md5sum"
          'd684ca11fdc9894c14ead69cb35a5946'
          '0f987607c98eb6faeb7d691213de6a70'
          'a70bc9cbbc7e8563b48985864a11de71'
-         '31128900574dec9ebdb753db50ef4f16')
+         '31128900574dec9ebdb753db50ef4f16'
+         '0b9b855d9be313153a5903e46e774a30')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -764,7 +766,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.0
       if (( $(vercmp "$_kernel" "6.0") >= 0 )); then
         _kernel60="1"
-        _whitelist60=( 515.6* )
+        _whitelist60=( 515.6* 470.* )
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -1173,6 +1175,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           [[ $pkgver = $yup ]] && patchy=1
         done
         if [ "$patchy" = "1" ]; then
+          if [[ "$yup" =~ ^470\..* ]]; then
+            msg2 "Applying kernel-6.0-470.patch for dkms ..."
+            patch -Np1 -i "$srcdir"/kernel-6.0-470.patch
+          fi
           msg2 "Applying kernel-6.0.patch for dkms..."
           patch -Np1 -i "$srcdir"/kernel-6.0.patch
         else
