@@ -447,7 +447,9 @@ prepare() {
     cd open-gpu-kernel-modules-${pkgver}
 
     # Fix for https://bugs.archlinux.org/task/74886
-    patch -Np1 --no-backup-if-mismatch -i "$srcdir"/nvidia-open-gcc-ibt-sls.diff
+    if (( ${pkgver%%.*} < 525 )); then
+      patch -Np1 --no-backup-if-mismatch -i "$srcdir"/nvidia-open-gcc-ibt-sls.diff
+    fi
 
     # Attempt to make this reproducible
     sed -i "s/^HOSTNAME.*/HOSTNAME = echo archlinux"/ utils.mk
