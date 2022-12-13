@@ -281,7 +281,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=229
+pkgrel=230
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1525,8 +1525,7 @@ nvidia-utils-tkg() {
       # nvidia-powerd
       if [ -e nvidia-powerd ]; then
         install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
-        # Not installing DBUS file for the time beimg, see https://bugs.archlinux.org/task/74894
-        #install -D -m644 nvidia-dbus.conf "${pkgdir}/etc/dbus-1/system.d/nvidia-dbus.conf"
+        install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
         install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
       fi
     fi
