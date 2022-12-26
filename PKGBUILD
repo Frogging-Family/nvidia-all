@@ -281,7 +281,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=232
+pkgrel=233
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -345,6 +345,7 @@ source=($_source_name
         'kernel-5.17.patch' # 5.17 workaround
         'kernel-6.0.patch'
         'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
+        'kernel-6.2.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -387,7 +388,8 @@ md5sums=("$_md5sum"
          '0f987607c98eb6faeb7d691213de6a70'
          'a70bc9cbbc7e8563b48985864a11de71'
          '31128900574dec9ebdb753db50ef4f16'
-         '0b9b855d9be313153a5903e46e774a30')
+         '0b9b855d9be313153a5903e46e774a30'
+         'f3c1e3ffc7c3fe5048d9844af41776c9')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -779,6 +781,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.0") >= 0 )); then
         _kernel60="1"
         _whitelist60=( 515.6* 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* )
+      fi
+
+      # 6.2
+      if (( $(vercmp "$_kernel" "6.2") >= 0 )); then
+        _kernel62="1"
+        _whitelist62=( 525.* )
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -1195,6 +1203,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.0.patch
         else
           msg2 "Skipping kernel-6.0.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.2
+      if [ "$_kernel62" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist62[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.2.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.2.patch
+        else
+          msg2 "Skipping kernel-6.2.patch as it doesn't apply to this driver version..."
         fi
       fi
 

@@ -1,0 +1,28 @@
+diff --git a/nvidia-drm/nvidia-drm-connector.c b/nvidia-drm/nvidia-drm-connector.c
+index 77a6120..b05dc78 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-connector.c
+@@ -98,7 +98,7 @@ __nv_drm_detect_encoder(struct NvKmsKapiDynamicDisplayParams *pDetectParams,
+             break;
+     }
+
+-    if (connector->override_edid) {
++    if (connector->edid_override) {
+         const struct drm_property_blob *edid = connector->edid_blob_ptr;
+
+         if (edid->length <= sizeof(pDetectParams->edid.buffer)) {
+diff --git a/nvidia-drm/nvidia-drm-drv.c b/nvidia-drm/nvidia-drm-drv.c
+index ac504ec..cc6626a 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -257,10 +257,6 @@ nv_drm_init_mode_config(struct nv_drm_device *nv_dev,
+     dev->mode_config.preferred_depth = 24;
+     dev->mode_config.prefer_shadow = 1;
+
+-    /* Currently unused. Update when needed. */
+-
+-    dev->mode_config.fb_base = 0;
+-
+ #if defined(NV_DRM_CRTC_STATE_HAS_ASYNC_FLIP) || \
+     defined(NV_DRM_CRTC_STATE_HAS_PAGEFLIP_FLAGS)
+     dev->mode_config.async_page_flip = true;
