@@ -127,10 +127,10 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_branch=vulkandev' >> options
-        read -p "Type the desired version number (examples: 415.18.02, 396.54.09): " _driver_version;
+        read -p "Type the desired version number (format: xxx.xx.xx): " _driver_version;
       else
         echo '_driver_branch=regular' >> options
-        read -p "Type the desired version number (examples: 410.57, 396.51): " _driver_version;
+        read -p "Type the desired version number (format: xxx.xx.xx or xxx.xxx or xxx.xx): " _driver_version;
       fi
       echo "_md5sum='SKIP'" >> options
       echo "_driver_version=$_driver_version" >> options
