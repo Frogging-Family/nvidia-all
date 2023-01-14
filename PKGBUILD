@@ -95,7 +95,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "6" ]; then
         echo '_driver_version=435.21' > options
-        echo '_md5sum=050acb0aecc3ba15d1fc609ee82bebe' >> options
+        echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "7" ]; then
         echo '_driver_version=430.64' > options
@@ -654,14 +654,14 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 5.4
       if (( $(vercmp "$_kernel" "5.4") >= 0 )); then
         _kernel54="1"
-        _whitelist54=( 396* 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* 430.0* 430.1* 430.2* 430.3* 430.4* 430.5* 435.1* 435.21* 435.24* 435.27.01 )
+        _whitelist54=( 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* 430.0* 430.1* 430.2* 430.3* 430.4* 430.5* 435.1* 435.21* 435.24* 435.27.01 )
         if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying kernel-5.4-symver.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/kernel-5.4-symver.diff
           cd ..
         fi
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
+        if [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
           _54_prime="true"
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying kernel-5.4-prime.diff for $_kernel..."
@@ -673,14 +673,14 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 5.5
       if (( $(vercmp "$_kernel" "5.5") >= 0 )); then
         _kernel55="1"
-        _whitelist55=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.43.01 440.44 )
+        _whitelist55=( 410* 418* 430* 435* 440.2* 440.3* 440.43.01 440.44 )
       fi
 
       # 5.6
       if (( $(vercmp "$_kernel" "5.6") >= 0 )); then
         _kernel56="1"
-        _whitelist56=( 396* 410* 415* 418* 430* 435* 440.2* 440.3* 440.4* 440.5* 440.6* )
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
+        _whitelist56=( 435* 440.2* 440.3* 440.4* 440.5* 440.6* )
+        if [[ $pkgver = 418.* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying 5.6-legacy-includes.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/5.6-legacy-includes.diff
@@ -698,14 +698,14 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 5.7
       if (( $(vercmp "$_kernel" "5.7") >= 0 )); then
         _kernel57="1"
-        _whitelist57=( 396* 410* 415* 418* 430* 435* 440* )
+        _whitelist57=( 440* )
       fi
 
       # 5.8
       if (( $(vercmp "$_kernel" "5.8") >= 0 )); then
         _kernel58="1"
-        _whitelist58=( 396* 410* 415* 418* 430* 435* 440* 450.3* 450.51 450.56.01 )
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+        _whitelist58=( 440* 450.3* 450.51 450.56.01 )
+        if [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying 5.8-legacy.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/5.8-legacy.diff
@@ -853,6 +853,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.0" ]; then
           _whitelist=(${_whitelist60[@]})
+        fi
+        if [ "$_patch" = "6.2" ]; then
+          _whitelist=(${_whitelist62[@]})
         fi
 
         patchy=0
@@ -1029,7 +1032,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         else
           msg2 "Skipping kernel-5.6.patch as it doesn't apply to this driver version..."
         fi
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
+        if [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
           msg2 "Applying 5.6-legacy-includes.diff for dkms..."
           patch -Np1 -i "$srcdir"/5.6-legacy-includes.diff
           msg2 "Applying 5.6-ioremap.diff for dkms..."
@@ -1066,7 +1069,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         else
           msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
         fi
-        if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
+        if [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
           msg2 "Applying 5.8-legacy.diff for dkms..."
           patch -Np1 -i "$srcdir"/5.8-legacy.diff
         fi
