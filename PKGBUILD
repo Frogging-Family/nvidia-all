@@ -1346,11 +1346,11 @@ EOF
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
-  depends=('xorg-server' 'libglvnd' 'mesa' 'vulkan-icd-loader')
+  depends=('libglvnd' 'mesa' 'vulkan-icd-loader')
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
               'opencl-nvidia-tkg: OpenCL support'
-              'xorg-server-devel: nvidia-xconfig'
+              'xorg-server' 'xorg-server-devel: nvidia-xconfig'
               'egl-wayland-git: for alternative, more advanced Wayland library (libnvidia-egl-wayland.so)')
   provides=("nvidia-utils=$pkgver" "nvidia-utils-tkg=$pkgver" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
   conflicts=('nvidia-utils' 'nvidia-libgl')
