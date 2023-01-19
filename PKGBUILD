@@ -1624,8 +1624,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
   else
@@ -1649,10 +1653,14 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
         find "$pkgdir" -name '*.ko' -exec gzip -n {} +
       done
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-      echo "nvidia-uvm" |
-          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"   
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo "nvidia-uvm" |
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
   fi
@@ -1784,10 +1792,14 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-      echo "nvidia-uvm" |
-          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"    
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo "nvidia-uvm" |
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
 
