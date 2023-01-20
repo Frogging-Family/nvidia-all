@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.04\n      2.525 series: 525.78.01\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.470 series: 470.161.03\n      8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.04\n      2.525 series: 525.85.05\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.470 series: 470.161.03\n      8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=525.78.01' > options
-      echo '_md5sum=562c6acb0f051479c315192b400c9c78' >> options
+      echo '_driver_version=525.85.05' > options
+      echo '_md5sum=2f04852ec14043363c2500e194edc4b6' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=520.56.06' > options
