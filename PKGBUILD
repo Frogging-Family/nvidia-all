@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.04\n      2.525 series: 525.78.01\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.470 series: 470.161.03\n      8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.04\n      2.525 series: 525.85.05\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.470 series: 470.161.03\n      8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=525.78.01' > options
-      echo '_md5sum=562c6acb0f051479c315192b400c9c78' >> options
+      echo '_driver_version=525.85.05' > options
+      echo '_md5sum=2f04852ec14043363c2500e194edc4b6' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=520.56.06' > options
@@ -1346,11 +1346,11 @@ EOF
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
-  depends=('xorg-server' 'libglvnd' 'mesa' 'vulkan-icd-loader')
+  depends=('libglvnd' 'mesa' 'vulkan-icd-loader')
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
               'opencl-nvidia-tkg: OpenCL support'
-              'xorg-server-devel: nvidia-xconfig'
+              'xorg-server' 'xorg-server-devel: nvidia-xconfig'
               'egl-wayland-git: for alternative, more advanced Wayland library (libnvidia-egl-wayland.so)')
   provides=("nvidia-utils=$pkgver" "nvidia-utils-tkg=$pkgver" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
   conflicts=('nvidia-utils' 'nvidia-libgl')
@@ -1624,8 +1624,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
   else
@@ -1649,10 +1653,14 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
         find "$pkgdir" -name '*.ko' -exec gzip -n {} +
       done
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-      echo "nvidia-uvm" |
-          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"   
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo "nvidia-uvm" |
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
   fi
@@ -1784,10 +1792,14 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-      echo "nvidia-uvm" |
-          install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      if [ "$_blacklist_nouveau" = false ]; then
+          echo "skip blacklist nouveau\n"    
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo "nvidia-uvm" |
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      fi
 
       install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
 
