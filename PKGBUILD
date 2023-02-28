@@ -48,34 +48,38 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.11\n      2.525 series: 525.89.02\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.470 series: 470.161.03\n      8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.11\n      2.530 series: 530.30.02\n      3.525 series: 525.89.02\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.161.03\n     9 8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=530.30.02' > options
+      echo '_md5sum=655b1509b9a9ed0baa1ef6b2bcf80283' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=525.89.02' > options
       echo '_md5sum=2cd1ed226595db34f9390d0a85f370ff' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=520.56.06' > options
       echo '_md5sum=18136ef051cbfc3850e88aa5184b31b8' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=515.86.01' > options
       echo '_md5sum=5eaf6786f0c92cfcecb1ab950ff70df5' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=510.85.02' > options
       echo '_md5sum=0367f772fc61bccecee8559c4fe9bb3d' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=495.46' > options
       echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=470.161.03' > options
       echo '_md5sum=0652fff030ee29664ad728dd86e9f5d6' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "8" ]; then
+    elif [ "$CONDITION" = "9" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.465 series: 465.31\n      2.460 series: 460.91.03\n      3.455 series: 455.45.01\n      4.450 series: 450.119.03\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-11?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=460.91.03' > options
@@ -281,7 +285,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=238
+pkgrel=239
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1292,7 +1296,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 525 )); then
+if (( ${pkgver%%.*} >= 530 )); then
+  _eglwver="1.1.11"
+elif (( ${pkgver%%.*} >= 525 )); then
   _eglwver="1.1.10"
 elif (( ${pkgver%%.*} >= 495 )); then
   _eglwver="1.1.9"
@@ -1440,7 +1446,7 @@ nvidia-utils-tkg() {
       install -D -m644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
     fi
     if [ -e nvidia_layers.json ]; then
-      install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/explicit_layer.d/nvidia_layers.json"
+      install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
     fi
     if [[ -e libnvidia-vulkan-producer.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
@@ -1558,7 +1564,10 @@ nvidia-utils-tkg() {
     fi
 
     # gsp firmware
-    if (( ${pkgver%%.*} >= 525 )); then
+    if (( ${pkgver%%.*} >= 530 )); then
+      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+    elif (( ${pkgver%%.*} >= 525 )); then
       install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
       install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
     elif (( ${pkgver%%.*} >= 465 )); then
