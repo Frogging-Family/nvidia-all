@@ -1292,7 +1292,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 525 )); then
+if (( ${pkgver%%.*} >= 530 )); then
+  _eglwver="1.1.11"
+elif (( ${pkgver%%.*} >= 525 )); then
   _eglwver="1.1.10"
 elif (( ${pkgver%%.*} >= 495 )); then
   _eglwver="1.1.9"
@@ -1558,7 +1560,10 @@ nvidia-utils-tkg() {
     fi
 
     # gsp firmware
-    if (( ${pkgver%%.*} >= 525 )); then
+    if (( ${pkgver%%.*} >= 530 )); then
+      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+    elif (( ${pkgver%%.*} >= 525 )); then
       install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
       install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
     elif (( ${pkgver%%.*} >= 465 )); then
