@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.11\n      2.530 series: 530.30.02\n      3.525 series: 525.89.02\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.161.03\n     9 8.Older series\n      9.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.11\n      2.530 series: 530.30.02\n      3.525 series: 525.89.02\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.161.03\n      9.Older series\n      10.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -126,7 +126,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
         echo '_driver_branch=regular' >> options
       fi
-    elif [ "$CONDITION" = "9" ]; then
+    elif [ "$CONDITION" = "10" ]; then
       echo '_driver_version=custom' > options
       read -p "What branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
