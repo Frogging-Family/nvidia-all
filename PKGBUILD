@@ -283,6 +283,10 @@ if [ "$_eglwayland" = "true" ]; then
   _pkgname_array+=("$_branchname-egl-wayland-tkg")
 fi
 
+if [ "$_flatpak" = "true" ]; then
+  _pkgname_array+=("flatpak-host-driver-tkg")
+fi
+
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
 pkgrel=240
@@ -1821,6 +1825,41 @@ source /dev/stdin <<EOF
   }
 EOF
 fi
+
+# See https://github.com/TingPing/nvidia-driver/blob/3fd2b413a4febc9eb5ea8a3e069dc14965c60ac4/nvidia-driver.spec#L386 for reference
+flatpak-host-driver-tkg() {
+  pkgdesc="Flatpak NVIDIA host GL driver"
+
+  # NVIDIA works with basically any fd.o runtime that exists, so we use 1.4.
+  flatpak_64bit_dir="${pkgdir}/var/lib/flatpak/extension/org.freedesktop.Platform.GL.host/x86_64/1.4"
+  flatpak_32bit_dir="${pkgdir}/var/lib/flatpak/extension/org.freedesktop.Platform.GL.host/i386/1.4"
+  mkdir -p ${flatpak_64bit_dir}/lib ${flatpak_32bit_dir}/lib
+
+  install -d ${pkgdir}${flatpak_64bit_dir}/lib
+  install -d ${pkgdir}${flatpak_32bit_dir}/lib
+ 
+  # Flatpak extension is just a copy of the normal libs
+  cp -a ${_pkg}/*.so ${_pkg}/*.so.* ${flatpak_64bit_dir}/lib
+  
+  # `${_pkg}/32/*.so` might not be needed here.
+  cp -a ${_pkg}/32/*.so.* ${flatpak_32bit_dir}/lib
+  
+  install -p -Dm644 ${_pkg}/nvidia_icd.json ${flatpak_64bit_dir}/vulkan/icd.d/nvidia_icd.json
+  install -p -Dm644 ${_pkg}/nvidia_icd.json ${flatpak_32bit_dir}/vulkan/icd.d/nvidia_icd.json
+  
+  install -p -Dm644 ${_pkg}/10_nvidia.json ${flatpak_64bit_dir}/glvnd/egl_vendor.d/10_nvidia.json
+  install -p -Dm644 ${_pkg}/10_nvidia.json ${flatpak_32bit_dir}/glvnd/egl_vendor.d/10_nvidia.json
+  
+  install -p -Dm644 ${_pkg}/nvidia.icd ${flatpak_64bit_dir}/OpenCL/vendors/nvidia.icd
+  install -p -Dm644 ${_pkg}/nvidia.icd ${flatpak_32bit_dir}/OpenCL/vendors/nvidia.icd
+  
+  # With some exceptions..
+  rm ${flatpak_64bit_dir}/lib/*{libnvidia-ml,libnvidia-fbc}* 
+  rm ${flatpak_32bit_dir}/lib/*{libnvidia-ml,libnvidia-fbc}*
+}
+package_flatpak-host-driver-tkg() {
+  flatpak-host-driver-tkg
+}
 
 function exit_cleanup {
   # Sanitization
