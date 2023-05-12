@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.22\n      2.530 series: 530.41.03\n      3.525 series: 525.116.03\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.161.03\n      9.Older series\n      10.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.22\n      2.530 series: 530.41.03\n      3.525 series: 525.116.03\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.182.03\n      9.Older series\n      10.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -76,8 +76,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "8" ]; then
-      echo '_driver_version=470.161.03' > options
-      echo '_md5sum=0652fff030ee29664ad728dd86e9f5d6' >> options
+      echo '_driver_version=470.182.03' > options
+      echo '_md5sum=33e5a97d5f05fcf3474b69a95a2ade5d' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "9" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.465 series: 465.31\n      2.460 series: 460.91.03\n      3.455 series: 455.45.01\n      4.450 series: 450.119.03\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-11?]: '`" CONDITION;
@@ -350,6 +350,7 @@ source=($_source_name
         'kernel-6.0.patch'
         'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
         'kernel-6.2.patch'
+        'kernel-6.3.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -393,7 +394,8 @@ md5sums=("$_md5sum"
          'a70bc9cbbc7e8563b48985864a11de71'
          '31128900574dec9ebdb753db50ef4f16'
          '0b9b855d9be313153a5903e46e774a30'
-         '5d573b1aa0712b9bd2000c9fefdf84c2')
+         '5d573b1aa0712b9bd2000c9fefdf84c2'
+         'a6acbba08173769399658914eb86a212')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -793,6 +795,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist62=( 525.5* 525.6* 525.7* )
       fi
 
+      # 6.3
+      if (( $(vercmp "$_kernel" "6.3") >= 0 )); then
+        _kernel63="1"
+        _whitelist63=( 470* )
+      fi
+
       # Loop patches (linux-4.15.patch, lol.patch, ...)
       for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
@@ -860,6 +868,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.2" ]; then
           _whitelist=(${_whitelist62[@]})
+        fi
+        if [ "$_patch" = "6.3" ]; then
+          _whitelist=(${_whitelist63[@]})
         fi
 
         patchy=0
@@ -1224,6 +1235,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.2.patch
         else
           msg2 "Skipping kernel-6.2.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.3
+      if [ "$_kernel63" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist63[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.3.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.3.patch
+        else
+          msg2 "Skipping kernel-6.3.patch as it doesn't apply to this driver version..."
         fi
       fi
 
