@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.22\n      2.530 series: 530.41.03\n      3.525 series: 525.116.03\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.182.03\n      9.Older series\n      10.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.22\n      2.530 series: 530.41.03\n      3.525 series: 525.116.04\n      4.520 series: 520.56.06\n      5.515 series: 515.86.01\n      6.510 series: 510.85.02\n      7.495 series: 495.46\n      8.470 series: 470.182.03\n      9.Older series\n      10.Custom version (396.xx series or higher)\n    choice[1-9?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -56,8 +56,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=9049dbe01410eac1e05b249de10f6b91' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=525.116.03' > options
-      echo '_md5sum=5a941ba275fa02560f91f5f1292b0302' >> options
+      echo '_driver_version=525.116.04' > options
+      echo '_md5sum=416818dcdf3c923b851e88a759bd0e00' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=520.56.06' > options
@@ -285,7 +285,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=242
+pkgrel=243
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
