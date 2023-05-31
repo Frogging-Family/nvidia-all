@@ -1465,7 +1465,7 @@ nvidia-utils-tkg() {
       # Ray tracing
       install -D -m755 "libnvoptix.so.${pkgver}" "${pkgdir}/usr/lib/libnvoptix.so.${pkgver}"
       if [ -e "nvoptix.bin" ]; then
-        install -D -m644 "nvoptix.bin" "${pkgdir}/usr/lib/nvoptix.bin"
+        install -D -m644 "nvoptix.bin" "${pkgdir}/usr/share/nvidia/nvoptix.bin"
       fi
       install -D -m755 "libnvidia-rtcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-rtcore.so.${pkgver}"
       if [ -e "libnvidia-cbl.so.${pkgver}" ]; then
