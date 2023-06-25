@@ -230,7 +230,7 @@ msg2 "Building driver version $_driver_version on branch $_driver_branch."
 # Skip header check for dkms-only builds with explicit target kernel version
 if [ "$_dkms" != "true" ] || [ -z "$_kerneloverride" ]; then
   # Some people seem to believe making blank headers is a good idea
-  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-zen-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-hardened-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-neptune-dri-headers | head -c1 | wc -c) -eq 0 ]; then
+  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-zen-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-hardened-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-neptune-dri-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-cachyos-bore-headers | head -c1 | wc -c) -eq 0 ]; then
     error "A (correctly made?) linux-headers package can't be found."
     plain "If you're sure it's installed, blame your kernel maintainer."
     read -p "    Press enter to proceed anyway..."
