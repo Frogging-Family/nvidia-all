@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.27\n      2.535 series: 535.54.03\n      3.530 series: 530.41.03\n      4.525 series: 525.116.04\n      5.520 series: 520.56.06\n      6.515 series: 515.86.01\n      7.510 series: 510.85.02\n      8.495 series: 495.46\n      9.470 series: 470.182.03\n      10.Older series\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
+    read -p "    What driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.27\n      2.535 series: 535.54.03\n      3.530 series: 530.41.03\n      4.525 series: 525.116.04\n      5.520 series: 520.56.06\n      6.515 series: 515.86.01\n      7.510 series: 510.85.02\n      8.495 series: 495.46\n      9.470 series: 470.199.02\n      10.Older series\n      11.Custom version (396.xx series or higher)\n    choice[1-11?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -80,8 +80,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "9" ]; then
-      echo '_driver_version=470.182.03' > options
-      echo '_md5sum=33e5a97d5f05fcf3474b69a95a2ade5d' >> options
+      echo '_driver_version=470.199.02' > options
+      echo '_md5sum=52d91b58029e6b79f33090c53ee9560f' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "10" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.465 series: 465.31\n      2.460 series: 460.91.03\n      3.455 series: 455.45.01\n      4.450 series: 450.119.03\n      5.440 series: 440.100 (kernel 5.8 or lower)\n      6.435 series: 435.21  (kernel 5.6 or lower)\n      7.430 series: 430.64  (kernel 5.5 or lower)\n      8.418 series: 418.113 (kernel 5.5 or lower)\n      9.415 series: 415.27  (kernel 5.4 or lower)\n      10.410 series: 410.104 (kernel 5.5 or lower)\n      11.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-11?]: '`" CONDITION;
@@ -289,7 +289,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=247
+pkgrel=248
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -802,7 +802,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.3
       if (( $(vercmp "$_kernel" "6.3") >= 0 )); then
         _kernel63="1"
-        _whitelist63=( 470* )
+        _whitelist63=( 470.16* 470.18* )
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
