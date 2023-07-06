@@ -355,6 +355,7 @@ source=($_source_name
         'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
         'kernel-6.2.patch'
         'kernel-6.3.patch'
+        'kernel-6.4.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -399,7 +400,8 @@ md5sums=("$_md5sum"
          '31128900574dec9ebdb753db50ef4f16'
          '0b9b855d9be313153a5903e46e774a30'
          '5d573b1aa0712b9bd2000c9fefdf84c2'
-         'a6acbba08173769399658914eb86a212')
+         'a6acbba08173769399658914eb86a212'
+         '4f855bb0e0b84e8e5d072c687256767a')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -805,6 +807,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist63=( 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* 470.16* 470.18* )
       fi
 
+      # 6.4
+      if (( $(vercmp "$_kernel" "6.4") >= 0 )); then
+        _kernel64="1"
+        _whitelist64=( 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* 470.16* 470.18* 530* )
+      fi
+
       # Loop patches (linux-4.15.patch, lol.patch, ...)
       for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
@@ -875,6 +883,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.3" ]; then
           _whitelist=(${_whitelist63[@]})
+        fi
+        if [ "$_patch" = "6.4" ]; then
+          _whitelist=(${_whitelist64[@]})
         fi
 
         patchy=0
@@ -1253,6 +1264,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.3.patch
         else
           msg2 "Skipping kernel-6.3.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.4
+      if [ "$_kernel64" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist64[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.4.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.4.patch
+        else
+          msg2 "Skipping kernel-6.4.patch as it doesn't apply to this driver version..."
         fi
       fi
 
