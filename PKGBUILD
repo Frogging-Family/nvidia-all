@@ -144,8 +144,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=525.47.27' > options
-      echo '_md5sum=a0cb80ac18553a8eed2acb0f30729c48' >> options
+      echo '_driver_version=525.47.31' > options
+      echo '_md5sum=00ec1951b2da0fd026457f880de8a68a' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
