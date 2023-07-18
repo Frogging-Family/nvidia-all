@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.27\n      2.535 series: 535.54.03\n      3.530 series: 530.41.03\n      4.470 series: 470.199.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.27\n      2.535 series: 535.86.05\n      3.530 series: 530.41.03\n      4.470 series: 470.199.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=535.54.03' > options
-      echo '_md5sum=ae579c6b94300b9d0f9289c9eaa704bb' >> options
+      echo '_driver_version=535.86.05' > options
+      echo '_md5sum=fb77fed516627c7228ba012862833d8c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=530.41.03' > options
@@ -289,7 +289,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=247
+pkgrel=248
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
