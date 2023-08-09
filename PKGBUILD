@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.34\n      2.535 series: 535.98\n      3.530 series: 530.41.03\n      4.470 series: 470.199.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 525.47.35\n      2.535 series: 535.98\n      3.530 series: 530.41.03\n      4.470 series: 470.199.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -144,8 +144,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=525.47.34' > options
-      echo '_md5sum=da2f6e5a32dd87601b67c20540ed2657' >> options
+      echo '_driver_version=525.47.35' > options
+      echo '_md5sum=2c69451d36a8b6423ff61d80eaa6c442' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
