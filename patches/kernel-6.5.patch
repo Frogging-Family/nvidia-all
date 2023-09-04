@@ -1,7 +1,7 @@
 Works around get_user_pages argument error when compiling for kernel 6.5 or newer
 Should work with 525xx, 530xx 535xx prior to 535.86(?), potentially some older versions?
 Original patch by Fjodor42 - this just changes some driver-specific lines
-See: https://gist.github.com/joanbm/dfe8dc59af1c83e2530a1376b77be8ba
+See: https://gist.github.com/Fjodor42/cfd29b3ffd1d1957894469f2def8f4f6
 Original original patch for 470xx by Joan Bruguera at https://gist.github.com/joanbm/dfe8dc59af1c83e2530a1376b77be8ba
 
 --- a/kernel-dkms/common/inc/nv-mm.h

@@ -403,7 +403,7 @@ md5sums=("$_md5sum"
          '5d573b1aa0712b9bd2000c9fefdf84c2'
          'a6acbba08173769399658914eb86a212'
          '4f855bb0e0b84e8e5d072c687256767a'
-         'd409945e14af98ecbf91cf32d25e5ca1')
+         'b81cac7573842ebd7af30fdf851c63f9')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
