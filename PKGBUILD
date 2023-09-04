@@ -356,6 +356,7 @@ source=($_source_name
         'kernel-6.2.patch'
         'kernel-6.3.patch'
         'kernel-6.4.patch'
+        'kernel-6.5.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -401,7 +402,8 @@ md5sums=("$_md5sum"
          '0b9b855d9be313153a5903e46e774a30'
          '5d573b1aa0712b9bd2000c9fefdf84c2'
          'a6acbba08173769399658914eb86a212'
-         '4f855bb0e0b84e8e5d072c687256767a')
+         '4f855bb0e0b84e8e5d072c687256767a'
+         'd409945e14af98ecbf91cf32d25e5ca1')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -812,6 +814,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel64="1"
         _whitelist64=( 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* 470.16* 470.18* 530* )
       fi
+      # 6.5
+      if (( $(vercmp "$_kernel" "6.5") >= 0 )); then
+        _kernel65="1"
+        _whitelist65=(525* 530* 535.5* 535.43.02)
+      fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
       for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
@@ -887,7 +894,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         if [ "$_patch" = "6.4" ]; then
           _whitelist=(${_whitelist64[@]})
         fi
-
+        if [ "$_patch" = "6.5" ]; then
+          _whitelist=(${_whitelist65[@]})
+        fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
           for yup in "${_whitelist[@]}"; do
@@ -1280,7 +1289,19 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           msg2 "Skipping kernel-6.4.patch as it doesn't apply to this driver version..."
         fi
       fi
-
+      # 6.5
+      if [ "$_kernel65" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist65[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.5.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.5.patch
+        else
+          msg2 "Skipping kernel-6.5.patch as it doesn't apply to this driver version..."
+        fi
+      fi
       # Legacy quirks
       if [ "$_oldstuff" = "1" ]; then
         msg2 "Applying 01-ipmi-vm.diff for dkms..."
