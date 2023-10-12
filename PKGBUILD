@@ -355,8 +355,11 @@ source=($_source_name
         'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
         'kernel-6.2.patch'
         'kernel-6.3.patch'
+        'legacy-kernel-6.4.diff'
         'kernel-6.4.patch'
+        'legacy-kernel-6.5.diff'
         'kernel-6.5.patch'
+        'legacy-kernel-6.6.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -402,8 +405,11 @@ md5sums=("$_md5sum"
          '0b9b855d9be313153a5903e46e774a30'
          '5d573b1aa0712b9bd2000c9fefdf84c2'
          'a6acbba08173769399658914eb86a212'
+         'f0173a8bce0124b2d62a54f2e22d1552'
          '4f855bb0e0b84e8e5d072c687256767a'
-         'b81cac7573842ebd7af30fdf851c63f9')
+         '50d3eac54d14d44d70df92770a3a9abf'
+         'b81cac7573842ebd7af30fdf851c63f9'
+         'd11cb3bd76ab61a0f086aea9a0c53087')
 
 if [ "$_open_source_modules" = "true" ]; then
   source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
@@ -813,11 +819,34 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.4") >= 0 )); then
         _kernel64="1"
         _whitelist64=( 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* 470.16* 470.18* 530* )
+        if [[ $pkgver = 470.199* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying legacy-kernel-6.4.patch for $_kernel..."
+          patch -Np2 -i "$srcdir"/legacy-kernel-6.4.diff
+          cd ..
+        fi
       fi
       # 6.5
       if (( $(vercmp "$_kernel" "6.5") >= 0 )); then
         _kernel65="1"
         _whitelist65=(525* 530* 535.5* 535.43.02)
+        if [[ $pkgver = 470.199* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying legacy-kernel-6.5.patch for $_kernel..."
+          patch -Np2 -i "$srcdir"/legacy-kernel-6.5.diff
+          cd ..
+        fi
+      fi
+      # 6.6
+      if (( $(vercmp "$_kernel" "6.6") >= 0 )); then
+        _kernel66="1"
+        _whitelist66=()
+        if [[ $pkgver = 470.199* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying legacy-kernel-6.6.patch for $_kernel..."
+          patch -Np2 -i "$srcdir"/legacy-kernel-6.6.diff
+          cd ..
+        fi
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -896,6 +925,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.5" ]; then
           _whitelist=(${_whitelist65[@]})
+        fi
+        if [ "$_patch" = "6.6" ]; then
+          _whitelist=(${_whitelist66[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -1288,6 +1320,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         else
           msg2 "Skipping kernel-6.4.patch as it doesn't apply to this driver version..."
         fi
+        if [[ $pkgver = 470.199.* ]]; then
+          msg2 "Applying legacy-kernel-6.4.patch for dkms..."
+          patch -Np1 -i "$srcdir"/legacy-kernel-6.4.diff
+        fi
       fi
       # 6.5
       if [ "$_kernel65" = "1" ]; then
@@ -1300,6 +1336,24 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.5.patch
         else
           msg2 "Skipping kernel-6.5.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 470.199.* ]]; then
+          msg2 "Applying legacy-kernel-6.5.patch for dkms..."
+          patch -Np1 -i "$srcdir"/legacy-kernel-6.5.diff
+        fi
+      fi
+      # 6.6
+      if [ "$_kernel66" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist66[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Skipping kernel-6.6.patch as it doesn't apply to this driver version..."
+        fi
+        if [[ $pkgver = 470.199.* ]]; then
+          msg2 "Applying legacy-kernel-6.6.patch for dkms..."
+          patch -Np1 -i "$srcdir"/legacy-kernel-6.6.diff
         fi
       fi
       # Legacy quirks
