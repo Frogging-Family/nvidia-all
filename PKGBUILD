@@ -48,22 +48,26 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.13\n      2.535 series: 535.113.01\n      3.530 series: 530.41.03\n      4.470 series: 470.199.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.13\n      2.545 series: 545.23.06\n      3.535 series: 535.113.01\n      4.530 series: 530.41.03\n      5.470 series: 470.199.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=545.23.06' > options
+      echo '_md5sum=3227cc3da4cf694dbaa9ac189320e232' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=535.113.01' > options
       echo '_md5sum=935643d801c50ba803e9fb0169413d60' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=530.41.03' > options
       echo '_md5sum=9049dbe01410eac1e05b249de10f6b91' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=470.199.02' > options
       echo '_md5sum=52d91b58029e6b79f33090c53ee9560f' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.525 series: 525.125.06\n      2.520 series: 520.56.06\n      3.515 series: 515.86.01\n      4.510 series: 510.85.02\n      5.495 series: 495.46\n      6.465 series: 465.31\n      7.460 series: 460.91.03\n      8.455 series: 455.45.01\n      9.450 series: 450.119.03\n      10.440 series: 440.100 (kernel 5.8 or lower)\n      11.435 series: 435.21  (kernel 5.6 or lower)\n      12.430 series: 430.64  (kernel 5.5 or lower)\n      13.418 series: 418.113 (kernel 5.5 or lower)\n      14.415 series: 415.27  (kernel 5.4 or lower)\n      15.410 series: 410.104 (kernel 5.5 or lower)\n      16.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-16?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=520.56.06' > options
@@ -130,7 +134,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=a5a219962d4079e8d34ac82722d47744' >> options
         echo '_driver_branch=regular' >> options
       fi
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=custom' > options
       read -p "Which branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -1427,7 +1431,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 530 )); then
+if (( ${pkgver%%.*} >= 545 )); then
+  _eglwver="1.1.12"
+elif (( ${pkgver%%.*} >= 530 )); then
   _eglwver="1.1.11"
 elif (( ${pkgver%%.*} >= 525 )); then
   _eglwver="1.1.10"
@@ -1549,6 +1555,11 @@ nvidia-utils-tkg() {
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
       mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
+    fi
+
+    # GPU shader compilation helper
+    if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
+      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
     fi
 
     # egl-gbm
@@ -1871,6 +1882,11 @@ lib32-nvidia-utils-tkg() {
     # Allocator library
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
+    fi
+
+    # GPU shader compilation helper
+    if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
+      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
     fi
 
     if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
