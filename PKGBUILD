@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.15\n      2.545 series: 545.23.06\n      3.535 series: 535.113.01\n      4.530 series: 530.41.03\n      5.470 series: 470.199.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.15\n      2.545 series: 545.29.02\n      3.535 series: 535.113.01\n      4.530 series: 530.41.03\n      5.470 series: 470.199.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=545.23.06' > options
-      echo '_md5sum=3227cc3da4cf694dbaa9ac189320e232' >> options
+      echo '_driver_version=545.29.02' > options
+      echo '_md5sum=fe6d2b1ccec8da0502c1232235c7da4e' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=535.113.01' > options
@@ -169,7 +169,7 @@ if [ -e options ]; then
   source options
   if [ "$_open_source_modules" != "false" ]; then
     # Open source kernel module availability check
-    if [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/$_driver_version" | head -n 1 )" = *200* ]]; then
+    if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
       if [ -z "$_open_source_modules" ]; then
         msg2 " - Open source kernel modules available - "
         warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
@@ -416,7 +416,7 @@ md5sums=("$_md5sum"
          'd11cb3bd76ab61a0f086aea9a0c53087')
 
 if [ "$_open_source_modules" = "true" ]; then
-  source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
+  source+=("NVIDIA-kernel-module-source-$pkgver.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${pkgver}.tar.xz")
   md5sums+=("SKIP")
 fi
 
@@ -472,7 +472,7 @@ prepare() {
   sh "$_pkg".run -x
 
   if [ "$_open_source_modules" = "true" ]; then
-    cd open-gpu-kernel-modules-${pkgver}
+    cd NVIDIA-kernel-module-source-${pkgver}
 
     # Fix for https://bugs.archlinux.org/task/74886
     if (( ${pkgver%%.*} < 525 )); then
@@ -506,7 +506,7 @@ BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     # Clean version for later copying for DKMS
-    cp -r ../open-gpu-kernel-modules-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
+    cp -r ../NVIDIA-kernel-module-source-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
   else
     cd "$_pkg"
 
@@ -1394,7 +1394,7 @@ build() {
       done
     fi
   else
-    cd open-gpu-kernel-modules-${pkgver}
+    cd NVIDIA-kernel-module-source-${pkgver}
     make SYSSRC="/usr/src/linux"
   fi
 }
@@ -1772,7 +1772,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
 
-      cd open-gpu-kernel-modules-${pkgver}
+      cd NVIDIA-kernel-module-source-${pkgver}
       _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
       find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
@@ -1948,7 +1948,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       mkdir -p "$pkgdir"/usr/lib/modprobe.d
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
-      install -Dm644 open-gpu-kernel-modules-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
+      install -Dm644 NVIDIA-kernel-module-source-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
   else
 
       pkgdesc="NVIDIA kernel module sources (DKMS)"
