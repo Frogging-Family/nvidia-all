@@ -169,7 +169,7 @@ if [ -e options ]; then
   source options
   if [ "$_open_source_modules" != "false" ]; then
     # Open source kernel module availability check
-    if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
+    if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]] || [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
       if [ -z "$_open_source_modules" ]; then
         msg2 " - Open source kernel modules available - "
         warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
@@ -180,6 +180,11 @@ if [ -e options ]; then
           echo '_open_source_modules="true"' >> options
         else
           echo '_open_source_modules="false"' >> options
+        fi
+        if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
+          echo '_srcbase="NVIDIA-kernel-module-source"' >> options
+        elif [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
+          echo '_srcbase="open-gpu-kernel-modules"' >> options
         fi
       fi
     else
@@ -416,7 +421,11 @@ md5sums=("$_md5sum"
          'd11cb3bd76ab61a0f086aea9a0c53087')
 
 if [ "$_open_source_modules" = "true" ]; then
-  source+=("NVIDIA-kernel-module-source-$pkgver.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${pkgver}.tar.xz")
+  if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
+    source+=("NVIDIA-kernel-module-source-$pkgver.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${pkgver}.tar.xz")
+  elif [[ "$_srcbase" == "open-gpu-kernel-modules" ]]; then
+    source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
+  fi
   md5sums+=("SKIP")
 fi
 
@@ -472,7 +481,7 @@ prepare() {
   sh "$_pkg".run -x
 
   if [ "$_open_source_modules" = "true" ]; then
-    cd NVIDIA-kernel-module-source-${pkgver}
+    cd ${_srcbase}-${pkgver}
 
     # Fix for https://bugs.archlinux.org/task/74886
     if (( ${pkgver%%.*} < 525 )); then
@@ -506,7 +515,7 @@ BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     # Clean version for later copying for DKMS
-    cp -r ../NVIDIA-kernel-module-source-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
+    cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
   else
     cd "$_pkg"
 
@@ -1394,7 +1403,7 @@ build() {
       done
     fi
   else
-    cd NVIDIA-kernel-module-source-${pkgver}
+    cd ${_srcbase}-${pkgver}
     make SYSSRC="/usr/src/linux"
   fi
 }
@@ -1772,7 +1781,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
 
-      cd NVIDIA-kernel-module-source-${pkgver}
+      cd ${_srcbase}-${pkgver}
       _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
       find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
@@ -1948,7 +1957,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       mkdir -p "$pkgdir"/usr/lib/modprobe.d
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
-      install -Dm644 NVIDIA-kernel-module-source-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
+      install -Dm644 ${_srcbase}-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
   else
 
       pkgdesc="NVIDIA kernel module sources (DKMS)"
