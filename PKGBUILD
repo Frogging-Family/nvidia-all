@@ -181,11 +181,11 @@ if [ -e options ]; then
         else
           echo '_open_source_modules="false"' >> options
         fi
-        if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
-          echo '_srcbase="NVIDIA-kernel-module-source"' >> options
-        elif [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
-          echo '_srcbase="open-gpu-kernel-modules"' >> options
-        fi
+      fi
+      if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
+        echo '_srcbase="NVIDIA-kernel-module-source"' >> options
+      elif [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
+        echo '_srcbase="open-gpu-kernel-modules"' >> options
       fi
     else
       msg2 "No open source kernel module available"
