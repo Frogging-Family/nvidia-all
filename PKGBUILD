@@ -68,7 +68,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=b6b2b79cd6d8288e42546b785e6c1d0a' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.525 series: 525.125.06\n      2.520 series: 520.56.06\n      3.515 series: 515.86.01\n      4.510 series: 510.85.02\n      5.495 series: 495.46\n      6.465 series: 465.31\n      7.460 series: 460.91.03\n      8.455 series: 455.45.01\n      9.450 series: 450.119.03\n      10.440 series: 440.100 (kernel 5.8 or lower)\n      11.435 series: 435.21  (kernel 5.6 or lower)\n      12.430 series: 430.64  (kernel 5.5 or lower)\n      13.418 series: 418.113 (kernel 5.5 or lower)\n      14.415 series: 415.27  (kernel 5.4 or lower)\n      15.410 series: 410.104 (kernel 5.5 or lower)\n      16.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-16?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.525 series: 525.147.05\n      2.520 series: 520.56.06\n      3.515 series: 515.86.01\n      4.510 series: 510.85.02\n      5.495 series: 495.46\n      6.465 series: 465.31\n      7.460 series: 460.91.03\n      8.455 series: 455.45.01\n      9.450 series: 450.119.03\n      10.440 series: 440.100 (kernel 5.8 or lower)\n      11.435 series: 435.21  (kernel 5.6 or lower)\n      12.430 series: 430.64  (kernel 5.5 or lower)\n      13.418 series: 418.113 (kernel 5.5 or lower)\n      14.415 series: 415.27  (kernel 5.4 or lower)\n      15.410 series: 410.104 (kernel 5.5 or lower)\n      16.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-16?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=520.56.06' > options
         echo '_md5sum=18136ef051cbfc3850e88aa5184b31b8' >> options
@@ -130,8 +130,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
         echo '_driver_branch=regular' >> options
       else
-        echo '_driver_version=525.125.06' > options
-        echo '_md5sum=a5a219962d4079e8d34ac82722d47744' >> options
+        echo '_driver_version=525.147.05' > options
+        echo '_md5sum=bf00562896e64ebf3f28e528947049ce' >> options
         echo '_driver_branch=regular' >> options
       fi
     elif [ "$CONDITION" = "7" ]; then
@@ -842,7 +842,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.5
       if (( $(vercmp "$_kernel" "6.5") >= 0 )); then
         _kernel65="1"
-        _whitelist65=(525* 530* 535.5* 535.43.02)
+        _whitelist65=(525.5* 525.6* 525.7* 525.8* 525.10* 525.11* 525.12* 530* 535.5* 535.43.02)
         if [[ $pkgver = 470.199* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying legacy-kernel-6.5.patch for $_kernel..."
