@@ -169,7 +169,8 @@ if [ -e options ]; then
   source options
   if [ "$_open_source_modules" != "false" ]; then
     # Open source kernel module availability check
-    if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]] || [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
+    msg2 "Checking open driver availability..."
+    if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]] || [[ "$( curl -Is "https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/$_driver_version" | head -n 1 )" = *200* ]]; then
       if [ -z "$_open_source_modules" ]; then
         msg2 " - Open source kernel modules available - "
         warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
@@ -184,7 +185,7 @@ if [ -e options ]; then
       fi
       if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
         echo '_srcbase="NVIDIA-kernel-module-source"' >> options
-      elif [[ "$( curl -Is "https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/$_driver_version.tar.gz" | head -n 1 )" = *302* ]]; then
+      elif [[ "$( curl -Is "https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/$_driver_version" | head -n 1 )" = *200* ]]; then
         echo '_srcbase="open-gpu-kernel-modules"' >> options
       fi
     else
