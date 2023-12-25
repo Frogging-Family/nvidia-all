@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.20\n      2.545 series: 545.29.06\n      3.535 series: 535.129.03\n      4.530 series: 530.41.03\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.22\n      2.545 series: 545.29.06\n      3.535 series: 535.146.02\n      4.530 series: 530.41.03\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -56,8 +56,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=535.129.03' > options
-      echo '_md5sum=a73adcb4bb7c085481d10806f18a7efb' >> options
+      echo '_driver_version=535.146.02' > options
+      echo '_md5sum=7bd0cc0d210baf03eadcde3f83653db3' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=530.41.03' > options
@@ -148,8 +148,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=535.43.20' > options
-      echo '_md5sum=49050422d2114c8aaf98e6f68190b3d5' >> options
+      echo '_driver_version=535.43.22' > options
+      echo '_md5sum=e31fcb9358efc6555815b68fb3f669af' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
