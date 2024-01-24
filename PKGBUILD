@@ -48,26 +48,30 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.22\n      2.545 series: 545.29.06\n      3.535 series: 535.154.05\n      4.530 series: 530.41.03\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.22\n      2.550 series  550.40.07\n      3.545 series: 545.29.06\n      4.535 series: 535.154.05\n      5.530 series: 530.41.03\n      6.470 series: 470.223.02\n      7.Older series\n      8.Custom version (396.xx series or higher)\n    choice[1-8?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=550.40.07' > options
+      echo '_md5sum=f973f35d38211fd7ce01578eecab4638' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=545.29.06' > options
       echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=535.154.05' > options
       echo '_md5sum=53ab0bf8076fb5ba881b3a8eab566f72' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=530.41.03' > options
       echo '_md5sum=9049dbe01410eac1e05b249de10f6b91' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       echo '_driver_version=470.223.02' > options
       echo '_md5sum=b6b2b79cd6d8288e42546b785e6c1d0a' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.525 series: 525.147.05\n      2.520 series: 520.56.06\n      3.515 series: 515.86.01\n      4.510 series: 510.85.02\n      5.495 series: 495.46\n      6.465 series: 465.31\n      7.460 series: 460.91.03\n      8.455 series: 455.45.01\n      9.450 series: 450.119.03\n      10.440 series: 440.100 (kernel 5.8 or lower)\n      11.435 series: 435.21  (kernel 5.6 or lower)\n      12.430 series: 430.64  (kernel 5.5 or lower)\n      13.418 series: 418.113 (kernel 5.5 or lower)\n      14.415 series: 415.27  (kernel 5.4 or lower)\n      15.410 series: 410.104 (kernel 5.5 or lower)\n      16.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-16?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=520.56.06' > options
@@ -134,7 +138,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=bf00562896e64ebf3f28e528947049ce' >> options
         echo '_driver_branch=regular' >> options
       fi
-    elif [ "$CONDITION" = "7" ]; then
+    elif [ "$CONDITION" = "8" ]; then
       echo '_driver_version=custom' > options
       read -p "Which branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -1441,7 +1445,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 545 )); then
+if (( ${pkgver%%.*} >= 550 )); then
+  _eglwver="1.1.13"
+elif (( ${pkgver%%.*} >= 545 )); then
   _eglwver="1.1.12"
 elif (( ${pkgver%%.*} >= 530 )); then
   _eglwver="1.1.11"
@@ -1466,7 +1472,9 @@ elif [[ $pkgver = 396* ]]; then
 fi
 
 #egl-gbm  version
-if (( ${pkgver%%.*} >= 495 )); then
+if (( ${pkgver%%.*} >= 450 )); then
+    _eglgver="1.1.1"
+elif (( ${pkgver%%.*} >= 495 )); then
   _eglgver="1.1.0"
 fi
 
