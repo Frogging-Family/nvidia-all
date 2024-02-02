@@ -303,7 +303,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=252
+pkgrel=253
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -374,6 +374,7 @@ source=($_source_name
         'legacy-kernel-6.5.diff'
         'kernel-6.5.patch'
         'legacy-kernel-6.6.diff'
+        '6.1-6-7-8-gpl.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -423,7 +424,8 @@ md5sums=("$_md5sum"
          '4f855bb0e0b84e8e5d072c687256767a'
          '50d3eac54d14d44d70df92770a3a9abf'
          'b81cac7573842ebd7af30fdf851c63f9'
-         'd11cb3bd76ab61a0f086aea9a0c53087')
+         'd11cb3bd76ab61a0f086aea9a0c53087'
+         'f7f95287eb18be63bfad0427f13b6d43')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -844,6 +846,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           cd ..
         fi
       fi
+
       # 6.5
       if (( $(vercmp "$_kernel" "6.5") >= 0 )); then
         _kernel65="1"
@@ -855,14 +858,22 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           cd ..
         fi
       fi
+
       # 6.6
       if (( $(vercmp "$_kernel" "6.6") >= 0 )); then
         _kernel66="1"
         _whitelist66=()
         if [[ $pkgver = 470.199* ]]; then
+          cd ..
+        fi
+      fi
+
+      # 6.1-6-7-8 GPL
+      if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
+        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
-          msg2 "Applying legacy-kernel-6.6.patch for $_kernel..."
-          patch -Np2 -i "$srcdir"/legacy-kernel-6.6.diff
+          msg2 "Applying 6.1-6-7-8-gpl.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/6.1-6-7-8-gpl.diff
           cd ..
         fi
       fi
@@ -1343,6 +1354,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/legacy-kernel-6.4.diff
         fi
       fi
+
       # 6.5
       if [ "$_kernel65" = "1" ]; then
         patchy=0
@@ -1360,6 +1372,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/legacy-kernel-6.5.diff
         fi
       fi
+
       # 6.6
       if [ "$_kernel66" = "1" ]; then
         patchy=0
@@ -1374,6 +1387,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/legacy-kernel-6.6.diff
         fi
       fi
+
+      # 6.1-6-7-8 GPL
+      if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
+        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.* ]]; then
+          msg2 "Applying 6.1-6-7-8-gpl.diff for dkms..."
+          patch -Np1 -i "$srcdir"/6.1-6-7-8-gpl.diff
+          cd ..
+        fi
+      fi
+
       # Legacy quirks
       if [ "$_oldstuff" = "1" ]; then
         msg2 "Applying 01-ipmi-vm.diff for dkms..."
