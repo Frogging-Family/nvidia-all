@@ -48,12 +48,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.28\n      2.550 series: 550.40.07\n      3.545 series: 545.29.06\n      4.535 series: 535.154.05\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.28\n      2.550 series: 550.54.14\n      3.545 series: 545.29.06\n      4.535 series: 535.154.05\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=550.40.07' > options
-      echo '_md5sum=f973f35d38211fd7ce01578eecab4638' >> options
+      echo '_driver_version=550.54.14' > options
+      echo '_md5sum=69e77647875bef192f8458912027e44b' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=545.29.06' > options
@@ -870,7 +870,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.1-6-7-8 GPL
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
-        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.* ]]; then
+        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying 6.1-6-7-8-gpl.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/6.1-6-7-8-gpl.diff
@@ -1390,7 +1390,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.1-6-7-8 GPL
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
-        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.* ]]; then
+        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
           msg2 "Applying 6.1-6-7-8-gpl.diff for dkms..."
           patch -Np1 -i "$srcdir"/6.1-6-7-8-gpl.diff
           cd ..
