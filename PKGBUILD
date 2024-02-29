@@ -48,7 +48,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
     fi
   fi
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.28\n      2.550 series: 550.54.14\n      3.545 series: 545.29.06\n      4.535 series: 535.161.07\n      5.470 series: 470.223.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 535.43.28\n      2.550 series: 550.54.14\n      3.545 series: 545.29.06\n      4.535 series: 535.161.07\n      5.470 series: 470.239.06\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -64,8 +64,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=7e84b8b4ba63be061508921f19ef3b45' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "5" ]; then
-      echo '_driver_version=470.223.02' > options
-      echo '_md5sum=b6b2b79cd6d8288e42546b785e6c1d0a' >> options
+      echo '_driver_version=470.239.06' > options
+      echo '_md5sum=4d007f78ef892929399aaf02152f4c38' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.530 series: 530.41.03\n      2.525 series: 525.147.05\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.465 series: 465.31\n      8.460 series: 460.91.03\n      9.455 series: 455.45.01\n      10.450 series: 450.119.03\n      11.440 series: 440.100 (kernel 5.8 or lower)\n      12.435 series: 435.21  (kernel 5.6 or lower)\n      13.430 series: 430.64  (kernel 5.5 or lower)\n      14.418 series: 418.113 (kernel 5.5 or lower)\n      15.415 series: 415.27  (kernel 5.4 or lower)\n      16.410 series: 410.104 (kernel 5.5 or lower)\n      17.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-17?]: '`" CONDITION;
@@ -870,7 +870,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.1-6-7-8 GPL
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
-        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
+        if [[ $pkgver = 470.4* ]] || [[ $pkgver = 470.5* ]] || [[ $pkgver = 470.6* ]] || [[ $pkgver = 470.7* ]] || [[ $pkgver = 470.8* ]] || [[ $pkgver = 470.9* ]] || [[ $pkgver = 470.1* ]] || [[ $pkgver = 470.22* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying 6.1-6-7-8-gpl.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/6.1-6-7-8-gpl.diff
@@ -1390,7 +1390,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.1-6-7-8 GPL
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
-        if [[ $pkgver = 470.* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
+        if [[ $pkgver = 470.4* ]] || [[ $pkgver = 470.5* ]] || [[ $pkgver = 470.6* ]] || [[ $pkgver = 470.7* ]] || [[ $pkgver = 470.8* ]] || [[ $pkgver = 470.9* ]] || [[ $pkgver = 470.1* ]] || [[ $pkgver = 470.22* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.4* ]]; then
           msg2 "Applying 6.1-6-7-8-gpl.diff for dkms..."
           patch -Np1 -i "$srcdir"/6.1-6-7-8-gpl.diff
           cd ..
