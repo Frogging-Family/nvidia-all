@@ -266,7 +266,7 @@ fi
 
 # packages
 if [ "$_open_source_modules" = "true" ]; then
-  __branchname="nvidia$_series-open"
+  __branchname="$_branchname-open"
 else
   __branchname="$_branchname"
 fi
@@ -1860,7 +1860,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       done
 
       if [ "$_blacklist_nouveau" = false ]; then
-          echo "skip blacklist nouveau\n"   
+          echo "skip blacklist nouveau\n"
         else
             echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
                 install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
@@ -2007,7 +2007,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
       if [ "$_blacklist_nouveau" = false ]; then
-          echo "skip blacklist nouveau\n"    
+          echo "skip blacklist nouveau\n"
         else
             echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
                 install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
