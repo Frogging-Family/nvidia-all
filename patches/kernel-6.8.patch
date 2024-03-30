@@ -1,0 +1,71 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index 74f8583..6563e9f 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -790,29 +790,29 @@ static const struct drm_ioctl_desc nv_drm_ioctls[] = {
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_IMPORT_NVKMS_MEMORY,
+                       nv_drm_gem_import_nvkms_memory_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+ #endif /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
+
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_IMPORT_USERSPACE_MEMORY,
+                       nv_drm_gem_import_userspace_memory_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_MAP_OFFSET,
+                       nv_drm_gem_map_offset_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GET_DEV_INFO,
+                       nv_drm_get_dev_info_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+
+ #if defined(NV_DRM_FENCE_AVAILABLE)
+     DRM_IOCTL_DEF_DRV(NVIDIA_FENCE_SUPPORTED,
+                       nv_drm_fence_supported_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_FENCE_CONTEXT_CREATE,
+                       nv_drm_fence_context_create_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_FENCE_ATTACH,
+                       nv_drm_gem_fence_attach_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+ #endif
+
+     DRM_IOCTL_DEF_DRV(NVIDIA_GET_CLIENT_CAPABILITY,
+@@ -821,22 +821,22 @@ static const struct drm_ioctl_desc nv_drm_ioctls[] = {
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+     DRM_IOCTL_DEF_DRV(NVIDIA_GET_CRTC_CRC32,
+                       nv_drm_get_crtc_crc32_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GET_CRTC_CRC32_V2,
+                       nv_drm_get_crtc_crc32_v2_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_EXPORT_NVKMS_MEMORY,
+                       nv_drm_gem_export_nvkms_memory_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_ALLOC_NVKMS_MEMORY,
+                       nv_drm_gem_alloc_nvkms_memory_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_EXPORT_DMABUF_MEMORY,
+                       nv_drm_gem_export_dmabuf_memory_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+     DRM_IOCTL_DEF_DRV(NVIDIA_GEM_IDENTIFY_OBJECT,
+                       nv_drm_gem_identify_object_ioctl,
+-                      DRM_RENDER_ALLOW|DRM_UNLOCKED),
++                      DRM_RENDER_ALLOW),
+ #endif /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
+ };
+
+

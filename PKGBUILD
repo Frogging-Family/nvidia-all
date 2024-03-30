@@ -375,6 +375,7 @@ source=($_source_name
         'kernel-6.5.patch'
         'legacy-kernel-6.6.diff'
         '6.1-6-7-8-gpl.diff'
+        'kernel-6.8.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -425,7 +426,8 @@ md5sums=("$_md5sum"
          '50d3eac54d14d44d70df92770a3a9abf'
          'b81cac7573842ebd7af30fdf851c63f9'
          'd11cb3bd76ab61a0f086aea9a0c53087'
-         'f7f95287eb18be63bfad0427f13b6d43')
+         'f7f95287eb18be63bfad0427f13b6d43'
+         '7481cb7f52b76c426d579b115e4c84b6')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -878,6 +880,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
       fi
 
+      # 6.6
+      if (( $(vercmp "$_kernel" "6.8") >= 0 )); then
+        _kernel68="1"
+        _whitelist68=(525*)
+      fi
+
       # Loop patches (linux-4.15.patch, lol.patch, ...)
       for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
@@ -957,6 +965,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.6" ]; then
           _whitelist=(${_whitelist66[@]})
+        fi
+        if [ "$_patch" = "6.8" ]; then
+          _whitelist=(${_whitelist68[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -1394,6 +1405,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           msg2 "Applying 6.1-6-7-8-gpl.diff for dkms..."
           patch -Np1 -i "$srcdir"/6.1-6-7-8-gpl.diff
           cd ..
+        fi
+      fi
+
+      # 6.8
+      if [ "$_kernel68" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist68[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.8.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.8.patch
+        else
+          msg2 "Skipping kernel-6.8.patch as it doesn't apply to this driver version..."
         fi
       fi
 
