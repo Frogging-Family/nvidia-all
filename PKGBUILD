@@ -47,6 +47,9 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       error "\"latest\" driver specified, but without branch. Make sure _driver_branch is set."
     fi
   fi
+
+  warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
+
   if [[ -z $CONDITION ]]; then
     read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.59\n      2.550 series: 550.76\n      3.545 series: 545.29.06\n      4.535 series: 535.171.04\n      5.470 series: 470.239.06\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
@@ -240,16 +243,6 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
 fi
 
 msg2 "Building driver version $_driver_version on branch $_driver_branch."
-
-# Skip header check for dkms-only builds with explicit target kernel version
-if [ "$_dkms" != "true" ] || [ -z "$_kerneloverride" ]; then
-  # Some people seem to believe making blank headers is a good idea
-  if [ $(pacman -Qs linux-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-zen-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-hardened-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-neptune-dri-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-cachyos-headers | head -c1 | wc -c) -eq 0 ] && [ $(pacman -Qs linux-cachyos-bore-headers | head -c1 | wc -c) -eq 0 ]; then
-    error "A (correctly made?) linux-headers package can't be found."
-    plain "If you're sure it's installed, blame your kernel maintainer."
-    read -p "    Press enter to proceed anyway..."
-  fi
-fi
 
 _pkgname_array=()
 
