@@ -331,6 +331,8 @@ source=($_source_name
         '60-nvidia.rules'
         'nvidia-tkg.hook'
         'nvidia-open-gcc-ibt-sls.diff'
+        'gcc-14-470.diff'
+        'gcc-14.diff'
         'linux-version.diff' # include linux version
         '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
         '02-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (addon for 410+)
@@ -383,6 +385,8 @@ md5sums=("$_md5sum"
          'd868c671fd7a542722a1889f5d38441d'
          '596f7cbf2db48d4f5b1c38967bb93cea'
          '9b1543768ea75320fd0d2315de66d1c8'
+         'afb98b1dab0c61df526d4c0ee4d18abf'
+         'e5d1574892eb68de9af1b79a6bfb5e7b'
          '7a825f41ada7e106c8c0b713a49b3bfa'
          'd961d1dce403c15743eecfe3201e4b6a'
          '14460615a9d4e247c8d9bcae8776ed48'
@@ -480,6 +484,11 @@ prepare() {
   # Use custom compiler paths if defined
   if [ -n "${CUSTOM_GCC_PATH}" ]; then
     PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
+  fi
+
+  if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
+    _gcc14="true"
+    msg2 "GCC 14 detected"
   fi
 
   # Extract
@@ -881,6 +890,17 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.8") >= 0 )); then
         _kernel68="1"
         _whitelist68=(525*)
+      fi
+
+      if [ "$_gcc14" = "true" ]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying gcc-14 patch..."
+        if [[ $pkgver = 470* ]]; then
+          patch -Np2 -i "$srcdir"/gcc-14-470.diff
+        else
+          patch -Np2 -i "$srcdir"/gcc-14.diff
+        fi
+        cd ..
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
@@ -1416,6 +1436,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.8.patch
         else
           msg2 "Skipping kernel-6.8.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      if [ "$_gcc14" = "true" ]; then
+        msg2 "Applying gcc-14 patch..."
+        if [[ $pkgver = 470* ]]; then
+          patch -Np1 -i "$srcdir"/gcc-14-470.diff
+        else
+          patch -Np1 -i "$srcdir"/gcc-14.diff
         fi
       fi
 
