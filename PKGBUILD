@@ -1979,6 +1979,7 @@ lib32-nvidia-utils-tkg() {
     # Allocator library
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
+      mkdir -p "${pkgdir}/usr/lib32/gbm" && ln -sr "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/gbm/nvidia-drm_gbm.so"
     fi
 
     # GPU shader compilation helper
