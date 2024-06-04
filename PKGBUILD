@@ -1486,7 +1486,7 @@ build() {
     fi
   else
     cd ${_srcbase}-${pkgver}
-    make SYSSRC="/usr/src/linux"
+    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="/usr/src/linux"
   fi
 }
 
