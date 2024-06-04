@@ -531,6 +531,9 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     # Clean version for later copying for DKMS
     cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
+
+    cd "$srcdir/$_pkg"
+    bsdtar -xf nvidia-persistenced-init.tar.bz2
   else
     cd "$_pkg"
 
