@@ -51,16 +51,16 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.61\n      2.555 series: 555.42.02\n      3.550 series: 550.78\n      4.545 series: 545.29.06\n      5.535 series: 535.183.01\n      6.470 series: 470.239.06\n      7.Older series\n      8.Custom version (396.xx series or higher)\n    choice[1-8?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.63\n      2.555 series: 555.52.04\n      3.550 series: 550.90.07\n      4.545 series: 545.29.06\n      5.535 series: 535.183.01\n      6.470 series: 470.239.06\n      7.Older series\n      8.Custom version (396.xx series or higher)\n    choice[1-8?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=555.42.02' > options
-      echo '_md5sum=6822b99c94e1844d83213cf81597862c' >> options
+      echo '_driver_version=555.52.04' > options
+      echo '_md5sum=383a4b14a52bd07e1319339f2a1ac6e5' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=550.78' > options
-      echo '_md5sum=c289987ebda8e9419a73e7e8e3409244' >> options
+      echo '_driver_version=550.90.07' > options
+      echo '_md5sum=fa8d3ff7dd40cc67ea448f0a2227942c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=545.29.06' > options
@@ -159,8 +159,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=550.40.61' > options
-      echo '_md5sum=07a0815853dcb902587998e1fd11aae0' >> options
+      echo '_driver_version=550.40.63' > options
+      echo '_md5sum=07b7f844e390a1cafcffd152608d1d71' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -300,7 +300,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=253
+pkgrel=254
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
