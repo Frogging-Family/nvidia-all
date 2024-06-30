@@ -19,6 +19,29 @@ makepkg -si
 ```
 Then follow the prompts.
 
+### To update the installer
+```
+cd nvidia-all
+git pull
+makepkg -si
+```
+Then follow the prompts as before.
+
+## How to uninstall and revert to distro provided packages
+For arch and its derivatives you can uninstall using
+```
+sudo pacman -Rdd lib32-nvidia-utils-tkg lib32-opencl-nvidia-tkg nvidia-dkms-tkg nvidia-egl-wayland-tkg nvidia-settings-tkg nvidia-utils-tkg opencl-nvidia-tkg
+```
+And install the distro dkms packages
+
+```
+sudo pacman -Sy nvidia-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+```
+Alternitavely install the dkms open kernel modules with  
+```
+sudo pacman -Sy nvidia-open-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+```
+After installing the drivers provided by your distro everything should function as normal after a reboot.
 # DKMS or regular?
 DKMS is recommended as it allows for automatic module rebuilding on kernel updates. As long as you're on the same major version (5.8.x for example), you won't need to regenerate the packages on updates, which is a huge QoL feature. Regular modules can also be problematic on Manjaro due to differences in kernel hooking mechanisms compared to Arch. So if in doubt, go DKMS.
 
