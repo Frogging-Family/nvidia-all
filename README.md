@@ -28,16 +28,16 @@ makepkg -si
 Then follow the prompts as before.
 
 ## How to uninstall and revert to distro provided packages
-For arch and its derivatives you can uninstall using
+For arch and its derivatives you can uninstall using:
 ```
 sudo pacman -Rdd lib32-nvidia-utils-tkg lib32-opencl-nvidia-tkg nvidia-dkms-tkg nvidia-egl-wayland-tkg nvidia-settings-tkg nvidia-utils-tkg opencl-nvidia-tkg
 ```
-And install the distro dkms packages
+And install the distro dkms packages:
 
 ```
 sudo pacman -Sy nvidia-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
 ```
-Alternitavely install the dkms open kernel modules with  
+Alternatively install the dkms open kernel modules (Turing or newer hardware only!!!) with:
 ```
 sudo pacman -Sy nvidia-open-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
 ```
@@ -50,9 +50,9 @@ DKMS is recommended as it allows for automatic module rebuilding on kernel updat
 - Simply rebuild the packages so the script can detect your currently installed kernel(s) and patch your driver accordingly to fix compatibility issues.
 
 # How to generate a package for a driver that isn't listed (390 and lower branches are not supported) :
-- When you are prompted for driver version, select "custom" (choice 8).
+- When you are prompted for driver version, select "custom" (choice 6).
 - You'll then be asked the branch group. Select either "Vulkan dev" (choice 2) for Vulkan dev drivers or "stable or regular beta" (choice 1) for every other driver.
-- Now you have to enter the version number of the desired driver. Vulkan dev drivers version is usually formatted as `mainbranch.version.subversion` (i.e.: 415.22.01) while the stable or regular beta drivers version is usually `mainbranch.version` (i.e.: 415.25)
+- Now you have to enter the version number of the desired driver. Vulkan dev drivers version is usually formatted as `mainbranch.version.subversion` (i.e.: 415.22.01) while the stable or regular beta drivers version is usually (but not always) `mainbranch.version` (i.e.: 415.25)
 - To finish, you'll be asked if you want dkms(recommended) or regular modules, similarly to the usual drivers versions.
 
 # Optimus users :
