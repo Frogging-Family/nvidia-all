@@ -51,7 +51,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.555 series: 555.58\n      3.550 series: 550.90.07\n      4.545 series: 545.29.06\n      5.535 series: 535.183.01\n      6.470 series: 470.239.06\n      7.Older series\n      8.Custom version (396.xx series or higher)\n    choice[1-8?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.555 series: 555.58\n      3.550 series: 550.90.07\n      4.545 series: 545.29.06\n      5.535 series: 535.183.01\n      6.470 series: 470.256.02\n      7.Older series\n      8.Custom version (396.xx series or higher)\n    choice[1-8?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -71,8 +71,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=e9ea27c842436f3af6ccab7ec4727c0b' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      echo '_driver_version=470.239.06' > options
-      echo '_md5sum=4d007f78ef892929399aaf02152f4c38' >> options
+      echo '_driver_version=470.256.02' > options
+      echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "7" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.530 series: 530.41.03\n      2.525 series: 525.147.05\n      3.520 series: 520.56.06\n      4.515 series: 515.86.01\n      5.510 series: 510.85.02\n      6.495 series: 495.46\n      7.465 series: 465.31\n      8.460 series: 460.91.03\n      9.455 series: 455.45.01\n      10.450 series: 450.119.03\n      11.440 series: 440.100 (kernel 5.8 or lower)\n      12.435 series: 435.21  (kernel 5.6 or lower)\n      13.430 series: 430.64  (kernel 5.5 or lower)\n      14.418 series: 418.113 (kernel 5.5 or lower)\n      15.415 series: 415.27  (kernel 5.4 or lower)\n      16.410 series: 410.104 (kernel 5.5 or lower)\n      17.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-17?]: '`" CONDITION;
