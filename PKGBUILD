@@ -1486,7 +1486,12 @@ build() {
     fi
   else
     cd ${_srcbase}-${pkgver}
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="/usr/src/linux"
+    for _linuxsrc in /usr/src/*/vmlinux; do
+      _linuxsrc="${_linuxsrc//\/vmlinux}"
+      warning "Found linux src in: ${_linuxsrc}"
+    done
+    warning "Using linux src from: ${_linuxsrc} (last one listed)"
+    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="${_linuxsrc}"
   fi
 }
 
