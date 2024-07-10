@@ -51,7 +51,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.555 series: 555.58.02\n      3.550 series: 550.90.07\n      4.470 series: 470.256.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.555 series: 555.58.02\n      3.550 series: 550.100\n      4.470 series: 470.256.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -59,8 +59,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=f6efa3d40fccc97fbac9b55fc81e30d7' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=550.90.07' > options
-      echo '_md5sum=fa8d3ff7dd40cc67ea448f0a2227942c' >> options
+      echo '_driver_version=550.100' > options
+      echo '_md5sum=2f9d2cf2c5b90dde8069e73a6ea834d9' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=470.256.02' > options
