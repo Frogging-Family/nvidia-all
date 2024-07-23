@@ -304,7 +304,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=255
+pkgrel=256
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1717,7 +1717,7 @@ nvidia-utils-tkg() {
     if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
       ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
-      install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd_vksc.json"
+      install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
     fi
     if [[ -e nvidia-pcc ]]; then
       install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
