@@ -51,22 +51,26 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.555 series: 555.58.02\n      3.550 series: 550.100\n      4.470 series: 470.256.02\n      5.Older series\n      6.Custom version (396.xx series or higher)\n    choice[1-6?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.65\n      2.560 series: 560.28.03\n      3.555 series: 555.58.02\n      4.550 series: 550.100\n      5.470 series: 470.256.02\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=560.28.03' > options
+      echo '_md5sum=0883f1410001dba8c3370df9da34bafc' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=555.58.02' > options
       echo '_md5sum=f6efa3d40fccc97fbac9b55fc81e30d7' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=550.100' > options
       echo '_md5sum=2f9d2cf2c5b90dde8069e73a6ea834d9' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
+    elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=470.256.02' > options
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "5" ]; then
+    elif [ "$CONDITION" = "6" ]; then
       read -p "    Which legacy driver version do you want?`echo $'\n    > 1.545 series: 545.29.06\n      2.535 series: 535.183.01\n      3.530 series: 530.41.03\n      4.525 series: 525.147.05\n      5.520 series: 520.56.06\n      6.515 series: 515.86.01\n      7.510 series: 510.85.02\n      8.495 series: 495.46\n      9.465 series: 465.31\n      10.460 series: 460.91.03\n      11.455 series: 455.45.01\n      12.450 series: 450.119.03\n      13.440 series: 440.100 (kernel 5.8 or lower)\n      14.435 series: 435.21  (kernel 5.6 or lower)\n      15.430 series: 430.64  (kernel 5.5 or lower)\n      16.418 series: 418.113 (kernel 5.5 or lower)\n      17.415 series: 415.27  (kernel 5.4 or lower)\n      18.410 series: 410.104 (kernel 5.5 or lower)\n      19.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-19?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=535.183.01' > options
@@ -145,7 +149,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
         echo '_driver_branch=regular' >> options
       fi
-    elif [ "$CONDITION" = "6" ]; then
+    elif [ "$CONDITION" = "7" ]; then
       echo '_driver_version=custom' > options
       read -p "Which branch do you want?`echo $'\n> 1.Stable or regular beta\n  2.Vulkan dev\nchoice[1-2?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
@@ -300,7 +304,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=254
+pkgrel=255
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1647,6 +1651,16 @@ nvidia-utils-tkg() {
     install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
     install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
 
+    # egl-xlib/xcb
+    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
+      install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
+    fi
+    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
+      install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
+    fi
+
     if [[ -e libnvidia-api.so.1 ]]; then
       install -D -m755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
     fi
@@ -1697,6 +1711,16 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.1"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so"
+    fi
+
+    # VKSC
+    if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
+      install -D -m755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
+      ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
+      install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd_vksc.json"
+    fi
+    if [[ -e nvidia-pcc ]]; then
+      install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
     fi
 
     # VDPAU
@@ -1995,6 +2019,12 @@ lib32-nvidia-utils-tkg() {
       install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
     fi
 
+    if [ -n "${_eglgver:-}" ] && [[ -e libnvidia-egl-gbm.so."${_eglgver}" ]]; then
+      install -Dm755 libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib32/libnvidia-egl-gbm.so."${_eglgver}"
+      ln -s libnvidia-egl-gbm.so."${_eglgver}" "${pkgdir}"/usr/lib32/libnvidia-egl-gbm.so.1
+      ln -s libnvidia-egl-gbm.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-gbm.so
+    fi
+
     if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
       install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
     fi
@@ -2002,6 +2032,14 @@ lib32-nvidia-utils-tkg() {
     install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
     install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
     install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
+
+    # egl-xlib/xcb
+    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
+    fi
+    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
+    fi
 
     # VDPAU
     install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/vdpau/libvdpau_nvidia.so.${pkgver}"
