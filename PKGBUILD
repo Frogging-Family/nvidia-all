@@ -304,7 +304,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=256
+pkgrel=257
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1584,6 +1584,16 @@ nvidia-egl-wayland-tkg() {
 
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
+
+    #lib32
+    if [ "$_lib32" = "true" ]; then
+      cd 32
+      if [[ -e libnvidia-egl-wayland.so."${_eglwver}" ]]; then
+        install -Dm755 libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so."${_eglwver}"
+        ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so.1
+        ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so
+      fi
+    fi
 }
 source /dev/stdin <<EOF
 package_$_branchname-egl-wayland-tkg() {
