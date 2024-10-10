@@ -379,6 +379,9 @@ source=($_source_name
         'legacy-kernel-6.6.diff'
         '6.1-6-7-8-gpl.diff'
         'kernel-6.8.patch'
+        'make-modeset-fbdev-default.diff'
+        '6.11-fbdev.diff'
+        'nvidia-sleep.conf'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -432,7 +435,10 @@ md5sums=("$_md5sum"
          'b81cac7573842ebd7af30fdf851c63f9'
          'd11cb3bd76ab61a0f086aea9a0c53087'
          'f7f95287eb18be63bfad0427f13b6d43'
-         '7481cb7f52b76c426d579b115e4c84b6')
+         '7481cb7f52b76c426d579b115e4c84b6'
+         'c06a9359969ba331bc9fac91fe0eeff2'
+         'adfcf56ea4a4a420d9ef07b9d4b451dc'
+         '2b5b62c1265b3b6b18022a0a716e5fcd')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -897,6 +903,24 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.8") >= 0 )); then
         _kernel68="1"
         _whitelist68=(525*)
+      fi
+
+      # 6.11
+      if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
+        if [[ $pkgver = 560.* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          # Enable modeset and fbdev as default
+          # This avoids various issue, when Simplefb is used
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+          # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+          msg2 "Applying make-modeset-fbdev-default.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff
+          # Add fix for fbdev "phantom" monitor with 6.11
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
+          msg2 "Applying 6.11-fbdev.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/6.11-fbdev.diff
+          cd ..
+        fi
       fi
 
       if [ "$_gcc14" = "true" ]; then
@@ -1446,6 +1470,22 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
       fi
 
+      # 6.11
+      if (( $(vercmp "$_kernel" "6.1") >= 0 )); then
+        if [[ $pkgver = 560.* ]]; then
+          # Enable modeset and fbdev as default
+          # This avoids various issue, when Simplefb is used
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+          # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+          msg2 "Applying make-modeset-fbdev-default.diff for dkms..."
+          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default.diff
+          # Add fix for fbdev "phantom" monitor with 6.11
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
+          msg2 "Applying 6.11-fbdev.diff for dkms..."
+          patch -Np1 -i "$srcdir"/6.11-fbdev.diff
+        fi
+      fi
+
       if [ "$_gcc14" = "true" ]; then
         msg2 "Applying gcc-14 patch..."
         if [[ $pkgver = 470* ]]; then
@@ -1877,6 +1917,10 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/nvidia-utils-tkg.sysusers "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
 
     install -Dm644 "$srcdir"/60-nvidia.rules "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
+
+    # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
+    # Fixes Wayland Sleep, when restoring the session
+    install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
     _create_links
 }
