@@ -308,7 +308,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=259
+pkgrel=260
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1604,7 +1604,9 @@ elif [[ $pkgver = 396* ]]; then
 fi
 
 #egl-gbm  version
-if (( ${pkgver%%.*} >= 550 )); then
+if (( ${pkgver%%.*} >= 565 )); then
+  _eglgver="1.1.2"
+elif (( ${pkgver%%.*} >= 550 )); then
   _eglgver="1.1.1"
 elif (( ${pkgver%%.*} >= 495 )); then
   _eglgver="1.1.0"
