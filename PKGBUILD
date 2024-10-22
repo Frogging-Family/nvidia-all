@@ -71,7 +71,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.550 series: 550.120\n      2.545 series: 545.29.06\n      3.535 series: 535.183.01\n      4.530 series: 530.41.03\n      5.525 series: 525.147.05\n      6.520 series: 520.56.06\n      7.515 series: 515.86.01\n      8.510 series: 510.85.02\n      9.495 series: 495.46\n      10.465 series: 465.31\n      11.460 series: 460.91.03\n      12.455 series: 455.45.01\n      13.450 series: 450.119.03\n      14.440 series: 440.100 (kernel 5.8 or lower)\n      15.435 series: 435.21  (kernel 5.6 or lower)\n      16.430 series: 430.64  (kernel 5.5 or lower)\n      17.418 series: 418.113 (kernel 5.5 or lower)\n      18.415 series: 415.27  (kernel 5.4 or lower)\n      19.410 series: 410.104 (kernel 5.5 or lower)\n      20.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-20?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.550 series: 550.127.05\n      2.545 series: 545.29.06\n      3.535 series: 535.183.01\n      4.530 series: 530.41.03\n      5.525 series: 525.147.05\n      6.520 series: 520.56.06\n      7.515 series: 515.86.01\n      8.510 series: 510.85.02\n      9.495 series: 495.46\n      10.465 series: 465.31\n      11.460 series: 460.91.03\n      12.455 series: 455.45.01\n      13.450 series: 450.119.03\n      14.440 series: 440.100 (kernel 5.8 or lower)\n      15.435 series: 435.21  (kernel 5.6 or lower)\n      16.430 series: 430.64  (kernel 5.5 or lower)\n      17.418 series: 418.113 (kernel 5.5 or lower)\n      18.415 series: 415.27  (kernel 5.4 or lower)\n      19.410 series: 410.104 (kernel 5.5 or lower)\n      20.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-20?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=545.29.06' > options
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
@@ -149,8 +149,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
         echo '_driver_branch=regular' >> options
       else
-        echo '_driver_version=550.120' > options
-        echo '_md5sum=a2a40ba27ea1c375f2f5b84b66c83a33' >> options
+        echo '_driver_version=550.127.05' > options
+        echo '_md5sum=04b8fb74fd67dcb54a9b57b5926422be' >> options
         echo '_driver_branch=regular' >> options
       fi
     elif [ "$CONDITION" = "7" ]; then
@@ -308,7 +308,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=258
+pkgrel=259
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
