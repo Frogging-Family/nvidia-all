@@ -11,6 +11,10 @@ Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
 
 Regular drivers : https://www.nvidia.com/object/unix.html
 
+## Note regarding 470 series
+
+**Nvidia's support for Kepler GPUs ended on September 2024 ( see https://nvidia.custhelp.com/app/answers/detail/a_id/5202 ), so 470 series is unlikely to be updated going forward. As a result using a LTS kernel is recommended/needed to prevent issues (<=6.6.y).**
+
 ## How to run the installer
 ```
 git clone https://github.com/Frogging-Family/nvidia-all.git
