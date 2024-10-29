@@ -1475,7 +1475,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.11
-      if (( $(vercmp "$_kernel" "6.1") >= 0 )); then
+      if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
         if [[ $pkgver = 560.* ]] || [[ $pkgver = 565.* ]]; then
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
