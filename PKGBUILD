@@ -384,6 +384,7 @@ source=($_source_name
         '6.1-6-7-8-gpl.diff'
         'kernel-6.8.patch'
         'make-modeset-fbdev-default.diff'
+        'make-modeset-fbdev-default-565.diff'
         '6.11-fbdev.diff'
         'nvidia-sleep.conf'
 )
@@ -441,6 +442,7 @@ md5sums=("$_md5sum"
          'f7f95287eb18be63bfad0427f13b6d43'
          '7481cb7f52b76c426d579b115e4c84b6'
          'c06a9359969ba331bc9fac91fe0eeff2'
+         'c691df97015eee42d51b34b147dd5236'
          'adfcf56ea4a4a420d9ef07b9d4b451dc'
          '2b5b62c1265b3b6b18022a0a716e5fcd')
 
@@ -930,8 +932,8 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
-          msg2 "Applying make-modeset-fbdev-default.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff
+          msg2 "Applying make-modeset-fbdev-default-565.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff
           cd ..
         fi
       fi
@@ -1501,8 +1503,8 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
-          msg2 "Applying make-modeset-fbdev-default.diff for dkms..."
-          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default.diff
+          msg2 "Applying make-modeset-fbdev-default-565.diff for dkms..."
+          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default-565.diff
         fi
       fi
 
