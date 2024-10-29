@@ -911,7 +911,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.11
       if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
-        if [[ $pkgver = 560.* ]]; then
+        if [[ $pkgver = 560.* ]] || [[ $pkgver = 565.* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
@@ -1476,7 +1476,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.11
       if (( $(vercmp "$_kernel" "6.1") >= 0 )); then
-        if [[ $pkgver = 560.* ]]; then
+        if [[ $pkgver = 560.* ]] || [[ $pkgver = 565.* ]]; then
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
