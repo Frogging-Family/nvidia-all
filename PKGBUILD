@@ -911,7 +911,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.11
       if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
-        if [[ $pkgver = 560.* ]] || [[ $pkgver = 565.* ]]; then
+        if [[ $pkgver = 560.* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
@@ -923,6 +923,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
           msg2 "Applying 6.11-fbdev.diff for $_kernel..."
           patch -Np2 -i "$srcdir"/6.11-fbdev.diff
+          cd ..
+        elif [[ $pkgver = 565.* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          # Enable modeset and fbdev as default
+          # This avoids various issue, when Simplefb is used
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+          # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+          msg2 "Applying make-modeset-fbdev-default.diff for $_kernel..."
+          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff
           cd ..
         fi
       fi
@@ -1476,7 +1485,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       # 6.11
       if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
-        if [[ $pkgver = 560.* ]] || [[ $pkgver = 565.* ]]; then
+        if [[ $pkgver = 560.* ]]; then
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
@@ -1487,6 +1496,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
           msg2 "Applying 6.11-fbdev.diff for dkms..."
           patch -Np1 -i "$srcdir"/6.11-fbdev.diff
+        elif [[ $pkgver = 565.* ]]; then
+          # Enable modeset and fbdev as default
+          # This avoids various issue, when Simplefb is used
+          # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+          # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+          msg2 "Applying make-modeset-fbdev-default.diff for dkms..."
+          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default.diff
         fi
       fi
 
