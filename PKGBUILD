@@ -2133,9 +2133,13 @@ lib32-nvidia-utils-tkg() {
     # egl-xlib/xcb
     if [[ -e libnvidia-egl-xlib.so.1 ]]; then
       install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
     fi
     if [[ -e libnvidia-egl-xcb.so.1 ]]; then
       install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
     fi
 
     # VDPAU
