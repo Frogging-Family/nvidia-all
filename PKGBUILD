@@ -308,7 +308,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=261
+pkgrel=262
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -387,6 +387,7 @@ source=($_source_name
         'make-modeset-fbdev-default-565.diff'
         '6.11-fbdev.diff'
         'nvidia-sleep.conf'
+        'kernel-6.12.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -444,7 +445,8 @@ md5sums=("$_md5sum"
          'c06a9359969ba331bc9fac91fe0eeff2'
          'c691df97015eee42d51b34b147dd5236'
          'adfcf56ea4a4a420d9ef07b9d4b451dc'
-         '2b5b62c1265b3b6b18022a0a716e5fcd')
+         '2b5b62c1265b3b6b18022a0a716e5fcd'
+         '676d7039ff5b5e2bdd03db08fd1cba4e')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -938,6 +940,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
       fi
 
+      # 6.12
+      if (( $(vercmp "$_kernel" "6.12") >= 0 )); then
+        _kernel612="1"
+        _whitelist612=( 565* )
+      fi
+
       if [ "$_gcc14" = "true" ]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying gcc-14 patch..."
@@ -1031,6 +1039,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.8" ]; then
           _whitelist=(${_whitelist68[@]})
+        fi
+        if [ "$_patch" = "6.12" ]; then
+          _whitelist=(${_whitelist612[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -1505,6 +1516,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
           msg2 "Applying make-modeset-fbdev-default-565.diff for dkms..."
           patch -Np1 -i "$srcdir"/make-modeset-fbdev-default-565.diff
+        fi
+      fi
+
+      # 6.12
+      if [ "$_kernel612" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist612[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ]; then
+          msg2 "Applying kernel-6.12.patch for dkms..."
+          patch -Np1 -i "$srcdir"/kernel-6.12.patch
+        else
+          msg2 "Skipping kernel-6.12.patch as it doesn't apply to this driver version..."
         fi
       fi
 
