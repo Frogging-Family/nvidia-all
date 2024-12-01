@@ -1,0 +1,18 @@
+diff --git a/src/nvidia/src/kernel/rmapi/event_notification.c b/src/nvidia/src/kernel/rmapi/event_notification.c
+index cf78eadd..d6937cac 100644
+--- a/src/nvidia/src/kernel/rmapi/event_notification.c
++++ b/src/nvidia/src/kernel/rmapi/event_notification.c
+@@ -286,11 +286,11 @@ static NV_STATUS _gpuEngineEventNotificationListNotify
+     portSyncSpinlockAcquire(pEventNotificationList->pSpinlock);
+     {
+         // We don't expect this to be called multiple times in parallel
+-        NV_ASSERT_OR_ELSE(pEventNotificationList->pendingEventNotifyCount == 0,
++        if (pEventNotificationList->pendingEventNotifyCount != 0)
+         {
+             portSyncSpinlockRelease(pEventNotificationList->pSpinlock);
+             return NV_ERR_INVALID_STATE;
+-        });
++        }
+
+         EngineEventNotificationListIter it =
+             listIterAll(&pEventNotificationList->eventNotificationList);

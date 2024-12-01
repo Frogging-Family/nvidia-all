@@ -308,7 +308,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=262
+pkgrel=263
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -388,6 +388,8 @@ source=($_source_name
         '6.11-fbdev.diff'
         'nvidia-sleep.conf'
         'kernel-6.12.patch'
+        'silence-event-assert-until-570.diff'
+        'fix-hdmi-names.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -446,7 +448,9 @@ md5sums=("$_md5sum"
          'c691df97015eee42d51b34b147dd5236'
          'adfcf56ea4a4a420d9ef07b9d4b451dc'
          '2b5b62c1265b3b6b18022a0a716e5fcd'
-         '676d7039ff5b5e2bdd03db08fd1cba4e')
+         '676d7039ff5b5e2bdd03db08fd1cba4e'
+         '0e54e7d932e520c403181e3348d4d42b'
+         '6904323d3a4ad04a708c927e930efc34')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -519,6 +523,39 @@ prepare() {
     # Fix for https://bugs.archlinux.org/task/74886
     if (( ${pkgver%%.*} < 525 )); then
       patch -Np1 --no-backup-if-mismatch -i "$srcdir"/nvidia-open-gcc-ibt-sls.diff
+    fi
+
+    # Enable modeset and fbdev as default
+    # This avoids various issue, when Simplefb is used
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+    if (( ${pkgver%%.*} < 565 )); then
+      msg2 "Applying make-modeset-fbdev-default.diff for kernel-open..."
+      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
+    fi
+
+    if (( ${pkgver%%.*} == 565 )); then
+      # Enable modeset and fbdev as default
+      # This avoids various issue, when Simplefb is used
+      # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+      # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+      msg2 "Applying make-modeset-fbdev-default-565.diff for kernel-open..."
+      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+
+      # Patch by Nvidia to silence error messages until a real fix drops in 570.xx
+      # https://github.com/NVIDIA/open-gpu-kernel-modules/issues/716#issuecomment-2391898884
+      msg2 "Applying silence-event-assert-until-570.diff for kernel-open..."
+      patch -Np1 -i "$srcdir"/silence-event-assert-until-570.diff
+
+      # Patch by Nvidia to fix HDMI names which are otherwise broken in the /proc/asound/NVidia/* ELD files
+      # Should hopefully ship with 570.xx
+      # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
+      msg2 "Applying fix-hdmi-names.diff for kernel-open..."
+      patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
+
+      # 6.12 - https://forums.developer.nvidia.com/t/patch-for-565-57-01-linux-kernel-6-12/313260
+      msg2 "Applying kernel-6.12.patch for kernel-open..."
+      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.12.patch )
     fi
 
     # Attempt to make this reproducible
