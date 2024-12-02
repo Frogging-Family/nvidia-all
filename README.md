@@ -39,11 +39,11 @@ sudo pacman -Rdd lib32-nvidia-utils-tkg lib32-opencl-nvidia-tkg nvidia-dkms-tkg 
 And install the distro dkms packages:
 
 ```
-sudo pacman -Sy nvidia-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+sudo pacman -S nvidia-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
 ```
 Alternatively install the dkms open kernel modules (Turing or newer hardware only!!!) with:
 ```
-sudo pacman -Sy nvidia-open-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+sudo pacman -S nvidia-open-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
 ```
 After installing the drivers provided by your distro everything should function as normal after a reboot.
 # DKMS or regular?
