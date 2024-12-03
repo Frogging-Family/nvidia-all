@@ -308,7 +308,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=263
+pkgrel=264
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -390,6 +390,7 @@ source=($_source_name
         'kernel-6.12.patch'
         'silence-event-assert-until-570.diff'
         'fix-hdmi-names.diff'
+        'kernel-open-6.12.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -450,7 +451,8 @@ md5sums=("$_md5sum"
          '2b5b62c1265b3b6b18022a0a716e5fcd'
          '676d7039ff5b5e2bdd03db08fd1cba4e'
          '0e54e7d932e520c403181e3348d4d42b'
-         '6904323d3a4ad04a708c927e930efc34')
+         '6904323d3a4ad04a708c927e930efc34'
+         '9970b8284e96598514e538135cb8b99a')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -555,7 +557,7 @@ prepare() {
 
       # 6.12 - https://forums.developer.nvidia.com/t/patch-for-565-57-01-linux-kernel-6-12/313260
       msg2 "Applying kernel-6.12.patch for kernel-open..."
-      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.12.patch )
+      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/kernel-open-6.12.patch )
     fi
 
     # Attempt to make this reproducible
