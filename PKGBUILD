@@ -552,10 +552,6 @@ prepare() {
       # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
       msg2 "Applying fix-hdmi-names.diff for kernel-open..."
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
-
-      # 6.12 - https://forums.developer.nvidia.com/t/patch-for-565-57-01-linux-kernel-6-12/313260
-      msg2 "Applying kernel-6.12.patch for kernel-open..."
-      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.12.patch )
     fi
 
     # Attempt to make this reproducible
