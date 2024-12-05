@@ -51,12 +51,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.80\n      2.565 series: 565.57.01\n      3.560 series: 560.35.03\n      4.550 series: 550.135\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 550.40.80\n      2.565 series: 565.77\n      3.560 series: 560.35.03\n      4.550 series: 550.135\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=565.57.01' > options
-      echo '_md5sum=76dd134e9bb8bc868fa79b1e226451b2' >> options
+      echo '_driver_version=565.77' > options
+      echo '_md5sum=48d9a5b5999d0f30ec8326c94b34945e' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=560.35.03' > options
@@ -980,7 +980,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.12
       if (( $(vercmp "$_kernel" "6.12") >= 0 )); then
         _kernel612="1"
-        _whitelist612=( 565* )
+        _whitelist612=( 565.57* )
       fi
 
       if [ "$_gcc14" = "true" ]; then
