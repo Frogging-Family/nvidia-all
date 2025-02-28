@@ -196,14 +196,14 @@ if [ -e options ]; then
     if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]] || [[ "$( curl -Is "https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/$_driver_version" | head -n 1 )" = *200* ]]; then
       if [ -z "$_open_source_modules" ]; then
         msg2 " - Open source kernel modules available - "
-        warning "IT ONLY OFFERS SUPPORT FOR TURING AND NEWER, AND DOESN'T OFFER ALL THE FEATURES OF THE PROPRIETARY ONE."
-        warning "SLI, G-Sync on notebooks and virtual GPU support are notably missing."
-        plain "Do you want to use it instead of the proprietary one?"
-        read -rp "`echo $'    > N/y : '`" _open_source;
-        if [[ "$_open_source" =~ [yY] ]]; then
-          echo '_open_source_modules="true"' >> options
-        else
+        warning "This is the recommended driver package to use on Turing (GTX 16 series and RTX 20 series) and newer."
+        warning "However it offers NO SUPPORT FOR OLDER HARDWARE, unlike the proprietary driver package."
+        plain "Do you want to use the proprietary driver to have support for older hardware?"
+        read -rp "`echo $'    > N/y : '`" _prop_driver;
+        if [[ "$_prop_driver" =~ [yY] ]]; then
           echo '_open_source_modules="false"' >> options
+        else
+          echo '_open_source_modules="true"' >> options
         fi
       fi
       if [[ "$( curl -Is "https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-$_driver_version.tar.xz" | head -n 1 )" = *200* ]]; then
@@ -1608,7 +1608,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 }
 
 build() {
-  if [ "$_open_source" != "y" ]; then
+  if [ "$_open_source_modules" != "true" ]; then
     if [ "$_dkms" != "true" ]; then
       # Build for all kernels
       local _kernel
