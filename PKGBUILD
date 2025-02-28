@@ -1949,7 +1949,7 @@ nvidia-utils-tkg() {
         install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
       fi
       if (( ${pkgver%%.*} >= 570 )); then
-        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
+        install -D -m755 "nvngx_dlssg.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
       fi
     fi
     if (( ${pkgver%%.*} >= 455 )); then
