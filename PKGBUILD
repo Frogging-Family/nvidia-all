@@ -153,8 +153,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
         echo '_driver_branch=regular' >> options
       else
-        echo '_driver_version=570.123.01' > options
-        echo '_md5sum=c8e10cafe562e524c0ef90bf3062bc45' >> options
+        echo '_driver_version=560.35.03' > options
+        echo '_md5sum=d4f54004bb80da17b3e2fb21ac17c018' >> options
         echo '_driver_branch=regular' >> options
       fi
     elif [ "$CONDITION" = "7" ]; then
@@ -171,8 +171,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=550.40.82' > options
-      echo '_md5sum=7e1d4ae4c6f39a87c16deb1826c62d2a' >> options
+      echo '_driver_version=570.123.01' > options
+      echo '_md5sum=c8e10cafe562e524c0ef90bf3062bc45' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
