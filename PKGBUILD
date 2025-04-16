@@ -51,104 +51,108 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.07\n      2.570 series: 570.133.07\n      3.565 series: 565.77\n      4.550 series: 550.135\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.07\n      2.575 series: 575.51.02\n      3.570 series: 570.133.07\n      4.565 series: 565.77\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
+      echo '_driver_version=575.51.02' > options
+      echo '_md5sum=4fde8f47d366411973b8d62c3860e486' >> options
+      echo '_driver_branch=regular' >> options
+    elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=570.133.07' > options
       echo '_md5sum=27c62c49264e1a1da92ebcede9cf76bc' >> options
       echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "3" ]; then
+    elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=565.77' > options
       echo '_md5sum=48d9a5b5999d0f30ec8326c94b34945e' >> options
-      echo '_driver_branch=regular' >> options
-    elif [ "$CONDITION" = "4" ]; then
-      echo '_driver_version=550.135' > options
-      echo '_md5sum=a8c3ae0076f11e864745fac74bfdb01f' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=470.256.02' > options
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.560.35.03\n      2.555 series: 555.58.02\n      3.545 series: 545.29.06\n      4.535 series: 535.183.01\n      5.530 series: 530.41.03\n      6.525 series: 525.147.05\n      7.520 series: 520.56.06\n      8.515 series: 515.86.01\n      9.510 series: 510.85.02\n      10.495 series: 495.46\n      11.465 series: 465.31\n      12.460 series: 460.91.03\n      13.455 series: 455.45.01\n      14.450 series: 450.119.03\n      15.440 series: 440.100 (kernel 5.8 or lower)\n      16.435 series: 435.21  (kernel 5.6 or lower)\n      17.430 series: 430.64  (kernel 5.5 or lower)\n      18.418 series: 418.113 (kernel 5.5 or lower)\n      19.415 series: 415.27  (kernel 5.4 or lower)\n      20.410 series: 410.104 (kernel 5.5 or lower)\n      21.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-21?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.560.35.03\n      2.555 series: 555.58.02\n      3.550 series: 550.135\n      4.545 series: 545.29.06\n      5.535 series: 535.183.01\n      6.530 series: 530.41.03\n      7.525 series: 525.147.05\n      8.520 series: 520.56.06\n      9.515 series: 515.86.01\n      10.510 series: 510.85.02\n      11.495 series: 495.46\n      12.465 series: 465.31\n      13.460 series: 460.91.03\n      14.455 series: 455.45.01\n      15.450 series: 450.119.03\n      16.440 series: 440.100 (kernel 5.8 or lower)\n      17.435 series: 435.21  (kernel 5.6 or lower)\n      18.430 series: 430.64  (kernel 5.5 or lower)\n      19.418 series: 418.113 (kernel 5.5 or lower)\n      20.415 series: 415.27  (kernel 5.4 or lower)\n      21.410 series: 410.104 (kernel 5.5 or lower)\n      22.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-22?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=555.58.02' > options
         echo '_md5sum=f6efa3d40fccc97fbac9b55fc81e30d7' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "3" ]; then
+        echo '_driver_version=550.135' > options
+        echo '_md5sum=a8c3ae0076f11e864745fac74bfdb01f' >> options
+        echo '_driver_branch=regular' >> options
+      elif [ "$CONDITION" = "4" ]; then
         echo '_driver_version=545.29.06' > options
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "4" ]; then
+      elif [ "$CONDITION" = "5" ]; then
         echo '_driver_version=535.183.01' > options
         echo '_md5sum=e9ea27c842436f3af6ccab7ec4727c0b' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "5" ]; then
+      elif [ "$CONDITION" = "6" ]; then
         echo '_driver_version=530.41.03' > options
         echo '_md5sum=9049dbe01410eac1e05b249de10f6b91' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "6" ]; then
+      elif [ "$CONDITION" = "7" ]; then
         echo '_driver_version=525.147.05' > options
         echo '_md5sum=bf00562896e64ebf3f28e528947049ce' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "7" ]; then
+      elif [ "$CONDITION" = "8" ]; then
         echo '_driver_version=520.56.06' > options
         echo '_md5sum=18136ef051cbfc3850e88aa5184b31b8' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "8" ]; then
+      elif [ "$CONDITION" = "9" ]; then
         echo '_driver_version=515.86.01' > options
         echo '_md5sum=5eaf6786f0c92cfcecb1ab950ff70df5' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "9" ]; then
+      elif [ "$CONDITION" = "10" ]; then
         echo '_driver_version=510.85.02' > options
         echo '_md5sum=0367f772fc61bccecee8559c4fe9bb3d' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "10" ]; then
+      elif [ "$CONDITION" = "11" ]; then
         echo '_driver_version=495.46' > options
         echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "11" ]; then
+      elif [ "$CONDITION" = "12" ]; then
         echo '_driver_version=465.31' > options
         echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "12" ]; then
+      elif [ "$CONDITION" = "13" ]; then
         echo '_driver_version=460.91.03' > options
         echo '_md5sum=15c5ada08bdb25d757d90e0f21b6f270' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "13" ]; then
+      elif [ "$CONDITION" = "14" ]; then
         echo '_driver_version=455.45.01' > options
         echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "14" ]; then
+      elif [ "$CONDITION" = "15" ]; then
         echo '_driver_version=450.119.03' > options
         echo '_md5sum=b2725b8c15a364582be90c5fa1d6690f' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "15" ]; then
+      elif [ "$CONDITION" = "16" ]; then
         echo '_driver_version=440.100' > options
         echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "16" ]; then
+      elif [ "$CONDITION" = "17" ]; then
         echo '_driver_version=435.21' > options
         echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "17" ]; then
+      elif [ "$CONDITION" = "18" ]; then
         echo '_driver_version=430.64' > options
         echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "18" ]; then
+      elif [ "$CONDITION" = "19" ]; then
         echo '_driver_version=418.113' > options
         echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "19" ]; then
+      elif [ "$CONDITION" = "20" ]; then
         echo '_driver_version=415.27' > options
         echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "20" ]; then
+      elif [ "$CONDITION" = "21" ]; then
         echo '_driver_version=410.104' > options
         echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "21" ]; then
+      elif [ "$CONDITION" = "22" ]; then
         echo '_driver_version=396.54' > options
         echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
         echo '_driver_branch=regular' >> options
@@ -1666,7 +1670,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 570 )); then
+if (( ${pkgver%%.*} >= 575 )); then
+  _eglwver="1.1.19"
+elif (( ${pkgver%%.*} >= 570 )); then
   _eglwver="1.1.18"
 elif (( ${pkgver%%.*} >= 565 )); then
   _eglwver="1.1.17"
@@ -1832,6 +1838,8 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
       install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
     fi
     if [[ -e 20_nvidia_xlib.json ]]; then
       install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
@@ -1840,6 +1848,8 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
     elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
       install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
     fi
     if [[ -e 20_nvidia_xcb.json ]]; then
       install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
@@ -1935,6 +1945,13 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
+    fi
+    if [[ -e libnvidia-nvvm70.so.4 ]]; then
+      install -D -m755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
+    fi
+
+    if [[ -e libnvidia-present.so.${pkgver} ]]; then
+      install -D -m755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
     fi
 
     # Fat (multiarchitecture) binary loader
