@@ -400,6 +400,7 @@ source=($_source_name
         'fix-hdmi-names.diff'
         'Enable-atomic-kernel-modesetting-by-default.diff'
         'Add-IBT-support.diff'
+        'gcc-15.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -462,7 +463,8 @@ md5sums=("$_md5sum"
          '0e54e7d932e520c403181e3348d4d42b'
          '6904323d3a4ad04a708c927e930efc34'
          '42a482aa44953061cbbf9a495fcad926'
-         '7143f20dbb3333ea6304540b5318bacb')
+         '7143f20dbb3333ea6304540b5318bacb'
+         '960d614b3f9b0856d3ef58b3a19dac85')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -523,6 +525,9 @@ prepare() {
   if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
     _gcc14="true"
     msg2 "GCC 14 detected"
+  elif [ "$_gcc15_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 15* ]]; then
+    _gcc15="true"
+    msg2 "GCC 15 detected"
   fi
 
   # Extract
@@ -569,8 +574,11 @@ prepare() {
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
     fi
 
-    if (( ${pkgver%%.*} == 570 )); then
+    if (( ${pkgver%%.*} >= 570 )); then
       ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
+      if [ "$_gcc15" = "true" ]; then
+        ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
+      fi
     fi
 
     # Attempt to make this reproducible
@@ -1006,6 +1014,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         else
           patch -Np2 -i "$srcdir"/gcc-14.diff
         fi
+        cd ..
+      fi
+
+      if [ "$_gcc15" = "true" ]; then
+        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        msg2 "Applying gcc-15 patch..."
+        patch -Np2 -i "$srcdir"/gcc-15.diff
         cd ..
       fi
 
