@@ -576,9 +576,9 @@ prepare() {
 
     if (( ${pkgver%%.*} >= 570 )); then
       ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
-      if [ "$_gcc15" = "true" ]; then
-        ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
-      fi
+    fi
+    if [ "$_gcc15" = "true" ]; then
+      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
     fi
 
     # Attempt to make this reproducible
