@@ -4,8 +4,8 @@ Date: Tue, 29 Apr 2025 11:24:31 +0200
 Subject: [PATCH] CFLAGS: Set -std=gnu17 for all compilation flags
 
 GCC15 uses C23 by default, which breaks a lot of compatibility with the
-kernel and this module. Explicitly use -std=gnu17, which is what the
-kernel uses across the project.
+kernel and this module. Explicitly use -std=gnu17, which was the default in
+GCC14.
 
 Signed-off-by: Peter Jung <admin@ptr1337.dev>
 Signed-off-by: Eric Naim <dnaim@cachyos.org>

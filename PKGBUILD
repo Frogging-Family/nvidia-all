@@ -464,7 +464,7 @@ md5sums=("$_md5sum"
          '6904323d3a4ad04a708c927e930efc34'
          '42a482aa44953061cbbf9a495fcad926'
          '7143f20dbb3333ea6304540b5318bacb'
-         '960d614b3f9b0856d3ef58b3a19dac85')
+         '6c26d0df1e30c8bedf6abfe99e842944')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
