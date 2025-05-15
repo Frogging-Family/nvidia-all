@@ -578,6 +578,7 @@ prepare() {
       ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
     if [ "$_gcc15" = "true" ]; then
+      ( cd kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
       ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
     fi
 
@@ -1607,6 +1608,11 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         else
           patch -Np1 -i "$srcdir"/gcc-14.diff
         fi
+      fi
+
+      if [ "$_gcc15" = "true" ]; then
+        msg2 "Applying gcc-15 patch..."
+        patch -Np1 -i "$srcdir"/gcc-15.diff
       fi
 
       # Legacy quirks
