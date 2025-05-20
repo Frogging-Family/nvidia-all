@@ -23,7 +23,10 @@ plain '       `-+shdNNNNNNNNNNNNNNNdhs+-`'
 plain '             `.-:///////:-.`'
 plain ''
 
-where="$PWD" # track basedir as different Arch based distros are moving srcdir around
+if [ -z "$where" ]; then
+  export where="$PWD" # track basedir as different Arch based distros are moving srcdir around
+fi
+
 source "$where"/customization.cfg
 
 # Load external configuration file if present. Available variable values will overwrite customization.cfg ones.
@@ -1691,7 +1694,7 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 575 )); then
+if (( ${pkgver%%.*} >= 575 )) || [ "${pkgver}" = "570.123.14" ]; then
   _eglwver="1.1.19"
 elif (( ${pkgver%%.*} >= 570 )); then
   _eglwver="1.1.18"
