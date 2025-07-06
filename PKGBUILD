@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.18\n      2.575 series: 575.57.08\n      3.570 series: 570.153.02\n      4.565 series: 565.77\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.19\n      2.575 series: 575.57.08\n      3.570 series: 570.153.02\n      4.565 series: 565.77\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -178,8 +178,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=570.123.18' > options
-      echo '_md5sum=1a66b0c42a5382cc03dadf93c1b27365' >> options
+      echo '_driver_version=570.123.19' > options
+      echo '_md5sum=80f55ab27e3f209e06d49175f441dc4a' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -1694,7 +1694,7 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 575 )) || [ "${pkgver}" = "570.123.18" ]; then
+if (( ${pkgver%%.*} >= 575 )) || [ "${pkgver}" = "570.123.19" ]; then
   _eglwver="1.1.19"
 elif (( ${pkgver%%.*} >= 570 )); then
   _eglwver="1.1.18"
