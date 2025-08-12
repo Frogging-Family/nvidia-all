@@ -1,0 +1,55 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-fb.c b/kernel-dkms/nvidia-drm/nvidia-drm-fb.c
+index 5977953c3db4..073eb51605e4 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-fb.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-fb.c
+@@ -33,6 +33,7 @@
+ #include "nvidia-drm-format.h"
+ 
+ #include <drm/drm_crtc_helper.h>
++#include <linux/version.h>
+ 
+ static void __nv_drm_framebuffer_free(struct nv_drm_framebuffer *nv_fb)
+ {
+@@ -242,6 +243,9 @@ fail:
+ struct drm_framebuffer *nv_drm_framebuffer_create(
+     struct drm_device *dev,
+     struct drm_file *file,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++    const struct drm_format_info *info,
++#endif
+     const struct drm_mode_fb_cmd2 *cmd)
+ {
+     struct nv_drm_device *nv_dev = to_nv_device(dev);
+@@ -289,6 +293,9 @@ struct drm_framebuffer *nv_drm_framebuffer_create(
+     drm_helper_mode_fill_fb_struct(
+         dev,
+         &nv_fb->base,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++        info,
++#endif
+         cmd);
+ 
+     /*
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-fb.h b/kernel-dkms/nvidia-drm/nvidia-drm-fb.h
+index a7a83048cd53..1c2c579e7d93 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-fb.h
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-fb.h
+@@ -31,6 +31,8 @@
+ #include <drm/drmP.h>
+ #endif
+ 
++#include <linux/version.h>
++
+ #include <drm/drm_framebuffer.h>
+ 
+ #include "nvkms-kapi.h"
+@@ -53,6 +55,9 @@ static inline struct nv_drm_framebuffer *to_nv_framebuffer(
+ struct drm_framebuffer *nv_drm_framebuffer_create(
+     struct drm_device *dev,
+     struct drm_file *file,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++    const struct drm_format_info *info,
++#endif
+     const struct drm_mode_fb_cmd2 *cmd);
+ 
+ #endif /* NV_DRM_AVAILABLE */
