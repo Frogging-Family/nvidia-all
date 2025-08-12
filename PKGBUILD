@@ -2155,7 +2155,11 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
                 install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
       fi
 
-      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      else
+        echo "Skipping mkinitcpio hook due to user config"
+      fi 
   else
       pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
       depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
@@ -2186,7 +2190,11 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
                 install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
       fi
 
-      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      else
+        echo "Skipping mkinitcpio hook due to user config"
+      fi  
   fi
   }
 source /dev/stdin <<EOF
@@ -2337,8 +2345,11 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-
-      install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      else
+        echo "Skipping mkinitcpio hook due to user config"
+      fi 
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
   fi
