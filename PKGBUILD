@@ -353,6 +353,7 @@ source=($_source_name
         'nvidia-utils-tkg.sysusers'
         '60-nvidia.rules'
         'nvidia-tkg.hook'
+        'gsk-renderer.sh'
         'nvidia-open-gcc-ibt-sls.diff'
         'gcc-14-470.diff'
         'gcc-14.diff'
@@ -417,6 +418,7 @@ md5sums=("$_md5sum"
          'ddd9f92c121ff64846b27bcee2513cb4'
          '552087b81ab385edf016adac0b33db7a'
          '596f7cbf2db48d4f5b1c38967bb93cea'
+         'b4266d215fb224488eeca12359c563f8'
          '9b1543768ea75320fd0d2315de66d1c8'
          'afb98b1dab0c61df526d4c0ee4d18abf'
          'e5d1574892eb68de9af1b79a6bfb5e7b'
@@ -2091,6 +2093,11 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
+    # Vulkan GTK Renderer Crash fix
+    if (( ${pkgver%%.*} >= 580 )); then
+      install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/electron-ozone.sh/gsk-renderer.sh
+    fi
+
     _create_links
 }
 source /dev/stdin <<EOF
@@ -2367,6 +2374,7 @@ function exit_cleanup {
   rm -f "${where}"/*.patch
   rm -f "${where}"/*.diff
   rm -f "${where}"/*.hook
+  rm -f "${where}"/*.sh
   rm -f "${where}"/nvidia-utils-tkg.sysusers
   rm -rf "${where}"/egl-wayland
   rm -rf "${where}"/src/*
