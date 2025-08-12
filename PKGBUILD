@@ -54,12 +54,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.19\n      2.580 series: 580.65.06\n      3.575 series: 575.64.05\n      4.570 series: 570 series: 570.181\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 570.123.19\n      2.580 series: 580.76.05\n      3.575 series: 575.64.05\n      4.570 series: 570 series: 570.181\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=580.65.06' > options
-      echo '_md5sum=491fae01e989c3b4378f0711d925dd1e' >> options
+      echo '_driver_version=580.76.05' > options
+      echo '_md5sum=4b13bbf37715597779be24db5a81969b' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=575.64.05' > options
@@ -1698,7 +1698,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
+if (( ${pkgver%%.*} >= 580 )); then
+  _eglwver="1.1.20"
+elif (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
   _eglwver="1.1.19"
 elif (( ${pkgver%%.*} >= 570 )); then
   _eglwver="1.1.18"
@@ -1868,6 +1870,8 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
     elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
       install -D -m755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
     fi
     if [[ -e 20_nvidia_xlib.json ]]; then
       install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
@@ -1878,6 +1882,8 @@ nvidia-utils-tkg() {
       install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
     elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
       install -D -m755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
     fi
     if [[ -e 20_nvidia_xcb.json ]]; then
       install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
