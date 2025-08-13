@@ -2097,7 +2097,7 @@ nvidia-utils-tkg() {
 
     # Vulkan GTK Renderer Crash fix
     if (( ${pkgver%%.*} >= 580 )); then
-      install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/electron-ozone.sh/gsk-renderer.sh
+      install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
     fi
 
     _create_links
