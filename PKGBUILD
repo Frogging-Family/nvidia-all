@@ -560,7 +560,7 @@ prepare() {
     # This avoids various issue, when Simplefb is used
     # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
     # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
-    if (( ${pkgver%%.*} < 565 )); then
+    if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
       msg2 "Applying make-modeset-fbdev-default.diff for kernel-open..."
       ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
     fi
