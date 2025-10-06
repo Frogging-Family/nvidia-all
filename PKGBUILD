@@ -54,7 +54,11 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
+<<<<<<< HEAD
     read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.02\n      2.580 series: 580.95.05\n      3.575 series: 575.64.05\n      4.570 series: 570 series: 570.195.03\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+=======
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.02\n      2.580 series: 580.95.05\n      3.575 series: 575.64.05\n      4.570 series: 570 series: 570.181\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+>>>>>>> e732a1d (Update vulkan beta driver version to 580.94.02)
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
