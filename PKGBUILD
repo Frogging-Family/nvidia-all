@@ -66,15 +66,15 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=5232a442e7696c73f2a7f527481084aa' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
-      echo '_driver_version=570.181' > options
-      echo '_md5sum=1d8ece7e9cbbcbcb5658c08d75ff1277' >> options
+      echo '_driver_version=570.195.03' > options
+      echo '_md5sum=74a6114f7dd551f584edf54e5571efd5' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "5" ]; then
       echo '_driver_version=470.256.02' > options
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.565.77\n\n      2.560.35.03\n      3.555 series: 555.58.02\n      4.550 series: 550.135\n      5.545 series: 545.29.06\n      6.535 series: 535.183.01\n      7.530 series: 530.41.03\n      8.525 series: 525.147.05\n      9.520 series: 520.56.06\n      10.515 series: 515.86.01\n      11.510 series: 510.85.02\n      12.495 series: 495.46\n      13.465 series: 465.31\n      14.460 series: 460.91.03\n      15.455 series: 455.45.01\n      16.450 series: 450.119.03\n      17.440 series: 440.100 (kernel 5.8 or lower)\n      18.435 series: 435.21  (kernel 5.6 or lower)\n      19.430 series: 430.64  (kernel 5.5 or lower)\n      20.418 series: 418.113 (kernel 5.5 or lower)\n      21.415 series: 415.27  (kernel 5.4 or lower)\n      22.410 series: 410.104 (kernel 5.5 or lower)\n      23.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-23?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.565 series: 565.77\n      2.560 series: 560.35.03\n      3.555 series: 555.58.02\n      4.550 series: 550.135\n      5.545 series: 545.29.06\n      6.535 series: 535.183.01\n      7.530 series: 530.41.03\n      8.525 series: 525.147.05\n      9.520 series: 520.56.06\n      10.515 series: 515.86.01\n      11.510 series: 510.85.02\n      12.495 series: 495.46\n      13.465 series: 465.31\n      14.460 series: 460.91.03\n      15.455 series: 455.45.01\n      16.450 series: 450.119.03\n      17.440 series: 440.100 (kernel 5.8 or lower)\n      18.435 series: 435.21  (kernel 5.6 or lower)\n      19.430 series: 430.64  (kernel 5.5 or lower)\n      20.418 series: 418.113 (kernel 5.5 or lower)\n      21.415 series: 415.27  (kernel 5.4 or lower)\n      22.410 series: 410.104 (kernel 5.5 or lower)\n      23.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-23?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=560.35.03' > options
         echo '_md5sum=d4f54004bb80da17b3e2fb21ac17c018' >> options
