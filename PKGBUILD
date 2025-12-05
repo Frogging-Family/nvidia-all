@@ -626,17 +626,17 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
     # These patches enable nvidia-drm.modeset=1 by default which is required for Wayland
     if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
       msg2 "Applying make-modeset-fbdev-default.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms && patch -Np1 -i "$srcdir"/make-modeset-fbdev-default.diff )
+      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
     fi
 
     if (( ${pkgver%%.*} == 565 )); then
       msg2 "Applying make-modeset-fbdev-default-565.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms && patch -Np1 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
     fi
 
     if (( ${pkgver%%.*} >= 570 )); then
       msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms && patch -Np1 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
+      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
 
     cd "$srcdir/$_pkg"
