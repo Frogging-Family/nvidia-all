@@ -603,8 +603,10 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
     # Clean version for later copying for DKMS
     cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
 
-    # Apply modeset patches to open-gpu-kernel-modules-dkms copy
-    # These patches enable nvidia-drm.modeset=1 by default which is required for Wayland
+    # Enable modeset and fbdev as default
+    # This avoids various issue, when Simplefb is used
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
     if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
       msg2 "Applying make-modeset-fbdev-default.diff to open-gpu-kernel-modules-dkms..."
       ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
