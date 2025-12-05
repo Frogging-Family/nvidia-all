@@ -600,27 +600,28 @@ BUILT_MODULE_NAME[4]="nvidia-peermem"\
 BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
-    # Clean version for later copying for DKMS
-    cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
-
     # Enable modeset and fbdev as default
     # This avoids various issue, when Simplefb is used
     # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
     # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+    # Apply patches to original source before copying for DKMS (so both DKMS and regular builds get patched)
     if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
-      msg2 "Applying make-modeset-fbdev-default.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
+      msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
     fi
 
     if (( ${pkgver%%.*} == 565 )); then
-      msg2 "Applying make-modeset-fbdev-default-565.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+      msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
     fi
 
     if (( ${pkgver%%.*} >= 570 )); then
-      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to open-gpu-kernel-modules-dkms..."
-      ( cd "$srcdir"/open-gpu-kernel-modules-dkms/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
+      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
+
+    # Clean version for later copying for DKMS (now includes modeset patches)
+    cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
