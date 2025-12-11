@@ -54,12 +54,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.580 series: 580.105.08\n      3.575 series: 575.64.05\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.11\n      2.580 series: 580.119.02\n      3.575 series: 575.64.05\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=580.105.08' > options
-      echo '_md5sum=c71560d2644e4ae386b83b168d444fb2' >> options
+      echo '_driver_version=580.119.02' > options
+      echo '_md5sum=5603f48f2af83d4fb3164ca9ef27ff3a' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=575.64.05' > options
@@ -182,8 +182,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=580.94.13' > options
-      echo '_md5sum=49df49880022753dde789beec65ac408' >> options
+      echo '_driver_version=580.94.11' > options
+      echo '_md5sum=869a51fb4d4e5874db5ca6e0c82c9a7d' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -410,7 +410,6 @@ source=($_source_name
         'Add-IBT-support.diff'
         'gcc-15.diff'
         'kernel-6.17.patch'
-        'limit-vram-usage'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -476,8 +475,7 @@ md5sums=("$_md5sum"
          '42a482aa44953061cbbf9a495fcad926'
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
-         'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46')
+         'c39df46bb99047ca7d09f9122a7370a8')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -2099,10 +2097,8 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
     # Vulkan GTK Renderer Crash fix
-    # Add limit vram usage scripts
     if (( ${pkgver%%.*} >= 580 )); then
       install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
-      install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
     fi
 
     _create_links
