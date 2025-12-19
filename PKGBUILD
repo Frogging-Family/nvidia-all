@@ -411,7 +411,6 @@ source=($_source_name
         'gcc-15.diff'
         'kernel-6.17.patch'
         'limit-vram-usage'
-        'kernel-6.19.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -478,8 +477,7 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46'
-         'fd442172857d1827db9ca85f6b6a8ce3')
+         '0cdd9458228beb04e34d5128cb43fe46')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
