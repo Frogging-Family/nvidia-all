@@ -412,6 +412,7 @@ source=($_source_name
         'kernel-6.17.patch'
         'limit-vram-usage'
         'cuda-no-stable-perf-limit'
+        '50-nvidia-cuda-disable-perf-boost.conf'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -480,6 +481,7 @@ md5sums=("$_md5sum"
          'c39df46bb99047ca7d09f9122a7370a8'
          '0cdd9458228beb04e34d5128cb43fe46'
          'c56d45a41753ed8aa0b9d8269cf54340'
+         '8e517199834e5b810cd07d533423ab28'
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -2135,6 +2137,10 @@ nvidia-utils-tkg() {
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
       install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+
+      # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
+      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
+      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     _create_links
