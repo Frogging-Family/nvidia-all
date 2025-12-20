@@ -1,0 +1,27 @@
+{
+    "profiles": [
+        {
+            "name": "CudaNoStablePerfLimit",
+            "settings": ["0x166c5e", 0]
+        }
+    ],
+    "rules": [
+        {
+            "pattern": {
+                "op": "or",
+                "sub": [
+                    { "feature": "procname", "matches": "obs" },
+                    { "feature": "procname", "matches": "Discord" },
+                    { "feature": "procname", "matches": "discord" },
+                    { "feature": "procname", "matches": "DiscordCanary" },
+                    { "feature": "procname", "matches": "vesktop" },
+                    { "feature": "procname", "matches": "simplescreenrecorder" },
+                    { "feature": "procname", "matches": "gpu-screen-recorder" },
+                    { "feature": "procname", "matches": "spectacle" },
+                    { "feature": "procname", "matches": "webcord" }
+                ]
+            },
+            "profile": "CudaNoStablePerfLimit"
+        }
+    ]
+}

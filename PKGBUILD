@@ -411,6 +411,7 @@ source=($_source_name
         'gcc-15.diff'
         'kernel-6.17.patch'
         'limit-vram-usage'
+        'cuda-no-stable-perf-limit'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -478,6 +479,7 @@ md5sums=("$_md5sum"
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
          '0cdd9458228beb04e34d5128cb43fe46'
+         'c56d45a41753ed8aa0b9d8269cf54340'
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -2118,11 +2120,15 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
     # Vulkan GTK Renderer Crash fix
-    # Add limit vram usage scripts migrated from CachyOS
-    # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
     if (( ${pkgver%%.*} >= 580 )); then
       install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
+      # Add limit vram usage scripts migrated from CachyOS
+      # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
       install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
+      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
+      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
