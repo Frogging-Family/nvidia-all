@@ -2140,7 +2140,7 @@ nvidia-utils-tkg() {
 
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
-      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+      install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     _create_links
