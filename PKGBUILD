@@ -54,16 +54,16 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.580 series: 580.105.08\n      3.575 series: 575.64.05\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.580 series: 580.119.02\n      3.590 series: 590.48.01\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=580.105.08' > options
-      echo '_md5sum=c71560d2644e4ae386b83b168d444fb2' >> options
+      echo '_driver_version=580.119.02' > options
+      echo '_md5sum=5603f48f2af83d4fb3164ca9ef27ff3a' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=575.64.05' > options
-      echo '_md5sum=5232a442e7696c73f2a7f527481084aa' >> options
+      echo '_driver_version=590.48.01' > options
+      echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.207' > options
@@ -477,7 +477,8 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46')
+         '0cdd9458228beb04e34d5128cb43fe46'
+)
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -1705,7 +1706,9 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 580 )); then
+if (( ${pkgver%%.*} >= 590 )); then
+  _eglwver="1.1.21"
+elif (( ${pkgver%%.*} >= 580 )); then
   _eglwver="1.1.20"
 elif (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
   _eglwver="1.1.19"
@@ -1812,6 +1815,9 @@ nvidia-utils-tkg() {
   fi
   if [ "$_eglwayland" = "external" ]; then
     depends+=('egl-wayland')
+    if (( ${pkgver%%.*} >= 590 )); then
+      depends+=('egl-wayland2')
+    fi
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
@@ -2077,14 +2083,27 @@ nvidia-utils-tkg() {
     fi
 
     # gsp firmware
-    if (( ${pkgver%%.*} >= 530 )); then
-      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-    elif (( ${pkgver%%.*} >= 525 )); then
-      install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-    elif (( ${pkgver%%.*} >= 465 )); then
-      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+    # Behavior:
+    # - if pkgver < 590: install firmware (open & closed) (backwards compatible)
+    # - if pkgver >= 590: install firmware only when building with open-source kernel modules
+    # Ref: https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/commit/cc7ae772aec0b147f75c0aa4e148f1d97f2c1848
+    INSTALL_GSP=1
+    if (( ${pkgver%%.*} >= 590 )) && [ "${_open_source_modules:-true}" = "false" ]; then
+      INSTALL_GSP=0
+    fi
+
+    if (( INSTALL_GSP )); then
+      if (( ${pkgver%%.*} >= 530 )); then
+        install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+        install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+      elif (( ${pkgver%%.*} >= 525 )); then
+        install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
+        install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+      elif (( ${pkgver%%.*} >= 465 )); then
+        install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+      fi
+    else
+      msg2 "pkgver >= 590 and proprietary driver selected; skipping GSP firmware installation."
     fi
 
     # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
@@ -2099,10 +2118,16 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
     # Vulkan GTK Renderer Crash fix
-    # Add limit vram usage scripts
+    # Add limit vram usage scripts migrated from CachyOS
+    # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
     if (( ${pkgver%%.*} >= 580 )); then
       install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+    fi
+
+    if (( ${pkgver%%.*} >= 590 )); then
+      # https://github.com/microsoft/TileIR
+      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
     fi
 
     _create_links
@@ -2317,6 +2342,11 @@ lib32-nvidia-utils-tkg() {
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
+    fi
+
+    if (( ${pkgver%%.*} >= 590 )); then
+      # https://github.com/microsoft/TileIR
+      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
     fi
 
     _create_links
