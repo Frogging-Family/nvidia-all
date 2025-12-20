@@ -2119,21 +2119,22 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
-    # Vulkan GTK Renderer Crash fix
     if (( ${pkgver%%.*} >= 580 )); then
+      # Vulkan GTK Renderer Crash fix
       install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
+
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
       install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
-      # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
-      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
-
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
       # https://github.com/microsoft/TileIR
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
+
+      # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
+      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
+      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
     fi
 
     _create_links
