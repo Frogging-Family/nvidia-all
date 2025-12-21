@@ -480,8 +480,8 @@ md5sums=("$_md5sum"
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
          '0cdd9458228beb04e34d5128cb43fe46'
-         'c56d45a41753ed8aa0b9d8269cf54340'
-         '8e517199834e5b810cd07d533423ab28'
+         'f52a9eb49a21f7b6fe34cc5399bb61de'
+         'f6d0a9b1e503d0e8c026a20b61f889c2'
 )
 
 if [ "$_open_source_modules" = "true" ]; then
