@@ -2087,27 +2087,14 @@ nvidia-utils-tkg() {
     fi
 
     # gsp firmware
-    # Behavior:
-    # - if pkgver < 590: install firmware (open & closed) (backwards compatible)
-    # - if pkgver >= 590: install firmware only when building with open-source kernel modules
-    # Ref: https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/commit/cc7ae772aec0b147f75c0aa4e148f1d97f2c1848
-    INSTALL_GSP=1
-    if (( ${pkgver%%.*} >= 590 )) && [ "${_open_source_modules:-true}" = "false" ]; then
-      INSTALL_GSP=0
-    fi
-
-    if (( INSTALL_GSP )); then
-      if (( ${pkgver%%.*} >= 530 )); then
-        install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
-        install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-      elif (( ${pkgver%%.*} >= 525 )); then
-        install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
-        install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-      elif (( ${pkgver%%.*} >= 465 )); then
-        install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
-      fi
-    else
-      msg2 "pkgver >= 590 and proprietary driver selected; skipping GSP firmware installation."
+    if (( ${pkgver%%.*} >= 530 )); then
+      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+    elif (( ${pkgver%%.*} >= 525 )); then
+      install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
+      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+    elif (( ${pkgver%%.*} >= 465 )); then
+      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
     fi
 
     # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
