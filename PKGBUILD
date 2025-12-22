@@ -1714,9 +1714,7 @@ package_opencl-$_branchname-tkg() {
 EOF
 
 #egl-wayland version
-if (( ${pkgver%%.*} >= 590 )); then
-  _eglwver="1.1.21"
-elif (( ${pkgver%%.*} >= 580 )); then
+if (( ${pkgver%%.*} >= 580 )); then
   _eglwver="1.1.20"
 elif (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
   _eglwver="1.1.19"
@@ -1750,8 +1748,15 @@ elif [[ $pkgver = 396* ]]; then
   _eglwver="1.0.3"
 fi
 
+# egl-wayland2 version (590+)
+if (( ${pkgver%%.*} >= 590 )); then
+  _eglwver2="1.0.1"
+fi
+
 #egl-gbm  version
-if (( ${pkgver%%.*} >= 565 )); then
+if (( ${pkgver%%.*} >= 590 )); then
+  _eglgver="1.1.3"
+elif (( ${pkgver%%.*} >= 565 )); then
   _eglgver="1.1.2"
 elif (( ${pkgver%%.*} >= 550 )); then
   _eglgver="1.1.1"
@@ -1764,6 +1769,13 @@ nvidia-egl-wayland-tkg() {
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
+
+	# Add egl-wayland2 provides/conflicts for 590+ ###
+	if (( ${pkgver%%.*} >= 590 )); then
+		provides+=("egl-wayland2")
+		conflicts+=('egl-wayland2')
+	fi
+
   cd $_pkg
 
     install -Dm755 libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so."${_eglwver}"
@@ -1779,6 +1791,14 @@ nvidia-egl-wayland-tkg() {
 
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
+
+    # Install egl-wayland2 library for 590+
+    if (( ${pkgver%%.*} >= 590 )); then
+      install -Dm755 libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}
+      ln -s libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
+
+      install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
+    fi
 
     # egl-gbm
     if [ "$_eglgbm" = "true" ]; then
@@ -1822,9 +1842,8 @@ nvidia-utils-tkg() {
     depends+=('egl-gbm')
   fi
   if [ "$_eglwayland" = "external" ]; then
-    depends+=('egl-wayland')
-    if (( ${pkgver%%.*} >= 590 )); then
-      depends+=('egl-wayland2')
+    if (( ${pkgver%%.*} < 590 )); then
+      depends+=('egl-wayland')
     fi
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
