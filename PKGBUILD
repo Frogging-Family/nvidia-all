@@ -1767,14 +1767,8 @@ fi
 nvidia-egl-wayland-tkg() {
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
-  provides=("egl-wayland" "nvidia-egl-wayland-tkg")
-  conflicts=('egl-wayland')
-
-	# Add egl-wayland2 provides/conflicts for 590+ ###
-	if (( ${pkgver%%.*} >= 590 )); then
-		provides+=("egl-wayland2")
-		conflicts+=('egl-wayland2')
-	fi
+  provides=("egl-wayland" "nvidia-egl-wayland-tkg" "egl-wayland2")
+  conflicts=('egl-wayland' 'egl-wayland2')
 
   cd $_pkg
 
@@ -1792,13 +1786,11 @@ nvidia-egl-wayland-tkg() {
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
 
-    # Install egl-wayland2 library for 590+
-    if (( ${pkgver%%.*} >= 590 )); then
-      install -Dm755 libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}
-      ln -s libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
+    # egl-wayland2
+    install -Dm755 libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}
+    ln -s libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
 
-      install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
-    fi
+    install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
 
     # egl-gbm
     if [ "$_eglgbm" = "true" ]; then
@@ -1819,6 +1811,11 @@ nvidia-egl-wayland-tkg() {
         install -Dm755 libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so."${_eglwver}"
         ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so.1
         ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so
+      fi
+      if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
+        install -Dm755 libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so."${_eglwver2}"
+        ln -s libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so.1
+        ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so
       fi
       if [ "$_eglgbm" = "true" ]; then
         if [ -n "${_eglgver:-}" ] && [[ -e libnvidia-egl-gbm.so."${_eglgver}" ]]; then
@@ -1842,9 +1839,7 @@ nvidia-utils-tkg() {
     depends+=('egl-gbm')
   fi
   if [ "$_eglwayland" = "external" ]; then
-    if (( ${pkgver%%.*} < 590 )); then
-      depends+=('egl-wayland')
-    fi
+    depends+=('egl-wayland')
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
