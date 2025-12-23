@@ -327,7 +327,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=263
+pkgrel=264
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -1748,12 +1748,12 @@ elif [[ $pkgver = 396* ]]; then
   _eglwver="1.0.3"
 fi
 
-# egl-wayland2 version (590+)
+# egl-wayland2 version
 if (( ${pkgver%%.*} >= 590 )); then
   _eglwver2="1.0.1"
 fi
 
-#egl-gbm  version
+#egl-gbm version
 if (( ${pkgver%%.*} >= 590 )); then
   _eglgver="1.1.3"
 elif (( ${pkgver%%.*} >= 565 )); then
@@ -1767,8 +1767,13 @@ fi
 nvidia-egl-wayland-tkg() {
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
-  provides=("egl-wayland" "nvidia-egl-wayland-tkg" "egl-wayland2")
-  conflicts=('egl-wayland' 'egl-wayland2')
+  provides=("egl-wayland" "nvidia-egl-wayland-tkg")
+  conflicts=('egl-wayland')
+  # egl-wayland2 available since 590 series
+  if (( ${pkgver%%.*} >= 590 )); then
+    provides+=("egl-wayland2")
+    conflicts+=('egl-wayland2')
+  fi
 
   cd $_pkg
 
@@ -1840,6 +1845,9 @@ nvidia-utils-tkg() {
   fi
   if [ "$_eglwayland" = "external" ]; then
     depends+=('egl-wayland')
+    if (( ${pkgver%%.*} >= 590 )); then
+      depends+=('egl-wayland2')
+    fi
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
