@@ -567,7 +567,23 @@ prepare() {
       patch -Np1 -i "$srcdir"/Add-IBT-support.diff
     fi
 
+    # Enable modeset and fbdev as default
+    # This avoids various issue, when Simplefb is used
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+    if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
+      msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
+    fi
+
     if (( ${pkgver%%.*} == 565 )); then
+      # Enable modeset and fbdev as default
+      # This avoids various issue, when Simplefb is used
+      # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+      # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+      msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+
       # Patch by Nvidia to silence error messages until a real fix drops in 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/issues/716#issuecomment-2391898884
       msg2 "Applying silence-event-assert-until-570.diff for kernel-open..."
@@ -578,6 +594,11 @@ prepare() {
       # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
       msg2 "Applying fix-hdmi-names.diff for kernel-open..."
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
+    fi
+
+    if (( ${pkgver%%.*} >= 570 )); then
+      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
 
     if [ "$_gcc15" = "true" ]; then
@@ -611,27 +632,7 @@ BUILT_MODULE_NAME[4]="nvidia-peermem"\
 BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
-    # Enable modeset and fbdev as default
-    # This avoids various issue, when Simplefb is used
-    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
-    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
-    # Apply patches to original source before copying for DKMS (so both DKMS and regular builds get patched)
-    if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
-      msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
-    fi
-
-    if (( ${pkgver%%.*} == 565 )); then
-      msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
-    fi
-
-    if (( ${pkgver%%.*} >= 570 )); then
-      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
-    fi
-
-    # Clean version for later copying for DKMS (now includes modeset patches)
+    # Clean version for later copying for DKMS
     cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
 
     cd "$srcdir/$_pkg"
@@ -1713,7 +1714,7 @@ package_opencl-$_branchname-tkg() {
 }
 EOF
 
-#egl-wayland version
+# egl-wayland version
 if (( ${pkgver%%.*} >= 580 )); then
   _eglwver="1.1.20"
 elif (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
@@ -1753,7 +1754,7 @@ if (( ${pkgver%%.*} >= 590 )); then
   _eglwver2="1.0.1"
 fi
 
-#egl-gbm version
+# egl-gbm version
 if (( ${pkgver%%.*} >= 590 )); then
   _eglgver="1.1.3"
 elif (( ${pkgver%%.*} >= 565 )); then
@@ -1769,7 +1770,6 @@ nvidia-egl-wayland-tkg() {
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
-  # egl-wayland2 available since 590 series
   if (( ${pkgver%%.*} >= 590 )); then
     provides+=("egl-wayland2")
     conflicts+=('egl-wayland2')
@@ -1792,10 +1792,14 @@ nvidia-egl-wayland-tkg() {
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
 
     # egl-wayland2
-    install -Dm755 libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}
-    ln -s libnvidia-egl-wayland2.so.${_eglwver2} "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
-
-    install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
+    if [[ -e libnvidia-egl-wayland2.so.${_eglwver2} ]]; then
+      install -Dm755 libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so."${_eglwver2}"
+      ln -s libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.1
+      ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
+    fi
+    if [[ -e 99_nvidia_wayland2.json ]]; then
+      install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
+    fi
 
     # egl-gbm
     if [ "$_eglgbm" = "true" ]; then
@@ -1809,7 +1813,7 @@ nvidia-egl-wayland-tkg() {
       fi
     fi
 
-    #lib32
+    # lib32
     if [ "$_lib32" = "true" ]; then
       cd 32
       if [[ -e libnvidia-egl-wayland.so."${_eglwver}" ]]; then
