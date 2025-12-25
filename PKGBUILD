@@ -1792,7 +1792,7 @@ nvidia-egl-wayland-tkg() {
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
 
     # egl-wayland2
-    if [[ -e libnvidia-egl-wayland2.so.${_eglwver2} ]]; then
+    if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
       install -Dm755 libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so."${_eglwver2}"
       ln -s libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.1
       ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
