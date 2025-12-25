@@ -2454,6 +2454,8 @@ function exit_cleanup {
   rm -f "${where}"/*.hook
   rm -f "${where}"/*.sh
   rm -f "${where}"/nvidia-utils-tkg.sysusers
+  rm -f "${where}"/limit-vram-usage
+  rm -f "${where}"/cuda-no-stable-perf-limit
   rm -rf "${where}"/egl-wayland
   rm -rf "${where}"/src/*
 
