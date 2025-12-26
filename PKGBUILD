@@ -2152,11 +2152,9 @@ nvidia-utils-tkg() {
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
 
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
       install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
 
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
-      # https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/1039
       install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
@@ -2453,6 +2451,7 @@ function exit_cleanup {
   rm -f "${where}"/*.diff
   rm -f "${where}"/*.hook
   rm -f "${where}"/*.sh
+  rm -f "${where}"/*.rules
   rm -f "${where}"/nvidia-utils-tkg.sysusers
   rm -f "${where}"/limit-vram-usage
   rm -f "${where}"/cuda-no-stable-perf-limit
