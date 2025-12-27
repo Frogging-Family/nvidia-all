@@ -54,16 +54,16 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.580 series: 580.105.08\n      3.575 series: 575.64.05\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.590 series: 590.48.01\n      3.580 series: 580.119.02\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=580.105.08' > options
-      echo '_md5sum=c71560d2644e4ae386b83b168d444fb2' >> options
+      echo '_driver_version=590.48.01' > options
+      echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=575.64.05' > options
-      echo '_md5sum=5232a442e7696c73f2a7f527481084aa' >> options
+      echo '_driver_version=580.119.02' > options
+      echo '_md5sum=5603f48f2af83d4fb3164ca9ef27ff3a' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.207' > options
@@ -74,98 +74,102 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.565 series: 565.77\n      2.560 series: 560.35.03\n      3.555 series: 555.58.02\n      4.550 series: 550.135\n      5.545 series: 545.29.06\n      6.535 series: 535.183.01\n      7.530 series: 530.41.03\n      8.525 series: 525.147.05\n      9.520 series: 520.56.06\n      10.515 series: 515.86.01\n      11.510 series: 510.85.02\n      12.495 series: 495.46\n      13.465 series: 465.31\n      14.460 series: 460.91.03\n      15.455 series: 455.45.01\n      16.450 series: 450.119.03\n      17.440 series: 440.100 (kernel 5.8 or lower)\n      18.435 series: 435.21  (kernel 5.6 or lower)\n      19.430 series: 430.64  (kernel 5.5 or lower)\n      20.418 series: 418.113 (kernel 5.5 or lower)\n      21.415 series: 415.27  (kernel 5.4 or lower)\n      22.410 series: 410.104 (kernel 5.5 or lower)\n      23.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-23?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.575 series: 575.64.05\n      2.565 series: 565.77\n      3.560 series: 560.35.03\n      4.555 series: 555.58.02\n      5.550 series: 550.135\n      6.545 series: 545.29.06\n      7.535 series: 535.183.01\n      8.530 series: 530.41.03\n      9.525 series: 525.147.05\n      10.520 series: 520.56.06\n      11.515 series: 515.86.01\n      12.510 series: 510.85.02\n      13.495 series: 495.46\n      14.465 series: 465.31\n      15.460 series: 460.91.03\n      16.455 series: 455.45.01\n      17.450 series: 450.119.03\n      18.440 series: 440.100 (kernel 5.8 or lower)\n      19.435 series: 435.21  (kernel 5.6 or lower)\n      20.430 series: 430.64  (kernel 5.5 or lower)\n      21.418 series: 418.113 (kernel 5.5 or lower)\n      22.415 series: 415.27  (kernel 5.4 or lower)\n      23.410 series: 410.104 (kernel 5.5 or lower)\n      24.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-24?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
+        echo '_driver_version=565.77' > options
+        echo '_md5sum=48d9a5b5999d0f30ec8326c94b34945e' >> options
+        echo '_driver_branch=regular' >> options
+      elif [ "$CONDITION" = "3" ]; then
         echo '_driver_version=560.35.03' > options
         echo '_md5sum=d4f54004bb80da17b3e2fb21ac17c018' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "3" ]; then
+      elif [ "$CONDITION" = "4" ]; then
         echo '_driver_version=555.58.02' > options
         echo '_md5sum=f6efa3d40fccc97fbac9b55fc81e30d7' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "4" ]; then
+      elif [ "$CONDITION" = "5" ]; then
         echo '_driver_version=550.135' > options
         echo '_md5sum=a8c3ae0076f11e864745fac74bfdb01f' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "5" ]; then
+      elif [ "$CONDITION" = "6" ]; then
         echo '_driver_version=545.29.06' > options
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "6" ]; then
+      elif [ "$CONDITION" = "7" ]; then
         echo '_driver_version=535.183.01' > options
         echo '_md5sum=e9ea27c842436f3af6ccab7ec4727c0b' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "7" ]; then
+      elif [ "$CONDITION" = "8" ]; then
         echo '_driver_version=530.41.03' > options
         echo '_md5sum=9049dbe01410eac1e05b249de10f6b91' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "8" ]; then
+      elif [ "$CONDITION" = "9" ]; then
         echo '_driver_version=525.147.05' > options
         echo '_md5sum=bf00562896e64ebf3f28e528947049ce' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "9" ]; then
+      elif [ "$CONDITION" = "10" ]; then
         echo '_driver_version=520.56.06' > options
         echo '_md5sum=18136ef051cbfc3850e88aa5184b31b8' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "10" ]; then
+      elif [ "$CONDITION" = "11" ]; then
         echo '_driver_version=515.86.01' > options
         echo '_md5sum=5eaf6786f0c92cfcecb1ab950ff70df5' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "11" ]; then
+      elif [ "$CONDITION" = "12" ]; then
         echo '_driver_version=510.85.02' > options
         echo '_md5sum=0367f772fc61bccecee8559c4fe9bb3d' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "12" ]; then
+      elif [ "$CONDITION" = "13" ]; then
         echo '_driver_version=495.46' > options
         echo '_md5sum=db1d6b0f9e590249bbf940a99825f000' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "13" ]; then
+      elif [ "$CONDITION" = "14" ]; then
         echo '_driver_version=465.31' > options
         echo '_md5sum=4996eefa54392b0c9541d22e88abab66' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "14" ]; then
+      elif [ "$CONDITION" = "15" ]; then
         echo '_driver_version=460.91.03' > options
         echo '_md5sum=15c5ada08bdb25d757d90e0f21b6f270' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "15" ]; then
+      elif [ "$CONDITION" = "16" ]; then
         echo '_driver_version=455.45.01' > options
         echo '_md5sum=f0161877350aa9155eada811ff2844a8' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "16" ]; then
+      elif [ "$CONDITION" = "17" ]; then
         echo '_driver_version=450.119.03' > options
         echo '_md5sum=b2725b8c15a364582be90c5fa1d6690f' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "17" ]; then
+      elif [ "$CONDITION" = "18" ]; then
         echo '_driver_version=440.100' > options
         echo '_md5sum=7b99bcd2807ecd37af60d29de7bc30c2' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "18" ]; then
+      elif [ "$CONDITION" = "19" ]; then
         echo '_driver_version=435.21' > options
         echo '_md5sum=050acb0aecc93ba15d1fc609ee82bebe' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "19" ]; then
+      elif [ "$CONDITION" = "20" ]; then
         echo '_driver_version=430.64' > options
         echo '_md5sum=a4ea35bf913616c71f104f15092df714' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "20" ]; then
+      elif [ "$CONDITION" = "21" ]; then
         echo '_driver_version=418.113' > options
         echo '_md5sum=0b21dbabaa25beed46c20a177e59642e' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "21" ]; then
+      elif [ "$CONDITION" = "22" ]; then
         echo '_driver_version=415.27' > options
         echo '_md5sum=f4777691c4673c808d82e37695367f6d' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "22" ]; then
+      elif [ "$CONDITION" = "23" ]; then
         echo '_driver_version=410.104' > options
         echo '_md5sum=4f3219b5fad99465dea399fc3f4bb866' >> options
         echo '_driver_branch=regular' >> options
-      elif [ "$CONDITION" = "23" ]; then
+      elif [ "$CONDITION" = "24" ]; then
         echo '_driver_version=396.54' > options
         echo '_md5sum=195afa93d400bdbb9361ede6cef95143' >> options
         echo '_driver_branch=regular' >> options
       else
-        echo '_driver_version=565.77' > options
-        echo '_md5sum=48d9a5b5999d0f30ec8326c94b34945e' >> options
+        echo '_driver_version=575.64.05' > options
+        echo '_md5sum=5232a442e7696c73f2a7f527481084aa' >> options
         echo '_driver_branch=regular' >> options
       fi
     elif [ "$CONDITION" = "7" ]; then
@@ -323,7 +327,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=263
+pkgrel=264
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -411,6 +415,8 @@ source=($_source_name
         'gcc-15.diff'
         'kernel-6.17.patch'
         'limit-vram-usage'
+        'cuda-no-stable-perf-limit'
+        '50-nvidia-cuda-disable-perf-boost.conf'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -477,7 +483,10 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46')
+         '0cdd9458228beb04e34d5128cb43fe46'
+         'f52a9eb49a21f7b6fe34cc5399bb61de'
+         'f6d0a9b1e503d0e8c026a20b61f889c2'
+)
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -558,7 +567,23 @@ prepare() {
       patch -Np1 -i "$srcdir"/Add-IBT-support.diff
     fi
 
+    # Enable modeset and fbdev as default
+    # This avoids various issue, when Simplefb is used
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+    if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
+      msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
+    fi
+
     if (( ${pkgver%%.*} == 565 )); then
+      # Enable modeset and fbdev as default
+      # This avoids various issue, when Simplefb is used
+      # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+      # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+      msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+
       # Patch by Nvidia to silence error messages until a real fix drops in 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/issues/716#issuecomment-2391898884
       msg2 "Applying silence-event-assert-until-570.diff for kernel-open..."
@@ -569,6 +594,11 @@ prepare() {
       # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
       msg2 "Applying fix-hdmi-names.diff for kernel-open..."
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
+    fi
+
+    if (( ${pkgver%%.*} >= 570 )); then
+      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
 
     if [ "$_gcc15" = "true" ]; then
@@ -602,27 +632,7 @@ BUILT_MODULE_NAME[4]="nvidia-peermem"\
 BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
-    # Enable modeset and fbdev as default
-    # This avoids various issue, when Simplefb is used
-    # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
-    # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
-    # Apply patches to original source before copying for DKMS (so both DKMS and regular builds get patched)
-    if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
-      msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
-    fi
-
-    if (( ${pkgver%%.*} == 565 )); then
-      msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
-    fi
-
-    if (( ${pkgver%%.*} >= 570 )); then
-      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
-    fi
-
-    # Clean version for later copying for DKMS (now includes modeset patches)
+    # Clean version for later copying for DKMS
     cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
 
     cd "$srcdir/$_pkg"
@@ -1704,7 +1714,7 @@ package_opencl-$_branchname-tkg() {
 }
 EOF
 
-#egl-wayland version
+# egl-wayland version
 if (( ${pkgver%%.*} >= 580 )); then
   _eglwver="1.1.20"
 elif (( ${pkgver%%.*} >= 575 )) || [[ "${pkgver}" = 570.123.* ]]; then
@@ -1739,8 +1749,15 @@ elif [[ $pkgver = 396* ]]; then
   _eglwver="1.0.3"
 fi
 
-#egl-gbm  version
-if (( ${pkgver%%.*} >= 565 )); then
+# egl-wayland2 version
+if (( ${pkgver%%.*} >= 590 )); then
+  _eglwver2="1.0.1"
+fi
+
+# egl-gbm version
+if (( ${pkgver%%.*} >= 590 )); then
+  _eglgver="1.1.3"
+elif (( ${pkgver%%.*} >= 565 )); then
   _eglgver="1.1.2"
 elif (( ${pkgver%%.*} >= 550 )); then
   _eglgver="1.1.1"
@@ -1753,6 +1770,11 @@ nvidia-egl-wayland-tkg() {
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
+  if (( ${pkgver%%.*} >= 590 )); then
+    provides+=("egl-wayland2")
+    conflicts+=('egl-wayland2')
+  fi
+
   cd $_pkg
 
     install -Dm755 libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland.so."${_eglwver}"
@@ -1769,6 +1791,16 @@ nvidia-egl-wayland-tkg() {
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream-protocols.pc
     sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}"/usr/share/pkgconfig/wayland-eglstream.pc
 
+    # egl-wayland2
+    if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
+      install -Dm755 libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so."${_eglwver2}"
+      ln -s libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so.1
+      ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}"/usr/lib/libnvidia-egl-wayland2.so
+    fi
+    if [[ -e 99_nvidia_wayland2.json ]]; then
+      install -Dm755 99_nvidia_wayland2.json "${pkgdir}"/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json
+    fi
+
     # egl-gbm
     if [ "$_eglgbm" = "true" ]; then
       if [ -n "${_eglgver:-}" ]; then
@@ -1781,13 +1813,18 @@ nvidia-egl-wayland-tkg() {
       fi
     fi
 
-    #lib32
+    # lib32
     if [ "$_lib32" = "true" ]; then
       cd 32
       if [[ -e libnvidia-egl-wayland.so."${_eglwver}" ]]; then
         install -Dm755 libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so."${_eglwver}"
         ln -s libnvidia-egl-wayland.so."${_eglwver}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so.1
         ln -s libnvidia-egl-wayland.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-wayland.so
+      fi
+      if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
+        install -Dm755 libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so."${_eglwver2}"
+        ln -s libnvidia-egl-wayland2.so."${_eglwver2}" "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so.1
+        ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}"/usr/lib32/libnvidia-egl-wayland2.so
       fi
       if [ "$_eglgbm" = "true" ]; then
         if [ -n "${_eglgver:-}" ] && [[ -e libnvidia-egl-gbm.so."${_eglgver}" ]]; then
@@ -1812,6 +1849,9 @@ nvidia-utils-tkg() {
   fi
   if [ "$_eglwayland" = "external" ]; then
     depends+=('egl-wayland')
+    if (( ${pkgver%%.*} >= 590 )); then
+      depends+=('egl-wayland2')
+    fi
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
@@ -2098,11 +2138,24 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
-    # Vulkan GTK Renderer Crash fix
-    # Add limit vram usage scripts
     if (( ${pkgver%%.*} >= 580 )); then
+      # Vulkan GTK Renderer Crash fix
       install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
+
+      # Add limit vram usage scripts migrated from CachyOS
+      # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
       install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+    fi
+
+    if (( ${pkgver%%.*} >= 590 )); then
+      # https://github.com/microsoft/TileIR
+      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
+
+      # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
+      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+
+      # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
+      install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     _create_links
@@ -2319,6 +2372,11 @@ lib32-nvidia-utils-tkg() {
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
     fi
 
+    if (( ${pkgver%%.*} >= 590 )); then
+      # https://github.com/microsoft/TileIR
+      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
+    fi
+
     _create_links
 
     rm -rf "${pkgdir}"/usr/{include,share,bin}
@@ -2393,7 +2451,10 @@ function exit_cleanup {
   rm -f "${where}"/*.diff
   rm -f "${where}"/*.hook
   rm -f "${where}"/*.sh
+  rm -f "${where}"/*.rules
   rm -f "${where}"/nvidia-utils-tkg.sysusers
+  rm -f "${where}"/limit-vram-usage
+  rm -f "${where}"/cuda-no-stable-perf-limit
   rm -rf "${where}"/egl-wayland
   rm -rf "${where}"/src/*
 
