@@ -561,10 +561,10 @@ prepare() {
 
     # Fix for https://bugs.archlinux.org/task/74886
     if (( ${pkgver%%.*} < 525 )); then
-      patch -Np1 --no-backup-if-mismatch -i "$srcdir"/nvidia-open-gcc-ibt-sls.diff
+      patch -Np1 --no-backup-if-mismatch -i "$srcdir/nvidia-open-gcc-ibt-sls.diff"
     fi
     if (( ${pkgver%%.*} == 570 )); then
-      patch -Np1 -i "$srcdir"/Add-IBT-support.diff
+      patch -Np1 -i "$srcdir/Add-IBT-support.diff"
     fi
 
     # Enable modeset and fbdev as default
@@ -573,7 +573,7 @@ prepare() {
     # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
     if (( ${pkgver%%.*} >= 550 )) && (( ${pkgver%%.*} < 565 )); then
       msg2 "Applying make-modeset-fbdev-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff )
+      ( cd "$srcdir/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "$srcdir/make-modeset-fbdev-default.diff" )
     fi
 
     if (( ${pkgver%%.*} == 565 )); then
@@ -582,36 +582,36 @@ prepare() {
       # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
       # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
       msg2 "Applying make-modeset-fbdev-default-565.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff )
+      ( cd "$srcdir/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "$srcdir/make-modeset-fbdev-default-565.diff" )
 
       # Patch by Nvidia to silence error messages until a real fix drops in 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/issues/716#issuecomment-2391898884
       msg2 "Applying silence-event-assert-until-570.diff to kernel-open..."
-      patch -Np1 -i "$srcdir"/silence-event-assert-until-570.diff
+      patch -Np1 -i "$srcdir/silence-event-assert-until-570.diff"
 
       # Patch by Nvidia to fix HDMI names which are otherwise broken in the /proc/asound/NVidia/* ELD files
       # Should hopefully ship with 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
       msg2 "Applying fix-hdmi-names.diff to kernel-open..."
-      patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
+      patch -Np1 -i "$srcdir/fix-hdmi-names.diff"
     fi
 
     if (( ${pkgver%%.*} >= 570 )); then
       msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
+      ( cd "$srcdir/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "$srcdir/Enable-atomic-kernel-modesetting-by-default.diff" )
     fi
 
-    # Apply kernel-6.19.patch
-    if (( ${pkgver%%.*} >= 580 )); then
+    # Apply kernel-6.19.patch only for open modules and driver 580 or 590
+    if (( $(vercmp "$(uname -r)" "6.19") >= 0 )) && ( [[ ${pkgver%%.*} = 580 ]] || [[ ${pkgver%%.*} = 590 ]] ); then
       msg2 "Applying kernel-6.19.patch to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.19.patch ) || msg2 "kernel-6.19.patch did not apply to kernel-open (open-nvidia)"
+      ( cd "$srcdir/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "$srcdir/kernel-6.19.patch" )
     else
-      msg2 "Skipping kernel-6.19.patch to kernel-open"
+      msg2 "Skipping kernel-6.19.patch as it doesn't apply to this driver version or host kernel..."
     fi
 
     if [ "$_gcc15" = "true" ]; then
       ( cd kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
+      ( cd "$srcdir/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "$srcdir/gcc-15.diff" )
     fi
 
     # Attempt to make this reproducible
@@ -645,6 +645,10 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
+  # 
+  # NOTE: Proprietary driver handel in this `else` block
+  #       This patches are not applied for open source modules
+  #
   else
     cd "$_pkg"
 
@@ -1149,9 +1153,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         if [ "$_patch" = "6.12" ]; then
           _whitelist=(${_whitelist612[@]})
         fi
-        if [ "$_patch" = "6.19" ]; then
-          _whitelist=(${_whitelist619[@]})
-        fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
           for yup in "${_whitelist[@]}"; do
@@ -1639,20 +1640,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.12.patch
         else
           msg2 "Skipping kernel-6.12.patch as it doesn't apply to this driver version..."
-        fi
-      fi
-
-      # 6.19
-      if [ "$_kernel619" = "1" ]; then
-        patchy=0
-        for yup in "${_whitelist619[@]}"; do
-          [[ $pkgver = $yup ]] && patchy=1
-        done
-        if [ "$patchy" = "1" ] || (( ${pkgver%%.*} >= 580 )); then
-          msg2 "Applying kernel-6.19.patch for dkms..."
-          ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.19.patch ) || msg2 "kernel-6.19.patch did not apply for dkms (this may be OK)"
-        else
-          msg2 "Skipping kernel-6.19.patch as it doesn't apply to this driver version..."
         fi
       fi
 
