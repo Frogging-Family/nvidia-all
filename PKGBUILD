@@ -417,7 +417,7 @@ source=($_source_name
         'limit-vram-usage'
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
-)
+        'kernel-6.19.patch')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -486,7 +486,7 @@ md5sums=("$_md5sum"
          '0cdd9458228beb04e34d5128cb43fe46'
          'f52a9eb49a21f7b6fe34cc5399bb61de'
          'f6d0a9b1e503d0e8c026a20b61f889c2'
-)
+         '12bb56d62196fb3ddbcd62a27f3b4943')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
