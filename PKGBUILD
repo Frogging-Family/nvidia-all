@@ -586,13 +586,13 @@ prepare() {
 
       # Patch by Nvidia to silence error messages until a real fix drops in 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/issues/716#issuecomment-2391898884
-      msg2 "Applying silence-event-assert-until-570.diff for kernel-open..."
+      msg2 "Applying silence-event-assert-until-570.diff to kernel-open..."
       patch -Np1 -i "$srcdir"/silence-event-assert-until-570.diff
 
       # Patch by Nvidia to fix HDMI names which are otherwise broken in the /proc/asound/NVidia/* ELD files
       # Should hopefully ship with 570.xx
       # https://github.com/NVIDIA/open-gpu-kernel-modules/pull/715
-      msg2 "Applying fix-hdmi-names.diff for kernel-open..."
+      msg2 "Applying fix-hdmi-names.diff to kernel-open..."
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
     fi
 
@@ -601,9 +601,17 @@ prepare() {
       ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
     fi
 
+    # Apply kernel-6.19.patch
+    if (( ${pkgver%%.*} >= 580 )); then
+      msg2 "Applying kernel-6.19.patch to kernel-open..."
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.19.patch ) || msg2 "kernel-6.19.patch did not apply to kernel-open (open-nvidia)"
+    else
+      msg2 "Skipping kernel-6.19.patch to kernel-open"
+    fi
+
     if [ "$_gcc15" = "true" ]; then
       ( cd kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
-      ( cd "$srcdir"/"$_pkg"/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
+      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
     fi
 
     # Attempt to make this reproducible
@@ -1028,7 +1036,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.12
       if (( $(vercmp "$_kernel" "6.12") >= 0 )); then
         _kernel612="1"
-        _whitelist612=( 565.57* )
+        _whitelist612=(565.57*)
+      fi
+
+      # 6.19
+      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
+        _kernel619="1"
+        _whitelist619=(580.* 590.*)
       fi
 
       if [ "$_gcc14" = "true" ]; then
@@ -1134,6 +1148,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.12" ]; then
           _whitelist=(${_whitelist612[@]})
+        fi
+        if [ "$_patch" = "6.19" ]; then
+          _whitelist=(${_whitelist619[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -1622,6 +1639,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.12.patch
         else
           msg2 "Skipping kernel-6.12.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.19
+      if [ "$_kernel619" = "1" ]; then
+        patchy=0
+        for yup in "${_whitelist619[@]}"; do
+          [[ $pkgver = $yup ]] && patchy=1
+        done
+        if [ "$patchy" = "1" ] || (( ${pkgver%%.*} >= 580 )); then
+          msg2 "Applying kernel-6.19.patch for dkms..."
+          ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/kernel-6.19.patch ) || msg2 "kernel-6.19.patch did not apply for dkms (this may be OK)"
+        else
+          msg2 "Skipping kernel-6.19.patch as it doesn't apply to this driver version..."
         fi
       fi
 
