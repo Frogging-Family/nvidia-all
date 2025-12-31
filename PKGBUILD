@@ -1043,12 +1043,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist612=(565.57*)
       fi
 
-      # 6.19
-      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
-        _kernel619="1"
-        _whitelist619=(580.* 590.*)
-      fi
-
       if [ "$_gcc14" = "true" ]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying gcc-14 patch..."
