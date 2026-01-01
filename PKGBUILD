@@ -2259,6 +2259,116 @@ package_$_branchname-utils-tkg() {
 }
 EOF
 
+nvidia-settings-tkg() {
+    pkgdesc='Tool for configuring the NVIDIA graphics driver'
+    depends=("nvidia-utils-tkg>=${pkgver}" 'gtk3')
+    provides=("nvidia-settings=${pkgver}" "nvidia-settings-tkg=${pkgver}")
+    conflicts=('nvidia-settings')
+
+    cd "$_pkg"
+
+    install -D -m755 nvidia-settings         -t "${pkgdir}/usr/bin"
+    install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
+    install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
+    install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
+    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+
+    install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
+
+    if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
+      install -Dm755 libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so."${pkgver}"
+      ln -s libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so
+    fi
+
+    # license
+    install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+source /dev/stdin <<EOF
+package_$_branchname-settings-tkg() {
+  nvidia-settings-tkg
+}
+EOF
+
+if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
+  nvidia-tkg() {
+  if [ "$_open_source_modules" = "true" ]; then
+      depends+=('linux')
+      conflicts=('NVIDIA-MODULE')
+      provides=('NVIDIA-MODULE')
+
+      cd ${_srcbase}-${pkgver}
+      if [[ -f /usr/src/linux/version ]]; then
+        _kver=$(</usr/src/linux/version)
+      else
+        _kver=$(uname -r)
+      fi
+      _extradir="/usr/lib/modules/${_kver}/extramodules"
+      install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
+      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
+      find "${pkgdir}" -name '*.ko' -exec xz {} +
+
+      # Force module to load even on unsupported GPUs
+      mkdir -p "$pkgdir"/usr/lib/modprobe.d
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
+
+      install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
+
+      if [ "$_blacklist_nouveau" = "false" ]; then
+          echo "skip blacklist nouveau\n"
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+      fi
+
+      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      else
+        echo "Skipping mkinitcpio hook due to user config"
+      fi 
+  else
+      pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
+      depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
+      provides=("nvidia=$pkgver" "nvidia-tkg>=$pkgver")
+      conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
+      install=nvidia-tkg.install
+
+      # Install for all kernels
+      local _kernel
+      local -a _kernels
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+
+      for _kernel in "${_kernels[@]}"; do
+        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        if [[ ${pkgver%%.*} = 465 ]]; then
+          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        fi
+        find "$pkgdir" -name '*.ko' -exec gzip -n {} +
+      done
+
+      if [ "$_blacklist_nouveau" = "false" ]; then
+          echo "skip blacklist nouveau\n"
+        else
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo "nvidia-uvm" |
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+      fi
+
+      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+      else
+        echo "Skipping mkinitcpio hook due to user config"
+      fi  
+  fi
+  }
+source /dev/stdin <<EOF
+  package_$__branchname-tkg() {
+    nvidia-tkg
+  }
+EOF
+fi
+
 lib32-opencl-nvidia-tkg() {
   pkgdesc="NVIDIA's OpenCL implemention for 'lib32-nvidia-utils-tkg' "
   depends=('lib32-zlib' 'lib32-gcc-libs')
@@ -2384,116 +2494,6 @@ package_lib32-$_branchname-utils-tkg() {
   lib32-nvidia-utils-tkg
 }
 EOF
-
-nvidia-settings-tkg() {
-    pkgdesc='Tool for configuring the NVIDIA graphics driver'
-    depends=("nvidia-utils-tkg>=${pkgver}" 'gtk3')
-    provides=("nvidia-settings=${pkgver}" "nvidia-settings-tkg=${pkgver}")
-    conflicts=('nvidia-settings')
-
-    cd "$_pkg"
-
-    install -D -m755 nvidia-settings         -t "${pkgdir}/usr/bin"
-    install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
-    install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
-    install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
-    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
-
-    install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
-
-    if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
-      install -Dm755 libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so."${pkgver}"
-      ln -s libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so
-    fi
-
-    # license
-    install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
-}
-source /dev/stdin <<EOF
-package_$_branchname-settings-tkg() {
-  nvidia-settings-tkg
-}
-EOF
-
-if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
-  nvidia-tkg() {
-  if [ "$_open_source_modules" = "true" ]; then
-      depends+=('linux')
-      conflicts=('NVIDIA-MODULE')
-      provides=('NVIDIA-MODULE')
-
-      cd ${_srcbase}-${pkgver}
-      if [[ -f /usr/src/linux/version ]]; then
-        _kver=$(</usr/src/linux/version)
-      else
-        _kver=$(uname -r)
-      fi
-      _extradir="/usr/lib/modules/${_kver}/extramodules"
-      install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
-      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
-      find "${pkgdir}" -name '*.ko' -exec xz {} +
-
-      # Force module to load even on unsupported GPUs
-      mkdir -p "$pkgdir"/usr/lib/modprobe.d
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
-
-      install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
-
-      if [ "$_blacklist_nouveau" = "false" ]; then
-          echo "skip blacklist nouveau\n"
-        else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-      fi
-
-      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-      else
-        echo "Skipping mkinitcpio hook due to user config"
-      fi 
-  else
-      pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
-      depends=("nvidia-utils-tkg>=$pkgver" 'libglvnd')
-      provides=("nvidia=$pkgver" "nvidia-tkg>=$pkgver")
-      conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
-      install=nvidia-tkg.install
-
-      # Install for all kernels
-      local _kernel
-      local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-
-      for _kernel in "${_kernels[@]}"; do
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-        if [[ ${pkgver%%.*} = 465 ]]; then
-          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-        fi
-        find "$pkgdir" -name '*.ko' -exec gzip -n {} +
-      done
-
-      if [ "$_blacklist_nouveau" = "false" ]; then
-          echo "skip blacklist nouveau\n"
-        else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-            echo "nvidia-uvm" |
-                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
-      fi
-
-      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-      else
-        echo "Skipping mkinitcpio hook due to user config"
-      fi  
-  fi
-  }
-source /dev/stdin <<EOF
-  package_$__branchname-tkg() {
-    nvidia-tkg
-  }
-EOF
-fi
 
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
