@@ -2297,11 +2297,8 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       provides=('NVIDIA-MODULE')
 
       cd ${_srcbase}-${pkgver}
-      if [[ -f /usr/src/linux/version ]]; then
-        _kver=$(</usr/src/linux/version)
-      else
-        _kver=$(uname -r)
-      fi
+      # Get running kernel version
+      _kver=$(< /proc/sys/kernel/osrelease)
       _extradir="/usr/lib/modules/${_kver}/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
       find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
