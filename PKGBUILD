@@ -27,7 +27,7 @@ if [ -z "$where" ]; then
   export where="$PWD" # track basedir as different Arch based distros are moving srcdir around
 fi
 
-source "$where"/customization.cfg
+source "$where/customization.cfg"
 
 # Load external configuration file if present. Available variable values will overwrite customization.cfg ones.
 if [ -e "$_EXT_CONFIG_PATH" ]; then
@@ -556,7 +556,7 @@ prepare() {
 
   # Extract
   msg2 "Self-Extracting $_pkg.run..."
-  sh "$_pkg".run -x
+  sh "$_pkg.run" -x
 
   if [ "$_open_source_modules" = "true" ]; then
     cd ${_srcbase}-${pkgver}
@@ -682,7 +682,7 @@ BUILT_MODULE_LOCATION[4]="kernel-open"\
 DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     # Clean version for later copying for DKMS
-    cp -r ../${_srcbase}-${pkgver} "$srcdir"/open-gpu-kernel-modules-dkms
+    cp -r ../${_srcbase}-${pkgver} "$srcdir/open-gpu-kernel-modules-dkms"
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
@@ -767,17 +767,17 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # Use separate source directories
       cp -r kernel kernel-"$_kernel"
 
-      cd "$srcdir"/"$_pkg"/kernel-"$_kernel"
+      cd "$srcdir/$_pkg/kernel-$_kernel"
       if (( ${pkgver%%.*} <= 455 )); then
         msg2 "Applying linux-version.diff for $_kernel..."
-        patch -p2 -i "$srcdir"/linux-version.diff
+        patch -p2 -i "$srcdir/linux-version.diff"
       fi
 
       # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
       # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
       if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
         msg2 "Applying 455 crashfix for $_kernel..."
-        patch -p2 -i "$srcdir"/455-crashfix.diff
+        patch -p2 -i "$srcdir/455-crashfix.diff"
       fi
       cd ..
 
@@ -805,13 +805,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         # Fix for "unknown type name 'ipmi_user_t'" (required for older than 2018.12.7 drivers when used on 4.20+)
         if [[ $pkgver = 396* ]] || [[ $pkgver = 410.5* ]] || [[ $pkgver = 410.6* ]] || [[ $pkgver = 410.7* ]] || [[ $pkgver = 415.1* ]]; then
           _oldstuff="1"
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 01-ipmi-vm.diff for $_kernel..."
-          patch -p2 -i "$srcdir"/01-ipmi-vm.diff
+          patch -p2 -i "$srcdir/01-ipmi-vm.diff"
           if [[ $pkgver != 396* ]]; then
             _youngeryetoldstuff="1"
             msg2 "Applying 02-ipmi-vm.diff for $_kernel..."
-            patch -p2 -i "$srcdir"/02-ipmi-vm.diff
+            patch -p2 -i "$srcdir/02-ipmi-vm.diff"
           fi
           cd ..
         else
@@ -833,12 +833,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
           if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.3* ]] || [[ $pkgver = 418.4* ]]; then
             _low418="1"
-            cd "$srcdir"/"$_pkg"/kernel-$_kernel
+            cd "$srcdir/$_pkg/kernel-$_kernel"
             msg2 "Applying list_is_first.diff for $_kernel..."
             # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
             sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
             sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-$_kernel/common/inc/nv-list-helpers.h"
-            patch -Np2 -i "$srcdir"/list_is_first.diff
+            patch -Np2 -i "$srcdir/list_is_first.diff"
             cd ..
           else
             msg2 "Skipping list_is_first fixes (not needed for this driver/kernel combination)"
@@ -863,16 +863,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel54="1"
         _whitelist54=( 410* 415* 418.3* 418.4* 418.5* 418.7* 418.8* 430.0* 430.1* 430.2* 430.3* 430.4* 430.5* 435.1* 435.21* 435.24* 435.27.01 )
         if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying kernel-5.4-symver.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/kernel-5.4-symver.diff
+          patch -Np2 -i "$srcdir/kernel-5.4-symver.diff"
           cd ..
         fi
         if [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime_fixing_attempt" = "true" ]; then
           _54_prime="true"
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying kernel-5.4-prime.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/kernel-5.4-prime.diff
+          patch -Np2 -i "$srcdir/kernel-5.4-prime.diff"
           cd ..
         fi
       fi
@@ -888,16 +888,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel56="1"
         _whitelist56=( 435* 440.2* 440.3* 440.4* 440.5* 440.6* )
         if [[ $pkgver = 418.* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 5.6-legacy-includes.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.6-legacy-includes.diff
+          patch -Np2 -i "$srcdir/5.6-legacy-includes.diff"
           msg2 "Applying 5.6-ioremap.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.6-ioremap.diff
+          patch -Np2 -i "$srcdir/5.6-ioremap.diff"
           cd ..
         elif [[ $pkgver = 440.5* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 5.6-ioremap.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.6-ioremap.diff
+          patch -Np2 -i "$srcdir/5.6-ioremap.diff"
           cd ..
         fi
       fi
@@ -913,9 +913,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel58="1"
         _whitelist58=( 440* 450.3* 450.51 450.56.01 )
         if [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 5.8-legacy.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.8-legacy.diff
+          patch -Np2 -i "$srcdir/5.8-legacy.diff"
           cd ..
         fi
       fi
@@ -929,9 +929,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 5.9 - 5.10 quirk
       if (( $(vercmp "$_kernel" "5.9") >= 0 )) || (( $(vercmp "$_kernel" "5.10") >= 0 )); then
         if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 5.9-gpl.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.9-gpl.diff
+          patch -Np2 -i "$srcdir/5.9-gpl.diff"
           cd ..
         fi
       fi
@@ -947,9 +947,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel511="1"
         _whitelist511=( 455.45* 455.50.0* 455.50.10 455.50.12 455.50.14 460.27* 460.32* )
         if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 5.11-legacy.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/5.11-legacy.diff
+          patch -Np2 -i "$srcdir/5.11-legacy.diff"
           cd ..
         fi
       fi
@@ -971,9 +971,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel516="1"
         _whitelist516=( 470.8* 470.9* 495*)
         if [[ $pkgver = 470.62.* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying kernel-5.16-std.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/kernel-5.16-std.diff
+          patch -Np2 -i "$srcdir/kernel-5.16-std.diff"
           cd ..
         fi
       fi
@@ -1007,9 +1007,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel64="1"
         _whitelist64=( 470.4* 470.5* 470.6* 470.7* 470.8* 470.9* 470.10* 470.12* 470.14* 470.16* 470.18* 530* )
         if [[ $pkgver = 470.199* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying legacy-kernel-6.4.patch for $_kernel..."
-          patch -Np2 -i "$srcdir"/legacy-kernel-6.4.diff
+          patch -Np2 -i "$srcdir/legacy-kernel-6.4.diff"
           cd ..
         fi
       fi
@@ -1019,9 +1019,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _kernel65="1"
         _whitelist65=(525.5* 525.6* 525.7* 525.8* 525.10* 525.11* 525.12* 530* 535.5* 535.43.02)
         if [[ $pkgver = 470.199* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying legacy-kernel-6.5.patch for $_kernel..."
-          patch -Np2 -i "$srcdir"/legacy-kernel-6.5.diff
+          patch -Np2 -i "$srcdir/legacy-kernel-6.5.diff"
           cd ..
         fi
       fi
@@ -1038,9 +1038,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.1-6-7-8 GPL
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
         if [[ $pkgver = 470.4* ]] || [[ $pkgver = 470.5* ]] || [[ $pkgver = 470.6* ]] || [[ $pkgver = 470.7* ]] || [[ $pkgver = 470.8* ]] || [[ $pkgver = 470.9* ]] || [[ $pkgver = 470.1* ]] || [[ $pkgver = 470.22* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.40.07 ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           msg2 "Applying 6.1-6-7-8-gpl.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/6.1-6-7-8-gpl.diff
+          patch -Np2 -i "$srcdir/6.1-6-7-8-gpl.diff"
           cd ..
         fi
       fi
@@ -1054,26 +1054,26 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 6.11
       if (( $(vercmp "$_kernel" "6.11") >= 0 )); then
         if [[ $pkgver = 560.* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
           msg2 "Applying make-modeset-fbdev-default.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default.diff
+          patch -Np2 -i "$srcdir/make-modeset-fbdev-default.diff"
           # Add fix for fbdev "phantom" monitor with 6.11
           # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
           msg2 "Applying 6.11-fbdev.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/6.11-fbdev.diff
+          patch -Np2 -i "$srcdir/6.11-fbdev.diff"
           cd ..
         elif [[ $pkgver = 565.* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          cd "$srcdir/$_pkg/kernel-$_kernel"
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
           msg2 "Applying make-modeset-fbdev-default-565.diff for $_kernel..."
-          patch -Np2 -i "$srcdir"/make-modeset-fbdev-default-565.diff
+          patch -Np2 -i "$srcdir/make-modeset-fbdev-default-565.diff"
           cd ..
         fi
       fi
@@ -1091,20 +1091,20 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       if [ "$_gcc14" = "true" ]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        cd "$srcdir/$_pkg/kernel-$_kernel"
         msg2 "Applying gcc-14 patch..."
         if [[ $pkgver = 470* ]]; then
-          patch -Np2 -i "$srcdir"/gcc-14-470.diff
+          patch -Np2 -i "$srcdir/gcc-14-470.diff"
         else
-          patch -Np2 -i "$srcdir"/gcc-14.diff
+          patch -Np2 -i "$srcdir/gcc-14.diff"
         fi
         cd ..
       fi
 
       if [ "$_gcc15" = "true" ]; then
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        cd "$srcdir/$_pkg/kernel-$_kernel"
         msg2 "Applying gcc-15 patch..."
-        patch -Np2 -i "$srcdir"/gcc-15.diff
+        patch -Np2 -i "$srcdir/gcc-15.diff"
         cd ..
       fi
 
@@ -1114,7 +1114,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _patch=$(echo $_p | grep -Po "\d+\.\d+")
 
         # Cd in place
-        cd "$srcdir"/"$_pkg"/kernel-$_kernel
+        cd "$srcdir/$_pkg/kernel-$_kernel"
 
         if [ "$_patch" = "4.16" ]; then
           _whitelist=(${_whitelist416[@]})
@@ -1205,7 +1205,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
           if [ "$patchy" = "1" ]; then
             msg2 "Applying $_p for $_kernel..."
-            patch -p2 -i "$srcdir"/$_p
+            patch -p2 -i "$srcdir/$_p"
           else
             msg2 "Skipping $_p as it doesn't apply to this driver version..."
           fi
@@ -1226,14 +1226,14 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
       if (( ${pkgver%%.*} <= 455 )); then
         msg2 "Applying linux-version.diff for dkms..."
-        patch -Np1 -i "$srcdir"/linux-version.diff
+        patch -Np1 -i "$srcdir/linux-version.diff"
       fi
 
       # https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/77
       # Not sure if it actually affects 455.50.02 - let's skip the patch on that version for now
       if [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]] || [[ $pkgver = 455.4* ]]; then
         msg2 "Applying 455 crashfix for dkms..."
-        patch -Np1 -i "$srcdir"/455-crashfix.diff
+        patch -Np1 -i "$srcdir/455-crashfix.diff"
       fi
 
       # 4.16
@@ -1244,7 +1244,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-4.16.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-4.16.patch
+          patch -Np1 -i "$srcdir/kernel-4.16.patch"
         else
           msg2 "Skipping kernel-4.16.patch as it doesn't apply to this driver version..."
         fi
@@ -1258,7 +1258,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-4.19.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-4.19.patch
+          patch -Np1 -i "$srcdir/kernel-4.19.patch"
         else
           msg2 "Skipping kernel-4.19.patch as it doesn't apply to this driver version..."
         fi
@@ -1272,7 +1272,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.0.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.0.patch
+          patch -Np1 -i "$srcdir/kernel-5.0.patch"
         else
           msg2 "Skipping kernel-5.0.patch as it doesn't apply to this driver version..."
         fi
@@ -1286,7 +1286,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.1.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.1.patch
+          patch -Np1 -i "$srcdir/kernel-5.1.patch"
           sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
         else
           msg2 "Skipping kernel-5.1.patch as it doesn't apply to this driver version..."
@@ -1296,7 +1296,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # Use sed for the moving parts of the patch - Fix for "redefinition of ‘list_is_first’" (required for older than 418.56 drivers when used on 5.1+)
           sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
           sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "$srcdir/$_pkg/kernel-dkms/common/inc/nv-list-helpers.h"
-          patch -Np1 -i "$srcdir"/list_is_first.diff
+          patch -Np1 -i "$srcdir/list_is_first.diff"
         fi
       fi
 
@@ -1308,7 +1308,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.2.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.2.patch
+          patch -Np1 -i "$srcdir/kernel-5.2.patch"
         else
           msg2 "Skipping kernel-5.2.patch as it doesn't apply to this driver version..."
         fi
@@ -1322,7 +1322,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.3.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.3.patch
+          patch -Np1 -i "$srcdir/kernel-5.3.patch"
         else
           msg2 "Skipping kernel-5.3.patch as it doesn't apply to this driver version..."
         fi
@@ -1336,12 +1336,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.4.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.4.patch
+          patch -Np1 -i "$srcdir/kernel-5.4.patch"
         else
           msg2 "Skipping kernel-5.4.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 435.27.02 ]] || [[ $pkgver = 435.27.03 ]] || [[ $pkgver = 435.27.06 ]] || [[ $pkgver = 435.27.07 ]] || [[ $pkgver = 435.27.08 ]] || [[ $pkgver = 440.26 ]]; then
-          patch -Np1 -i "$srcdir"/kernel-5.4-symver.diff
+          patch -Np1 -i "$srcdir/kernel-5.4-symver.diff"
         fi
       fi
 
@@ -1353,7 +1353,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.5.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.5.patch
+          patch -Np1 -i "$srcdir/kernel-5.5.patch"
         else
           msg2 "Skipping kernel-5.5.patch as it doesn't apply to this driver version..."
         fi
@@ -1367,18 +1367,18 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.6.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.6.patch
+          patch -Np1 -i "$srcdir/kernel-5.6.patch"
         else
           msg2 "Skipping kernel-5.6.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.4* ]]; then
           msg2 "Applying 5.6-legacy-includes.diff for dkms..."
-          patch -Np1 -i "$srcdir"/5.6-legacy-includes.diff
+          patch -Np1 -i "$srcdir/5.6-legacy-includes.diff"
           msg2 "Applying 5.6-ioremap.diff for dkms..."
-          patch -Np1 -i "$srcdir"/5.6-ioremap.diff
+          patch -Np1 -i "$srcdir/5.6-ioremap.diff"
         elif [[ $pkgver = 440.5* ]]; then
           msg2 "Applying 5.6-ioremap.diff for dkms..."
-          patch -Np1 -i "$srcdir"/5.6-ioremap.diff
+          patch -Np1 -i "$srcdir/5.6-ioremap.diff"
         fi
       fi
 
@@ -1390,7 +1390,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.7.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.7.patch
+          patch -Np1 -i "$srcdir/kernel-5.7.patch"
         else
           msg2 "Skipping kernel-5.7.patch as it doesn't apply to this driver version..."
         fi
@@ -1404,13 +1404,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.8.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.8.patch
+          patch -Np1 -i "$srcdir/kernel-5.8.patch"
         else
           msg2 "Skipping kernel-5.8.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]] || [[ $pkgver = 450.3* ]] || [[ $pkgver = 450.51 ]]; then
           msg2 "Applying 5.8-legacy.diff for dkms..."
-          patch -Np1 -i "$srcdir"/5.8-legacy.diff
+          patch -Np1 -i "$srcdir/5.8-legacy.diff"
         fi
       fi
 
@@ -1422,7 +1422,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.9.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.9.patch
+          patch -Np1 -i "$srcdir/kernel-5.9.patch"
         else
           msg2 "Skipping kernel-5.9.patch as it doesn't apply to this driver version..."
         fi
@@ -1436,7 +1436,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.10.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.10.patch
+          patch -Np1 -i "$srcdir/kernel-5.10.patch"
         else
           msg2 "Skipping kernel-5.10.patch as it doesn't apply to this driver version..."
         fi
@@ -1450,13 +1450,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.11.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.11.patch
+          patch -Np1 -i "$srcdir/kernel-5.11.patch"
         else
           msg2 "Skipping kernel-5.11.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 455.45* ]] || [[ $pkgver = 455.50* ]] || [[ $pkgver = 460.27* ]] && [[ $pkgver != 455.50.19 ]]; then
           msg2 "Applying 5.11-legacy.diff for $_kernel..."
-          patch -Np1 -i "$srcdir"/5.11-legacy.diff
+          patch -Np1 -i "$srcdir/5.11-legacy.diff"
         fi
       fi
 
@@ -1464,7 +1464,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$_kernel59" = "1" ] || [ "$_kernel510" = "1" ]; then
         if [[ $pkgver = 450* ]] || [[ $pkgver = 455.2* ]] || [[ $pkgver = 455.3* ]]; then
           msg2 "Applying 5.9-gpl.diff for dkms..."
-          patch -Np1 -i "$srcdir"/5.9-gpl.diff
+          patch -Np1 -i "$srcdir/5.9-gpl.diff"
         fi
       fi
 
@@ -1476,7 +1476,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.12.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.12.patch
+          patch -Np1 -i "$srcdir/kernel-5.12.patch"
         else
           msg2 "Skipping kernel-5.12.patch as it doesn't apply to this driver version..."
         fi
@@ -1490,7 +1490,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.14.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.14.patch
+          patch -Np1 -i "$srcdir/kernel-5.14.patch"
         else
           msg2 "Skipping kernel-5.14.patch as it doesn't apply to this driver version..."
         fi
@@ -1504,13 +1504,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.16.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.16.patch
+          patch -Np1 -i "$srcdir/kernel-5.16.patch"
         else
           msg2 "Skipping kernel-5.16.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 470.62.* ]]; then
           msg2 "Applying kernel-5.16-std.diff for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.16-std.diff
+          patch -Np1 -i "$srcdir/kernel-5.16-std.diff"
         else
           msg2 "Skipping kernel-5.16-std.diff as it doesn't apply to this driver version..."
         fi
@@ -1524,7 +1524,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-5.17.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-5.17.patch
+          patch -Np1 -i "$srcdir/kernel-5.17.patch"
         else
           msg2 "Skipping kernel-5.17.patch as it doesn't apply to this driver version..."
         fi
@@ -1539,10 +1539,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         if [ "$patchy" = "1" ]; then
           if [[ "$yup" =~ ^470\..* ]]; then
             msg2 "Applying kernel-6.0-470.patch for dkms ..."
-            patch -Np1 -i "$srcdir"/kernel-6.0-470.patch
+            patch -Np1 -i "$srcdir/kernel-6.0-470.patch"
           fi
           msg2 "Applying kernel-6.0.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.0.patch
+          patch -Np1 -i "$srcdir/kernel-6.0.patch"
         else
           msg2 "Skipping kernel-6.0.patch as it doesn't apply to this driver version..."
         fi
@@ -1556,7 +1556,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.2.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.2.patch
+          patch -Np1 -i "$srcdir/kernel-6.2.patch"
         else
           msg2 "Skipping kernel-6.2.patch as it doesn't apply to this driver version..."
         fi
@@ -1570,7 +1570,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.3.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.3.patch
+          patch -Np1 -i "$srcdir/kernel-6.3.patch"
         else
           msg2 "Skipping kernel-6.3.patch as it doesn't apply to this driver version..."
         fi
@@ -1584,13 +1584,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.4.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.4.patch
+          patch -Np1 -i "$srcdir/kernel-6.4.patch"
         else
           msg2 "Skipping kernel-6.4.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 470.199.* ]]; then
           msg2 "Applying legacy-kernel-6.4.patch for dkms..."
-          patch -Np1 -i "$srcdir"/legacy-kernel-6.4.diff
+          patch -Np1 -i "$srcdir/legacy-kernel-6.4.diff"
         fi
       fi
 
@@ -1602,13 +1602,13 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.5.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.5.patch
+          patch -Np1 -i "$srcdir/kernel-6.5.patch"
         else
           msg2 "Skipping kernel-6.5.patch as it doesn't apply to this driver version..."
         fi
         if [[ $pkgver = 470.199.* ]]; then
           msg2 "Applying legacy-kernel-6.5.patch for dkms..."
-          patch -Np1 -i "$srcdir"/legacy-kernel-6.5.diff
+          patch -Np1 -i "$srcdir/legacy-kernel-6.5.diff"
         fi
       fi
 
@@ -1623,7 +1623,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [[ $pkgver = 470.199.* ]]; then
           msg2 "Applying legacy-kernel-6.6.patch for dkms..."
-          patch -Np1 -i "$srcdir"/legacy-kernel-6.6.diff
+          patch -Np1 -i "$srcdir/legacy-kernel-6.6.diff"
         fi
       fi
 
@@ -1631,7 +1631,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.1") >= 0 )) || (( $(vercmp "$_kernel" "6.6") >= 0 )) || (( $(vercmp "$_kernel" "6.7") >= 0 )) || (( $(vercmp "$_kernel" "6.8") >= 0 )); then
         if [[ $pkgver = 470.4* ]] || [[ $pkgver = 470.5* ]] || [[ $pkgver = 470.6* ]] || [[ $pkgver = 470.7* ]] || [[ $pkgver = 470.8* ]] || [[ $pkgver = 470.9* ]] || [[ $pkgver = 470.1* ]] || [[ $pkgver = 470.22* ]] || [[ $pkgver = 535.4* ]] || [[ $pkgver = 535.5* ]] || [[ $pkgver = 535.8* ]] || [[ $pkgver = 535.9* ]] || [[ $pkgver = 535.10* ]] || [[ $pkgver = 535.11* ]] || [[ $pkgver = 535.12* ]] || [[ $pkgver = 535.14* ]] || [[ $pkgver = 535.15* ]] || [[ $pkgver = 545.* ]] || [[ $pkgver = 550.40.07 ]]; then
           msg2 "Applying 6.1-6-7-8-gpl.diff for dkms..."
-          patch -Np1 -i "$srcdir"/6.1-6-7-8-gpl.diff
+          patch -Np1 -i "$srcdir/6.1-6-7-8-gpl.diff"
           cd ..
         fi
       fi
@@ -1644,7 +1644,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.8.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.8.patch
+          patch -Np1 -i "$srcdir/kernel-6.8.patch"
         else
           msg2 "Skipping kernel-6.8.patch as it doesn't apply to this driver version..."
         fi
@@ -1658,18 +1658,18 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
           msg2 "Applying make-modeset-fbdev-default.diff for dkms..."
-          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default.diff
+          patch -Np1 -i "$srcdir/make-modeset-fbdev-default.diff"
           # Add fix for fbdev "phantom" monitor with 6.11
           # https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/80
           msg2 "Applying 6.11-fbdev.diff for dkms..."
-          patch -Np1 -i "$srcdir"/6.11-fbdev.diff
+          patch -Np1 -i "$srcdir/6.11-fbdev.diff"
         elif [[ $pkgver = 565.* ]]; then
           # Enable modeset and fbdev as default
           # This avoids various issue, when Simplefb is used
           # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
           # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
           msg2 "Applying make-modeset-fbdev-default-565.diff for dkms..."
-          patch -Np1 -i "$srcdir"/make-modeset-fbdev-default-565.diff
+          patch -Np1 -i "$srcdir/make-modeset-fbdev-default-565.diff"
         fi
       fi
 
@@ -1681,7 +1681,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         done
         if [ "$patchy" = "1" ]; then
           msg2 "Applying kernel-6.12.patch for dkms..."
-          patch -Np1 -i "$srcdir"/kernel-6.12.patch
+          patch -Np1 -i "$srcdir/kernel-6.12.patch"
         else
           msg2 "Skipping kernel-6.12.patch as it doesn't apply to this driver version..."
         fi
@@ -1696,7 +1696,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           done
           if [ "$patchy" = "1" ]; then
             msg2 "Applying kernel-6.19-470.patch for dkms..."
-            patch -Np1 -i "$srcdir"/kernel-6.19-470.patch
+            patch -Np1 -i "$srcdir/kernel-6.19-470.patch"
           else
             msg2 "Skipping kernel-6.19-470.patch as it doesn't apply to driver version..."
           fi
@@ -1706,29 +1706,29 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "$_gcc14" = "true" ]; then
         msg2 "Applying gcc-14 patch..."
         if [[ $pkgver = 470* ]]; then
-          patch -Np1 -i "$srcdir"/gcc-14-470.diff
+          patch -Np1 -i "$srcdir/gcc-14-470.diff"
         else
-          patch -Np1 -i "$srcdir"/gcc-14.diff
+          patch -Np1 -i "$srcdir/gcc-14.diff"
         fi
       fi
 
       if [ "$_gcc15" = "true" ]; then
         msg2 "Applying gcc-15 patch..."
-        patch -Np1 -i "$srcdir"/gcc-15.diff
+        patch -Np1 -i "$srcdir/gcc-15.diff"
       fi
 
       # Legacy quirks
       if [ "$_oldstuff" = "1" ]; then
         msg2 "Applying 01-ipmi-vm.diff for dkms..."
-        patch -Np1 -i "$srcdir"/01-ipmi-vm.diff
+        patch -Np1 -i "$srcdir/01-ipmi-vm.diff"
       fi
       if [ "$_youngeryetoldstuff" = "1" ]; then
         msg2 "Applying 02-ipmi-vm.diff for dkms..."
-        patch -Np1 -i "$srcdir"/02-ipmi-vm.diff
+        patch -Np1 -i "$srcdir/02-ipmi-vm.diff"
       fi
       if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.* ]] || [[ $pkgver = 430.0* ]] || [[ $pkgver = 435.* ]] || [[ $pkgver = 440.2* ]] || [[ $pkgver = 440.3* ]] || [[ $pkgver = 440.43.* ]] || [[ $pkgver = 440.44 ]] && [ "$_54_prime" = "true" ]; then
         msg2 "Applying kernel-5.4-prime.diff for dkms..."
-        patch -Np1 -i "$srcdir"/kernel-5.4-prime.diff
+        patch -Np1 -i "$srcdir/kernel-5.4-prime.diff"
       fi
     fi
   fi
