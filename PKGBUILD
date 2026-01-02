@@ -2302,10 +2302,10 @@ if [ "${_dkms}" = "false" ] || [ "${_dkms}" = "full" ]; then
       find "${pkgdir}" -name '*.ko' -exec xz {} +
 
       # Force module to load even on unsupported GPUs
-      mkdir -p "${pkgdir}"/usr/lib/modprobe.d
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "${pkgdir}"/usr/lib/modprobe.d/nvidia-open.conf
+      mkdir -p "${pkgdir}/usr/lib/modprobe.d"
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
-      install -Dm644 COPYING "${pkgdir}"/usr/share/licenses/${pkgname}
+      install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}"
 
       if [ "$_blacklist_nouveau" = "false" ]; then
           echo "skip blacklist nouveau\n"
@@ -2514,7 +2514,7 @@ if [ "${_dkms}" = "true" ] || [ "${_dkms}" = "full" ]; then
 
         cd ${_pkg}
 
-        install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
+        install -dm 755 "${pkgdir}/usr/{lib/modprobe.d,src}"
         cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
         if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2560,7 +2560,7 @@ function exit_cleanup {
 
   # Put the built packages in a versioned dir - overwrite if needed
   if [ "$_local_package_storing" = "true" ]; then
-    rm -rf "${where}/${pkgver}-packages" && mkdir -p "${where}/${pkgver}-packages" && mv "${where}/*.pkg.*" "${where}/${pkgver}-packages/" >/dev/null 2>&1
+    rm -rf "${where}/${pkgver}-packages" && mkdir -p "${where}/${pkgver}-packages" && mv "${where}"/*.pkg.* "${where}/${pkgver}-packages/" >/dev/null 2>&1
   fi
 
   remove_deps
