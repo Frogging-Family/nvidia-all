@@ -638,7 +638,7 @@ prepare() {
       elif (( ${pkgver%%.*} == 470 )); then
         patchy=0
         for yup in "${_open_whitelist619[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.19-470.patch to kernel-open..."
@@ -1200,7 +1200,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         patchy=0
         if (( $(vercmp "${_kernel}" "${_patch}") >= 0 )); then
           for yup in "${_whitelist[@]}"; do
-            [[ ${pkgver} = $yup ]] && patchy=1
+            [[ ${pkgver} = ${yup} ]] && patchy=1
           done
 
           if [ "${patchy}" = "1" ]; then
@@ -1240,7 +1240,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}416" = "1" ]; then
         patchy=0
         for yup in "${_whitelist416[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-4.16.patch for dkms..."
@@ -1254,7 +1254,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}419" = "1" ]; then
         patchy=0
         for yup in "${_whitelist419[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-4.19.patch for dkms..."
@@ -1268,7 +1268,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}50" = "1" ]; then
         patchy=0
         for yup in "${_whitelist50[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.0.patch for dkms..."
@@ -1282,7 +1282,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}51" = "1" ]; then
         patchy=0
         for yup in "${_whitelist51[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.1.patch for dkms..."
@@ -1304,7 +1304,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}52" = "1" ]; then
         patchy=0
         for yup in "${_whitelist52[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.2.patch for dkms..."
@@ -1318,7 +1318,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}53" = "1" ]; then
         patchy=0
         for yup in "${_whitelist53[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.3.patch for dkms..."
@@ -1332,7 +1332,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}54" = "1" ]; then
         patchy=0
         for yup in "${_whitelist54[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.4.patch for dkms..."
@@ -1349,7 +1349,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}55" = "1" ]; then
         patchy=0
         for yup in "${_whitelist55[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.5.patch for dkms..."
@@ -1363,7 +1363,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}56" = "1" ]; then
         patchy=0
         for yup in "${_whitelist56[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.6.patch for dkms..."
@@ -1386,7 +1386,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}57" = "1" ]; then
         patchy=0
         for yup in "${_whitelist57[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.7.patch for dkms..."
@@ -1400,7 +1400,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}58" = "1" ]; then
         patchy=0
         for yup in "${_whitelist58[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.8.patch for dkms..."
@@ -1418,7 +1418,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}59" = "1" ]; then
         patchy=0
         for yup in "${_whitelist59[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.9.patch for dkms..."
@@ -1432,7 +1432,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}510" = "1" ]; then
         patchy=0
         for yup in "${_whitelist510[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.10.patch for dkms..."
@@ -1446,7 +1446,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}511" = "1" ]; then
         patchy=0
         for yup in "${_whitelist511[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.11.patch for dkms..."
@@ -1472,7 +1472,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}512" = "1" ]; then
         patchy=0
         for yup in "${_whitelist512[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.12.patch for dkms..."
@@ -1486,7 +1486,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}514" = "1" ]; then
         patchy=0
         for yup in "${_whitelist514[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.14.patch for dkms..."
@@ -1500,7 +1500,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}516" = "1" ]; then
         patchy=0
         for yup in "${_whitelist516[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.16.patch for dkms..."
@@ -1520,7 +1520,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}517" = "1" ]; then
         patchy=0
         for yup in "${_whitelist517[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-5.17.patch for dkms..."
@@ -1534,10 +1534,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}60" = "1" ]; then
         patchy=0
         for yup in "${_whitelist60[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
-          if [[ "$yup" =~ ^470\..* ]]; then
+          if [[ "${yup}" =~ ^470\..* ]]; then
             msg2 "Applying kernel-6.0-470.patch for dkms ..."
             patch -Np1 -i "${srcdir}/kernel-6.0-470.patch"
           fi
@@ -1552,7 +1552,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}62" = "1" ]; then
         patchy=0
         for yup in "${_whitelist62[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.2.patch for dkms..."
@@ -1566,7 +1566,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}63" = "1" ]; then
         patchy=0
         for yup in "${_whitelist63[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.3.patch for dkms..."
@@ -1580,7 +1580,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}64" = "1" ]; then
         patchy=0
         for yup in "${_whitelist64[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.4.patch for dkms..."
@@ -1598,7 +1598,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}65" = "1" ]; then
         patchy=0
         for yup in "${_whitelist65[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.5.patch for dkms..."
@@ -1616,7 +1616,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}66" = "1" ]; then
         patchy=0
         for yup in "${_whitelist66[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Skipping kernel-6.6.patch as it doesn't apply to this driver version..."
@@ -1640,7 +1640,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}68" = "1" ]; then
         patchy=0
         for yup in "${_whitelist68[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.8.patch for dkms..."
@@ -1677,7 +1677,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if [ "${_kernel}612" = "1" ]; then
         patchy=0
         for yup in "${_whitelist612[@]}"; do
-          [[ ${pkgver} = $yup ]] && patchy=1
+          [[ ${pkgver} = ${yup} ]] && patchy=1
         done
         if [ "${patchy}" = "1" ]; then
           msg2 "Applying kernel-6.12.patch for dkms..."
@@ -1692,7 +1692,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         if [[ ${pkgver} = 470* ]]; then
           patchy=0
           for yup in "${_whitelist619[@]}"; do
-            [[ ${pkgver} = $yup ]] && patchy=1
+            [[ ${pkgver} = ${yup} ]] && patchy=1
           done
           if [ "${patchy}" = "1" ]; then
             msg2 "Applying kernel-6.19-470.patch for dkms..."
@@ -1844,11 +1844,11 @@ elif (( ${pkgver%%.*} >= 495 )); then
 fi
 
 nvidia-egl-wayland-tkg() {
-  pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.$_eglwver) for 'nvidia-utils-tkg'"
+  pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.${_eglwver}) for 'nvidia-utils-tkg'"
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
-  if [ "$_eglgbm" != "external" ]; then
+  if [ "${_eglgbm}" != "external" ]; then
     provides+=("egl-gbm")
     conflicts+=('egl-gbm')
   fi
@@ -1864,17 +1864,17 @@ nvidia-egl-wayland-tkg() {
     ln -s libnvidia-egl-wayland.so.1 "${pkgdir}/usr/lib/libnvidia-egl-wayland.so"
 
     install -Dm755 10_nvidia_wayland.json "${pkgdir}/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json"
-    install -Dm755 "${where}"/egl-wayland/licenses/egl-wayland/COPYING "${pkgdir}/usr/share/licenses/egl-wayland/COPYING"
-    install -Dm755 "${where}"/egl-wayland/pkgconfig/wayland-eglstream-protocols.pc "${pkgdir}/usr/share/pkgconfig/wayland-eglstream-protocols.pc"
-    install -Dm755 "${where}"/egl-wayland/pkgconfig/wayland-eglstream.pc "${pkgdir}/usr/share/pkgconfig/wayland-eglstream.pc"
-    install -Dm755 "${where}"/egl-wayland/wayland-eglstream/wayland-eglstream-controller.xml "${pkgdir}/usr/share/wayland-eglstream/wayland-eglstream-controller.xml"
-    install -Dm755 "${where}"/egl-wayland/wayland-eglstream/wayland-eglstream.xml "${pkgdir}/usr/share/wayland-eglstream/wayland-eglstream.xml"
+    install -Dm755 "${where}/egl-wayland/licenses/egl-wayland/COPYING" "${pkgdir}/usr/share/licenses/egl-wayland/COPYING"
+    install -Dm755 "${where}/egl-wayland/pkgconfig/wayland-eglstream-protocols.pc" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream-protocols.pc"
+    install -Dm755 "${where}/egl-wayland/pkgconfig/wayland-eglstream.pc" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream.pc"
+    install -Dm755 "${where}/egl-wayland/wayland-eglstream/wayland-eglstream-controller.xml" "${pkgdir}/usr/share/wayland-eglstream/wayland-eglstream-controller.xml"
+    install -Dm755 "${where}/egl-wayland/wayland-eglstream/wayland-eglstream.xml" "${pkgdir}/usr/share/wayland-eglstream/wayland-eglstream.xml"
 
-    sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream-protocols.pc"
-    sed -i "s/Version:.*/Version: $_eglwver/g" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream.pc"
+    sed -i "s/Version:.*/Version: ${_eglwver}/g" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream-protocols.pc"
+    sed -i "s/Version:.*/Version: ${_eglwver}/g" "${pkgdir}/usr/share/pkgconfig/wayland-eglstream.pc"
 
     # egl-wayland2
-    if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
+    if [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
       install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}"
       ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.1"
       ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so"
@@ -1884,7 +1884,7 @@ nvidia-egl-wayland-tkg() {
     fi
 
     # egl-gbm
-    if [ "$_eglgbm" = "true" ]; then
+    if [ "${_eglgbm}" = "true" ]; then
       if [ -n "${_eglgver:-}" ]; then
         install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.${_eglgver}"
         ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.1"
@@ -1898,18 +1898,18 @@ nvidia-egl-wayland-tkg() {
     # lib32
     if [ "${_lib32}" = "true" ]; then
       cd 32
-      if [[ -e libnvidia-egl-wayland.so."${_eglwver}" ]]; then
+      if [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
         install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.${_eglwver}"
         ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.1"
         ln -s libnvidia-egl-wayland.so.1 "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so"
       fi
-      if [[ -e libnvidia-egl-wayland2.so."${_eglwver2}" ]]; then
+      if [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
         install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.${_eglwver2}"
         ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.1"
         ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so"
       fi
-      if [ "$_eglgbm" = "true" ]; then
-        if [ -n "${_eglgver:-}" ] && [[ -e libnvidia-egl-gbm.so."${_eglgver}" ]]; then
+      if [ "${_eglgbm}" = "true" ]; then
+        if [ -n "${_eglgver:-}" ] && [[ -e "libnvidia-egl-gbm.so.${_eglgver}" ]]; then
           install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.${_eglgver}"
           ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.1"
           ln -s libnvidia-egl-gbm.so.1 "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so"
@@ -1926,7 +1926,7 @@ EOF
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
   depends=('libglvnd' 'mesa' 'vulkan-icd-loader' 'egl-x11')
-  if [ "$_eglgbm" = "external" ]; then
+  if [ "${_eglgbm}" = "external" ]; then
     depends+=('egl-gbm')
   fi
   if [ "${_eglwayland}" = "external" ]; then
@@ -1946,183 +1946,180 @@ nvidia-utils-tkg() {
 
   cd ${_pkg}
 
-    # Check http://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/README/installedcomponents.html
-    # for hints on what needs to be installed where.
-
     # X driver
-    install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
+    install -Dm755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
 
     # gsp firmware
     if (( ${pkgver%%.*} >= 530 )); then
-      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+      install -Dm644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+      install -Dm644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
     elif (( ${pkgver%%.*} >= 525 )); then
-      install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+      install -Dm644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
+      install -Dm644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
     elif (( ${pkgver%%.*} >= 465 )); then
-      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+      install -Dm644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
     fi
 
     if [[ ${pkgver} = 396* ]]; then
       # GLX extension module for X
-      install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
+      install -Dm755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
       ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
       ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"	# X doesn't find glx otherwise
     else
       # GLX extension module for X
-      install -D -m755 "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.${pkgver}"
+      install -Dm755 "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.${pkgver}"
       # Ensure that X finds glx
       ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.1"
       ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so"
     fi
 
-    install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLX_nvidia.so.${pkgver}"
+    install -Dm755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLX_nvidia.so.${pkgver}"
 
     # OpenGL libraries
-    install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libEGL_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv1_CM_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv2_nvidia.so.${pkgver}"
-    install -D -m644 "10_nvidia.json" "${pkgdir}/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
+    install -Dm755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libEGL_nvidia.so.${pkgver}"
+    install -Dm755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv1_CM_nvidia.so.${pkgver}"
+    install -Dm755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv2_nvidia.so.${pkgver}"
+    install -Dm644 "10_nvidia.json" "${pkgdir}/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
 
     # OpenGL core library
-    install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
-    install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
-    install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
+    install -Dm755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
+    install -Dm755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
+    install -Dm755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
 
     # misc
     if [[ -e libnvidia-api.so.1 ]]; then
-      install -D -m755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
+      install -Dm755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
     fi
     if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
+      install -Dm755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
     fi
-    install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
-    install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
-    install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
-    install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
-    install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
+    install -Dm755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+    install -Dm755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+    install -Dm755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
+    install -Dm755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
+    install -Dm755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
     # Allocator library
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
+      install -Dm755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
       mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
     fi
     # GPU shader compilation helper
     if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
+      install -Dm755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
     fi
 
     # Vulkan ICD
     if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]] && [[ ${pkgver} != 418* ]] && [[ ${pkgver} != 430* ]]; then
-      install -D -m644 "nvidia_icd.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
+      install -Dm644 "nvidia_icd.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
     else
-      install -D -m644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
+      install -Dm644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
     fi
     if [[ -e nvidia_layers.json ]]; then
-      install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
+      install -Dm644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
     fi
     if [[ -e libnvidia-vulkan-producer.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
+      install -Dm755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.1"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so"
     fi
 
     # VKSC
     if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
+      install -Dm755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
       ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
-      install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
+      install -Dm644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
     fi
     if [[ -e nvidia-pcc ]]; then
-      install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
+      install -Dm755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
     fi
 
     # VDPAU
-    install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
+    install -Dm755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
 
     # nvidia-tls library
-    install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
+    install -Dm755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
 
     if [[ ${pkgver} = 396* ]] || [[ ${pkgver} = 410* ]]; then
-      install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/tls/libnvidia-tls.so.${pkgver}"
+      install -Dm755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/tls/libnvidia-tls.so.${pkgver}"
     fi
 
     # CUDA
-    install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
-    install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
+    install -Dm755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
+    install -Dm755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
     if [[ -e "libcudadebugger.so.${pkgver}" ]]; then
-      install -D -m755 "libcudadebugger.so.${pkgver}" "${pkgdir}/usr/lib/libcudadebugger.so.${pkgver}"
+      install -Dm755 "libcudadebugger.so.${pkgver}" "${pkgdir}/usr/lib/libcudadebugger.so.${pkgver}"
     fi
 
     # NVVM
     if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
+      install -Dm755 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
       ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4"
       ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
     elif [[ -e libnvidia-nvvm.so.4.0.0 ]]; then
-      install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
+      install -Dm755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
     fi
     if [[ -e libnvidia-nvvm70.so.4 ]]; then
-      install -D -m755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
+      install -Dm755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
     fi
 
     # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
-    install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ptxjitcompiler.so.${pkgver}"
+    install -Dm755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ptxjitcompiler.so.${pkgver}"
 
     # raytracing
     if [[ ${pkgver} != 396* ]]; then
-      install -D -m755 "libnvoptix.so.${pkgver}" "${pkgdir}/usr/lib/libnvoptix.so.${pkgver}"
+      install -Dm755 "libnvoptix.so.${pkgver}" "${pkgdir}/usr/lib/libnvoptix.so.${pkgver}"
       if [[ -e "nvoptix.bin" ]]; then
-        install -D -m644 "nvoptix.bin" "${pkgdir}/usr/share/nvidia/nvoptix.bin"
+        install -Dm644 "nvoptix.bin" "${pkgdir}/usr/share/nvidia/nvoptix.bin"
       fi
-      install -D -m755 "libnvidia-rtcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-rtcore.so.${pkgver}"
+      install -Dm755 "libnvidia-rtcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-rtcore.so.${pkgver}"
       if [[ -e "libnvidia-cbl.so.${pkgver}" ]]; then
-        install -D -m755 "libnvidia-cbl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cbl.so.${pkgver}"
+        install -Dm755 "libnvidia-cbl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cbl.so.${pkgver}"
       fi
     fi
 
     # NGX Fat (multiarchitecture) binary loader
     if [[ ${pkgver} = 396* ]] || [[ ${pkgver} = 41* ]] || [[ ${pkgver} = 43* ]] || [[ ${pkgver} = 44* ]]; then
-      install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
+      install -Dm755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
     else
-      install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
+      install -Dm755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
 
       # wine nvngx lib
       if (( ${pkgver%%.*} >= 470 )); then
-        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
-        install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
+        install -Dm755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
+        install -Dm755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
       fi
       if (( ${pkgver%%.*} >= 570 )); then
-        install -D -m755 "nvngx_dlssg.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
+        install -Dm755 "nvngx_dlssg.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
       fi
     fi
     if (( ${pkgver%%.*} >= 455 )); then
-      install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
+      install -Dm755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
     fi
 
     # Optical flow
     if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]]; then
-      install -D -m755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opticalflow.so.${pkgver}"
+      install -Dm755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opticalflow.so.${pkgver}"
     else
       # X wrapped software rendering
-      install -D -m755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wfb.so.${pkgver}"
+      install -Dm755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wfb.so.${pkgver}"
     fi
 
     # pkcs11
     if (( ${pkgver%%.*} >= 535 )); then
-      install -D -m755 "libnvidia-pkcs11.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11.so.${pkgver}"
-      install -D -m755 "libnvidia-pkcs11-openssl3.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11-openssl3.so.${pkgver}"
+      install -Dm755 "libnvidia-pkcs11.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11.so.${pkgver}"
+      install -Dm755 "libnvidia-pkcs11-openssl3.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11-openssl3.so.${pkgver}"
     fi
 
     # Sandboxhelper
     if [[ -e "libnvidia-sandboxutils.so.${pkgver}" ]]; then
-      install -D -m755 "libnvidia-sandboxutils.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-sandboxutils.so.${pkgver}"
+      install -Dm755 "libnvidia-sandboxutils.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-sandboxutils.so.${pkgver}"
     fi
 
     # Present Helper
     if [[ -e libnvidia-present.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
+      install -Dm755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
     fi
 
     # https://github.com/microsoft/TileIR
@@ -2131,44 +2128,44 @@ nvidia-utils-tkg() {
     fi
     
     # DEBUG
-    install -D -m755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
+    install -Dm755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
 
     # nvidia-xconfig
-    install -D -m755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
-    install -D -m644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
+    install -Dm755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
+    install -Dm644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
 
     # nvidia-bug-report
-    install -D -m755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
+    install -Dm755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
 
     # nvidia-smi
-    install -D -m755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
-    install -D -m644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
+    install -Dm755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
+    install -Dm644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
 
     # nvidia-cuda-mps
-    install -D -m755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
-    install -D -m755 nvidia-cuda-mps-control "${pkgdir}/usr/bin/nvidia-cuda-mps-control"
-    install -D -m644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
+    install -Dm755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
+    install -Dm755 nvidia-cuda-mps-control "${pkgdir}/usr/bin/nvidia-cuda-mps-control"
+    install -Dm644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
 
     # nvidia-modprobe
     # This should be removed if nvidia fixed their uvm module!
-    install -D -m4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
-    install -D -m644 nvidia-modprobe.1.gz "${pkgdir}/usr/share/man/man1/nvidia-modprobe.1.gz"
+    install -Dm4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
+    install -Dm644 nvidia-modprobe.1.gz "${pkgdir}/usr/share/man/man1/nvidia-modprobe.1.gz"
 
     # nvidia-persistenced
-    install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
-    install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
+    install -Dm755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
+    install -Dm644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
     if [[ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]]; then
-      install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+      install -Dm644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
       sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
     fi
 
     # application profiles
-    install -D -m644 "nvidia-application-profiles-${pkgver}-rc" "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
-    install -D -m644 "nvidia-application-profiles-${pkgver}-key-documentation" "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
+    install -Dm644 "nvidia-application-profiles-${pkgver}-rc" "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
+    install -Dm644 "nvidia-application-profiles-${pkgver}-key-documentation" "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
 
-    install -D -m644 LICENSE "${pkgdir}/usr/share/licenses/nvidia-utils/LICENSE"
-    install -D -m644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
-    install -D -m644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/nvidia-utils/LICENSE"
+    install -Dm644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
+    install -Dm644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
     cp -r html "${pkgdir}/usr/share/doc/nvidia/"
     ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
 
@@ -2179,16 +2176,16 @@ nvidia-utils-tkg() {
         _path_addon3="systemd/"
       fi
       # new power management support
-      install -D -m644 "${_path_addon1}nvidia-suspend.service" "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
-      install -D -m644 "${_path_addon1}nvidia-hibernate.service" "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
-      install -D -m644 "${_path_addon1}nvidia-resume.service" "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
-      install -D -m755 "${_path_addon2}nvidia" "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
-      install -D -m755 "${_path_addon3}nvidia-sleep.sh" "${pkgdir}/usr/bin/nvidia-sleep.sh"
+      install -Dm644 "${_path_addon1}nvidia-suspend.service" "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
+      install -Dm644 "${_path_addon1}nvidia-hibernate.service" "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
+      install -Dm644 "${_path_addon1}nvidia-resume.service" "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
+      install -Dm755 "${_path_addon2}nvidia" "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
+      install -Dm755 "${_path_addon3}nvidia-sleep.sh" "${pkgdir}/usr/bin/nvidia-sleep.sh"
       # nvidia-powerd
       if [[ -e nvidia-powerd ]]; then
-        install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
-        install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
-        install -D -m644 "${_path_addon1}nvidia-powerd.service" "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+        install -Dm755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+        install -Dm644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
+        install -Dm644 "${_path_addon1}nvidia-powerd.service" "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
       fi
     fi
 
@@ -2210,28 +2207,28 @@ nvidia-utils-tkg() {
 
     # egl-xlib/xcb
     if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
+      install -Dm755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
+      install -Dm755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
     elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
+      install -Dm755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
+      install -Dm755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
     fi
     if [[ -e 20_nvidia_xlib.json ]]; then
-      install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
+      install -Dm644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
     fi
     if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
+      install -Dm755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
     elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
+      install -Dm755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
     elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
+      install -Dm755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
     elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
+      install -Dm755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
     fi
     if [[ -e 20_nvidia_xcb.json ]]; then
-      install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
+      install -Dm644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
     fi
 
     if (( ${pkgver%%.*} >= 580 )); then
@@ -2267,13 +2264,13 @@ nvidia-settings-tkg() {
 
     cd "${_pkg}"
 
-    install -D -m755 nvidia-settings         -t "${pkgdir}/usr/bin"
-    install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
-    install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
-    install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
+    install -Dm755 nvidia-settings         -t "${pkgdir}/usr/bin"
+    install -Dm644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
+    install -Dm644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
+    install -Dm644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
     sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
 
-    install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
+    install -Dm755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
 
     if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
       install -Dm755 "libnvidia-wayland-client.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wayland-client.so.${pkgver}"
@@ -2281,7 +2278,7 @@ nvidia-settings-tkg() {
     fi
 
     # license
-    install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+    install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 source /dev/stdin <<EOF
 package_${_branchname}-settings-tkg() {
@@ -2335,10 +2332,10 @@ if [ "${_dkms}" = "false" ] || [ "${_dkms}" = "full" ]; then
       mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
 
       for _kernel in "${_kernels[@]}"; do
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        install -Dm644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         if [[ ${pkgver%%.*} = 465 ]]; then
-          install -D -m644 "${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-          install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+          install -Dm644 "${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+          install -Dm644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         fi
         find "${pkgdir}" -name '*.ko' -exec gzip -n {} +
       done
@@ -2376,9 +2373,9 @@ lib32-opencl-nvidia-tkg() {
 
   # OpenCL
   if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
-    install -D -m755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-compiler.so.${pkgver}"
+    install -Dm755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-compiler.so.${pkgver}"
   fi
-  install -D -m755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opencl.so.${pkgver}"
+  install -Dm755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opencl.so.${pkgver}"
 
   # create missing soname links
   _create_links
@@ -2405,79 +2402,79 @@ lib32-nvidia-utils-tkg() {
     # Check http://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/README/installedcomponents.html
     # for hints on what needs to be installed where.
 
-    install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLX_nvidia.so.${pkgver}"
+    install -Dm755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLX_nvidia.so.${pkgver}"
 
     # OpenGL libraries
-    install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libEGL_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv1_CM_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv2_nvidia.so.${pkgver}"
+    install -Dm755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libEGL_nvidia.so.${pkgver}"
+    install -Dm755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv1_CM_nvidia.so.${pkgver}"
+    install -Dm755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv2_nvidia.so.${pkgver}"
 
     # OpenGL core library
-    install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glcore.so.${pkgver}"
-    install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-eglcore.so.${pkgver}"
-    install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glsi.so.${pkgver}"
+    install -Dm755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glcore.so.${pkgver}"
+    install -Dm755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-eglcore.so.${pkgver}"
+    install -Dm755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glsi.so.${pkgver}"
 
     # misc allocator
     if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
+      install -Dm755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
       mkdir -p "${pkgdir}/usr/lib32/gbm" && ln -sr "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/gbm/nvidia-drm_gbm.so"
     fi
     # misc
-    install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fbc.so.${pkgver}"
-    install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
-    install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
-    install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
+    install -Dm755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fbc.so.${pkgver}"
+    install -Dm755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
+    install -Dm755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
+    install -Dm755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
     if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
+      install -Dm755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
     fi
     if [[ -e libnvidia-tileiras.so.${pkgver} ]]; then
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
     fi
     if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
+      install -Dm755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
     fi
 
     # VDPAU
-    install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/vdpau/libvdpau_nvidia.so.${pkgver}"
+    install -Dm755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/vdpau/libvdpau_nvidia.so.${pkgver}"
 
     # nvidia-tls library
-    install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tls.so.${pkgver}"
+    install -Dm755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tls.so.${pkgver}"
 
     if [[ ${pkgver} = 396* ]] || [[ ${pkgver} = 410* ]]; then
-      install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/tls/libnvidia-tls.so.${pkgver}"
+      install -Dm755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/tls/libnvidia-tls.so.${pkgver}"
     fi
 
     # CUDA
-    install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib32/libcuda.so.${pkgver}"
-    install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib32/libnvcuvid.so.${pkgver}"
+    install -Dm755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib32/libcuda.so.${pkgver}"
+    install -Dm755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib32/libnvcuvid.so.${pkgver}"
 
     # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
-    install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
+    install -Dm755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
 
     # Optical flow
     # https://gitlab.archlinux.org/archlinux/packaging/packages/lib32-nvidia-utils/-/blob/main/PKGBUILD?ref_type=heads#L98
     if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]]; then
-      install -D -m755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opticalflow.so.${pkgver}"
+      install -Dm755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opticalflow.so.${pkgver}"
     else
       # X wrapped software rendering
-      install -D -m755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-wfb.so.${pkgver}"
+      install -Dm755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-wfb.so.${pkgver}"
     fi
 
     # egl-xlib/xcb
     if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
+      install -Dm755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
+      install -Dm755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
     fi
     if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
+      install -Dm755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
     elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
+      install -Dm755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
     fi
 
     # Fat (multiarchitecture) binary loader
     if [[ ${pkgver} = 396* ]] || [[ ${pkgver} = 41* ]] || [[ ${pkgver} = 43* ]] || [[ ${pkgver} = 44* ]]; then
-      install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
+      install -Dm755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
     fi
 
     _create_links
@@ -2563,7 +2560,7 @@ function exit_cleanup {
 
   # Put the built packages in a versioned dir - overwrite if needed
   if [ "$_local_package_storing" = "true" ]; then
-    rm -rf "${where}/${pkgver}-packages" && mkdir -p "${where}/${pkgver}-packages" && mv "${where}/"*.pkg.* "${where}/${pkgver}-packages"/ >/dev/null 2>&1
+    rm -rf "${where}/${pkgver}-packages" && mkdir -p "${where}/${pkgver}-packages" && mv "${where}/*.pkg.*" "${where}/${pkgver}-packages/" >/dev/null 2>&1
   fi
 
   remove_deps
