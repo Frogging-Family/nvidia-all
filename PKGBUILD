@@ -543,7 +543,7 @@ prepare() {
 
   # Use custom compiler paths if defined
   if [ -n "${CUSTOM_GCC_PATH}" ]; then
-    PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
+    PATH="${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}"
   fi
 
   if [ "${_gcc14_fix}" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
@@ -1767,7 +1767,7 @@ opencl-nvidia-tkg() {
   optdepends=('opencl-headers: headers necessary for OpenCL development')
   provides=("opencl-nvidia=${pkgver}" "opencl-nvidia-tkg=${pkgver}" 'opencl-driver')
   conflicts=('opencl-nvidia')
-  cd ${_pkg}
+  cd "${_pkg}"
 
   # OpenCL
   install -Dm644 nvidia.icd "${pkgdir}/etc/OpenCL/vendors/nvidia.icd"
@@ -1857,7 +1857,7 @@ nvidia-egl-wayland-tkg() {
     conflicts+=('egl-wayland2')
   fi
 
-  cd ${_pkg}
+  cd "${_pkg}"
 
     install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.${_eglwver}"
     ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.1"
@@ -1944,7 +1944,7 @@ nvidia-utils-tkg() {
   conflicts=('nvidia-utils' 'nvidia-libgl')
   install=nvidia-utils-tkg.install
 
-  cd ${_pkg}
+  cd "${_pkg}"
 
     # X driver
     install -Dm755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
@@ -2349,7 +2349,7 @@ if [ "${_dkms}" = "false" ] || [ "${_dkms}" = "full" ]; then
                 install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
       fi
 
-      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+      if [[ "$_disable_libalpm_hook" != "true" ]]; then
         install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         echo "Skipping mkinitcpio hook due to user config"
@@ -2369,7 +2369,7 @@ lib32-opencl-nvidia-tkg() {
   optdepends=('opencl-headers: headers necessary for OpenCL development')
   provides=("lib32-opencl-nvidia=${pkgver}" "lib32-opencl-nvidia-tkg=${pkgver}" 'lib32-opencl-driver')
   conflicts=('lib32-opencl-nvidia')
-  cd ${_pkg}/32
+  cd "${_pkg}/32"
 
   # OpenCL
   if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
@@ -2397,7 +2397,7 @@ lib32-nvidia-utils-tkg() {
   provides=("lib32-nvidia-utils=${pkgver}" "lib32-nvidia-utils-tkg=${pkgver}" 'lib32-vulkan-driver' 'lib32-opengl-driver' 'lib32-nvidia-libgl')
   conflicts=('lib32-nvidia-utils' 'lib32-nvidia-libgl')
 
-  cd ${_pkg}/32
+  cd "${_pkg}/32"
 
     # Check http://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/README/installedcomponents.html
     # for hints on what needs to be installed where.
@@ -2496,7 +2496,7 @@ if [ "${_dkms}" = "true" ] || [ "${_dkms}" = "full" ]; then
         conflicts=('nvidia-open' 'NVIDIA-MODULE')
         provides=('nvidia-open' 'NVIDIA-MODULE')
 
-        install -dm 755 "${pkgdir}"/usr/src
+        install -dm 755 "${pkgdir}/usr/src"
         # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-${pkgver}"
         cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
         mv "${pkgdir}/usr/src/nvidia-${pkgver}/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-${pkgver}/dkms.conf"
@@ -2512,12 +2512,12 @@ if [ "${_dkms}" = "true" ] || [ "${_dkms}" = "full" ]; then
         provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
         conflicts=('nvidia' 'nvidia-dkms')
 
-        cd ${_pkg}
+        cd "${_pkg}"
 
         install -dm 755 "${pkgdir}/usr/{lib/modprobe.d,src}"
         cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-        if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+        if [[ "$_disable_libalpm_hook" != "true" ]]; then
           install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
         else
           echo "Skipping mkinitcpio hook due to user config"
