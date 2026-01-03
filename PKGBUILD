@@ -1771,10 +1771,10 @@ opencl-nvidia-tkg() {
 
   # OpenCL
   install -Dm644 nvidia.icd "${pkgdir}/etc/OpenCL/vendors/nvidia.icd"
-  if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
+  if [[ -e "libnvidia-compiler.so.${pkgver}" ]]; then
     install -Dm755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-compiler.so.${pkgver}"
   fi
-  if [[ -e libnvidia-compiler-next.so.${pkgver} ]]; then
+  if [[ -e "libnvidia-compiler-next.so.${pkgver}" ]]; then
     install -Dm755 "libnvidia-compiler-next.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-compiler-next.so.${pkgver}"
   fi
   install -Dm755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opencl.so.${pkgver}"
@@ -1879,7 +1879,7 @@ nvidia-egl-wayland-tkg() {
       ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.1"
       ln -s libnvidia-egl-wayland2.so.1 "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so"
     fi
-    if [[ -e 99_nvidia_wayland2.json ]]; then
+    if [[ -e "99_nvidia_wayland2.json" ]]; then
       install -Dm755 99_nvidia_wayland2.json "${pkgdir}/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json"
     fi
 
@@ -1890,7 +1890,7 @@ nvidia-egl-wayland-tkg() {
         ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.1"
         ln -s libnvidia-egl-gbm.so.1 "${pkgdir}/usr/lib/libnvidia-egl-gbm.so"
       fi
-      if [[ -e 15_nvidia_gbm.json ]]; then
+      if [[ -e "15_nvidia_gbm.json" ]]; then
         install -Dm755 15_nvidia_gbm.json "${pkgdir}/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json"
       fi
     fi
@@ -1987,10 +1987,10 @@ nvidia-utils-tkg() {
     install -Dm755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
 
     # misc
-    if [[ -e libnvidia-api.so.1 ]]; then
+    if [[ -e "libnvidia-api.so.1" ]]; then
       install -Dm755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
     fi
-    if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-ifr.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
     fi
     install -Dm755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
@@ -1999,12 +1999,12 @@ nvidia-utils-tkg() {
     install -Dm755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
     install -Dm755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
     # Allocator library
-    if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-allocator.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
       mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
     fi
     # GPU shader compilation helper
-    if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-gpucomp.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
     fi
 
@@ -2014,22 +2014,22 @@ nvidia-utils-tkg() {
     else
       install -Dm644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
     fi
-    if [[ -e nvidia_layers.json ]]; then
+    if [[ -e "nvidia_layers.json" ]]; then
       install -Dm644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
     fi
-    if [[ -e libnvidia-vulkan-producer.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-vulkan-producer.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.1"
       ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so"
     fi
 
     # VKSC
-    if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-vksc-core.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
       ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
       install -Dm644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
     fi
-    if [[ -e nvidia-pcc ]]; then
+    if [[ -e "nvidia-pcc" ]]; then
       install -Dm755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
     fi
 
@@ -2051,16 +2051,16 @@ nvidia-utils-tkg() {
     fi
 
     # NVVM
-    if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-nvvm.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
       ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4"
       ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
-    elif [[ -e libnvidia-nvvm.so.4.0.0 ]]; then
+    elif [[ -e "libnvidia-nvvm.so.4.0.0" ]]; then
       install -Dm755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
       ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
     fi
-    if [[ -e libnvidia-nvvm70.so.4 ]]; then
+    if [[ -e "libnvidia-nvvm70.so.4" ]]; then
       install -Dm755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
     fi
 
@@ -2118,12 +2118,12 @@ nvidia-utils-tkg() {
     fi
 
     # Present Helper
-    if [[ -e libnvidia-present.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-present.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
     fi
 
     # https://github.com/microsoft/TileIR
-    if [[ -e libnvidia-tileiras.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-tileiras.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
     fi
     
@@ -2154,7 +2154,7 @@ nvidia-utils-tkg() {
     # nvidia-persistenced
     install -Dm755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
     install -Dm644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
-    if [[ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]]; then
+    if [[ -e "nvidia-persistenced-init/systemd/nvidia-persistenced.service.template" ]]; then
       install -Dm644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
       sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
     fi
@@ -2182,7 +2182,7 @@ nvidia-utils-tkg() {
       install -Dm755 "${_path_addon2}nvidia" "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
       install -Dm755 "${_path_addon3}nvidia-sleep.sh" "${pkgdir}/usr/bin/nvidia-sleep.sh"
       # nvidia-powerd
-      if [[ -e nvidia-powerd ]]; then
+      if [[ -e "nvidia-powerd" ]]; then
         install -Dm755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
         install -Dm644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
         install -Dm644 "${_path_addon1}nvidia-powerd.service" "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
@@ -2201,16 +2201,16 @@ nvidia-utils-tkg() {
     install -Dm644 "${srcdir}/nvidia-sleep.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-sleep.conf"
 
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
-    if [[ -e sandboxutils-filelist.json ]]; then
+    if [[ -e "sandboxutils-filelist.json" ]]; then
       install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
     fi
 
     # egl-xlib/xcb
-    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+    if [[ -e "libnvidia-egl-xlib.so.1" ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+    elif [[ -e "libnvidia-egl-xlib.so.1.0.0" ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
+    elif [[ -e "libnvidia-egl-xlib.so.1.0.1" ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
@@ -2218,16 +2218,16 @@ nvidia-utils-tkg() {
     if [[ -e 20_nvidia_xlib.json ]]; then
       install -Dm644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
     fi
-    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+    if [[ -e "libnvidia-egl-xcb.so.1" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+    elif [[ -e "libnvidia-egl-xcb.so.1.0.0" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
+    elif [[ -e "libnvidia-egl-xcb.so.1.0.1" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
+    elif [[ -e "libnvidia-egl-xcb.so.1.0.3" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
     fi
-    if [[ -e 20_nvidia_xcb.json ]]; then
+    if [[ -e "20_nvidia_xcb.json" ]]; then
       install -Dm644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
     fi
 
@@ -2272,7 +2272,7 @@ nvidia-settings-tkg() {
 
     install -Dm755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
 
-    if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
+    if [[ -e "libnvidia-wayland-client.so.${pkgver}" ]]; then
       install -Dm755 "libnvidia-wayland-client.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wayland-client.so.${pkgver}"
       ln -s "libnvidia-wayland-client.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wayland-client.so"
     fi
@@ -2372,7 +2372,7 @@ lib32-opencl-nvidia-tkg() {
   cd "${_pkg}/32"
 
   # OpenCL
-  if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
+  if [[ -e "libnvidia-compiler.so.${pkgver}" ]]; then
     install -Dm755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-compiler.so.${pkgver}"
   fi
   install -Dm755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opencl.so.${pkgver}"
@@ -2461,14 +2461,14 @@ lib32-nvidia-utils-tkg() {
     fi
 
     # egl-xlib/xcb
-    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+    if [[ -e "libnvidia-egl-xlib.so.1" ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+    elif [[ -e "libnvidia-egl-xlib.so.1.0.0" ]]; then
       install -Dm755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
     fi
-    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+    if [[ -e "libnvidia-egl-xcb.so.1" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+    elif [[ -e "libnvidia-egl-xcb.so.1.0.0" ]]; then
       install -Dm755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
     fi
 
