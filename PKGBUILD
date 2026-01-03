@@ -1237,7 +1237,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 4.16
-      if [ "${_kernel}416" = "1" ]; then
+      if [ "${_kernel416}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist416[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1251,7 +1251,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 4.19
-      if [ "${_kernel}419" = "1" ]; then
+      if [ "${_kernel419}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist419[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1265,7 +1265,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.0
-      if [ "${_kernel}50" = "1" ]; then
+      if [ "${_kernel50}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist50[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1279,7 +1279,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.1
-      if [ "${_kernel}51" = "1" ]; then
+      if [ "${_kernel51}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist51[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1301,7 +1301,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.2
-      if [ "${_kernel}52" = "1" ]; then
+      if [ "${_kernel52}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist52[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1315,7 +1315,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.3
-      if [ "${_kernel}53" = "1" ]; then
+      if [ "${_kernel53}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist53[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1329,7 +1329,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.4
-      if [ "${_kernel}54" = "1" ]; then
+      if [ "${_kernel54}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist54[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1346,7 +1346,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.5
-      if [ "${_kernel}55" = "1" ]; then
+      if [ "${_kernel55}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist55[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1360,7 +1360,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.6
-      if [ "${_kernel}56" = "1" ]; then
+      if [ "${_kernel56}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist56[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1383,7 +1383,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.7
-      if [ "${_kernel}57" = "1" ]; then
+      if [ "${_kernel57}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist57[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1397,7 +1397,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.8
-      if [ "${_kernel}58" = "1" ]; then
+      if [ "${_kernel58}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist58[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1415,7 +1415,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.9
-      if [ "${_kernel}59" = "1" ]; then
+      if [ "${_kernel59}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist59[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1429,7 +1429,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.10
-      if [ "${_kernel}510" = "1" ]; then
+      if [ "${_kernel510}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist510[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1443,7 +1443,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.11
-      if [ "${_kernel}511" = "1" ]; then
+      if [ "${_kernel511}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist511[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1461,7 +1461,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.9 - 5.10 quirk
-      if [ "${_kernel}59" = "1" ] || [ "${_kernel}510" = "1" ]; then
+      if [ "${_kernel59}" = "1" ] || [ "${_kernel510}" = "1" ]; then
         if [[ ${pkgver} = 450* ]] || [[ ${pkgver} = 455.2* ]] || [[ ${pkgver} = 455.3* ]]; then
           msg2 "Applying 5.9-gpl.diff for dkms..."
           patch -Np1 -i "${srcdir}/5.9-gpl.diff"
@@ -1469,7 +1469,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.12
-      if [ "${_kernel}512" = "1" ]; then
+      if [ "${_kernel512}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist512[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1483,7 +1483,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.14
-      if [ "${_kernel}514" = "1" ]; then
+      if [ "${_kernel514}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist514[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1497,7 +1497,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.16
-      if [ "${_kernel}516" = "1" ]; then
+      if [ "${_kernel516}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist516[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1517,7 +1517,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 5.17
-      if [ "${_kernel}517" = "1" ]; then
+      if [ "${_kernel517}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist517[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1531,7 +1531,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.0
-      if [ "${_kernel}60" = "1" ]; then
+      if [ "${_kernel60}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist60[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1549,7 +1549,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.2
-      if [ "${_kernel}62" = "1" ]; then
+      if [ "${_kernel62}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist62[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1563,7 +1563,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.3
-      if [ "${_kernel}63" = "1" ]; then
+      if [ "${_kernel63}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist63[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1577,7 +1577,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.4
-      if [ "${_kernel}64" = "1" ]; then
+      if [ "${_kernel64}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist64[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1595,7 +1595,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.5
-      if [ "${_kernel}65" = "1" ]; then
+      if [ "${_kernel65}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist65[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1613,7 +1613,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.6
-      if [ "${_kernel}66" = "1" ]; then
+      if [ "${_kernel66}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist66[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1637,7 +1637,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.8
-      if [ "${_kernel}68" = "1" ]; then
+      if [ "${_kernel68}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist68[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1674,7 +1674,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.12
-      if [ "${_kernel}612" = "1" ]; then
+      if [ "${_kernel612}" = "1" ]; then
         patchy=0
         for yup in "${_whitelist612[@]}"; do
           [[ ${pkgver} = ${yup} ]] && patchy=1
@@ -1688,7 +1688,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # 6.19
-      if [ "${_kernel}619" = "1" ]; then
+      if [ "${_kernel619}" = "1" ]; then
         if [[ ${pkgver} = 470* ]]; then
           patchy=0
           for yup in "${_whitelist619[@]}"; do
