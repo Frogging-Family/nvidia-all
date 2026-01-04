@@ -12,7 +12,7 @@ Signed-off-by: Peter Jung <admin@ptr1337.dev>
  nvidia-drm/nvidia-drm-os-interface.c | 2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git an/nvidia-drm/nvidia-drm-linux.c b/nvidia-drm/nvidia-drm-linux.c
+diff --git a/nvidia-drm/nvidia-drm-linux.c b/nvidia-drm/nvidia-drm-linux.c
 index 3cb1815d..209cb469 100644
 --- a/nvidia-drm/nvidia-drm-linux.c
 +++ b/nvidia-drm/nvidia-drm-linux.c

@@ -480,7 +480,7 @@ md5sums=("$_md5sum"
          '676d7039ff5b5e2bdd03db08fd1cba4e'
          '0e54e7d932e520c403181e3348d4d42b'
          '6904323d3a4ad04a708c927e930efc34'
-         'c7d81d772eadfe882b93b79e24b5c4ba'
+         '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
@@ -1082,6 +1082,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.12") >= 0 )); then
         _kernel612="1"
         _whitelist612=( 565.57* )
+      fi
+
+      # Enable by default from 570.xx onwards for closed-kernel modules
+      if (( ${pkgver%%.*} >= 570 )); then
+        msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to closed-kernel..."
+        patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_pkg}/kernel-$_kernel"
       fi
 
       if [ "$_gcc14" = "true" ]; then
@@ -1697,13 +1703,10 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
       fi
 
-      # Enable by default from 570.xx onwards for closed-kernel modules
+      # Enable by default from 570.xx onwards for dkms modules
       if (( ${pkgver%%.*} >= 570 )); then
-        msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to closed-kernel..."
-        patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
-
-        msg2 "Applying Add-IBT-support.diff to closed-kernel..."
-        patch -Np1 -i "${srcdir}/Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
+        msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to dkms..."
+        patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_pkg}/kernel-dkms"
       fi
 
       if [ "$_gcc14" = "true" ]; then
