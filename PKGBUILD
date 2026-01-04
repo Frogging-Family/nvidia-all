@@ -480,8 +480,8 @@ md5sums=("$_md5sum"
          '676d7039ff5b5e2bdd03db08fd1cba4e'
          '0e54e7d932e520c403181e3348d4d42b'
          '6904323d3a4ad04a708c927e930efc34'
-         '42a482aa44953061cbbf9a495fcad926'
-         '7143f20dbb3333ea6304540b5318bacb'
+         'c7d81d772eadfe882b93b79e24b5c4ba'
+         '84ca49afabf4907f19c81e0bb56b5873'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
          '0cdd9458228beb04e34d5128cb43fe46'
@@ -565,9 +565,6 @@ prepare() {
     if (( ${pkgver%%.*} < 525 )); then
       patch -Np1 --no-backup-if-mismatch -i "${srcdir}/nvidia-open-gcc-ibt-sls.diff"
     fi
-    if (( ${pkgver%%.*} == 570 )); then
-      patch -Np1 -i "${srcdir}/Add-IBT-support.diff"
-    fi
 
     # Enable modeset and fbdev as default
     # This avoids various issue, when Simplefb is used
@@ -598,9 +595,13 @@ prepare() {
       patch -Np1 -i "${srcdir}/fix-hdmi-names.diff"
     fi
 
+    # Enable by default from 570.xx onwards
     if (( ${pkgver%%.*} >= 570 )); then
       msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-      ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" )
+      patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+
+      msg2 "Applying Add-IBT-support.diff to kernel-open..."
+      patch -Np1 -i "${srcdir}/Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
 
     # 6.19 whitelist definition
@@ -686,6 +687,9 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
+#
+# Handle closed-kernel modules !!!
+#
   else
     cd "$_pkg"
 
@@ -1691,6 +1695,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
             msg2 "Skipping kernel-6.19-470.patch as it doesn't apply to driver version..."
           fi
         fi
+      fi
+
+      # Enable by default from 570.xx onwards for closed-kernel modules
+      if (( ${pkgver%%.*} >= 570 )); then
+        msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to closed-kernel..."
+        patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+
+        msg2 "Applying Add-IBT-support.diff to closed-kernel..."
+        patch -Np1 -i "${srcdir}/Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
       fi
 
       if [ "$_gcc14" = "true" ]; then
