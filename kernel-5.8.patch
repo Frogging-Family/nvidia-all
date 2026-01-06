@@ -1,0 +1,90 @@
+diff --git a/kernel-dkms/common/inc/nv-mm.h b/kernel-dkms/common/inc/nv-mm.h
+index 4d75de0..0174626 100644
+--- a/kernel-dkms/common/inc/nv-mm.h
++++ b/kernel-dkms/common/inc/nv-mm.h
+@@ -25,6 +25,10 @@
+ 
+ #include "conftest.h"
+ 
++#if defined(NV_MM_STRUCT_HAS_MMAP_LOCK)
++#define mmap_sem mmap_lock
++#endif
++
+ #if !defined(NV_VM_FAULT_T_IS_PRESENT)
+ typedef int vm_fault_t;
+ #endif
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index af29636..1dfbca5 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -2116,6 +2116,49 @@ compile_test() {
+             compile_check_conftest "$CODE" "NV_VZALLOC_PRESENT" "" "functions"
+         ;;
+ 
++        vmalloc_argument_count)
++            #
++            # Determine how many arguments __vmalloc takes.
++            #
++            # Changed by commit fc3af83c4fca ("mm: remove the pgprot argument
++            # to __vmalloc")
++            #
++            echo "$CONFTEST_PREAMBLE
++            #include <linux/mm.h>
++            #include <linux/vmalloc.h>
++            void conftest_vmalloc_argument_count(void) {
++                __vmalloc(0, GFP_KERNEL, PAGE_KERNEL);
++            }" > conftest$$.c
++
++            $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
++            rm -f conftest$$.c
++
++            if [ -f conftest$$.o ]; then
++                echo "#define NV_VMALLOC_ARGUMENT_COUNT_ARGUMENT_COUNT 3" | append_conftest "functions"
++            else
++                echo "#define NV_VMALLOC_ARGUMENT_COUNT_ARGUMENT_COUNT 2" | append_conftest "functions"
++            fi
++
++            rm -f conftest$$.o
++        ;;
++
++        mm_struct_has_mmap_lock)
++            #
++            # Determine if the mm_struct structure has 'mmap_lock'.
++            #
++            # Changed by commit ea7b54944ef9 ("mmap locking API: rename mmap_sem
++            # to mmap_lock")
++            #
++            CODE="
++            #include <linux/mm.h>
++
++            int conftest_mm_struct_has_mmap_lock(void) {
++                return offsetof(struct mm_struct, mmap_lock);
++            }"
++
++            compile_check_conftest "$CODE" "NV_MM_STRUCT_HAS_MMAP_LOCK" "" "types"
++        ;;
++
+         drm_driver_has_set_busid)
+             #
+             # Determine if the drm_driver structure has a 'set_busid' callback
+diff --git a/kernel-dkms/nvidia/nvidia.Kbuild b/kernel-dkms/nvidia/nvidia.Kbuild
+index ddc548d..863775d 100644
+--- a/kernel-dkms/nvidia/nvidia.Kbuild
++++ b/kernel-dkms/nvidia/nvidia.Kbuild
+@@ -96,6 +96,7 @@
+ 
+ NV_OBJECTS_DEPEND_ON_CONFTEST += $(NVIDIA_OBJECTS)
+ 
++NV_CONFTEST_FUNCTION_COMPILE_TESTS += vmalloc_argument_count
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += hash__remap_4k_pfn
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += set_pages_uc
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += list_is_first
+@@ -172,6 +173,7 @@ NV_CONFTEST_TYPE_COMPILE_TESTS += kmem_cache_has_kobj_remove_work
+ NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_swiotlb_map_sg_attrs
+ NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_swiotlb_dma_ops
+ 
++NV_CONFTEST_TYPE_COMPILE_TESTS += mm_struct_has_mmap_lock
+ NV_CONFTEST_TYPE_COMPILE_TESTS += acpi_op_remove
+ NV_CONFTEST_TYPE_COMPILE_TESTS += outer_flush_all
+ NV_CONFTEST_TYPE_COMPILE_TESTS += file_operations
+ 

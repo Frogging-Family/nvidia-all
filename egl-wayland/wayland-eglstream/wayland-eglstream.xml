@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="stream">
+
+  <copyright>
+    Copyright (c) 2014-2016, NVIDIA CORPORATION. All rights reserved.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <!-- wl_eglstream stub interface. Currently, this isn't actually used. Enums
+       must belong to an interface, and the name of it is prepended to the enum
+       values. This interface lets us define WL_EGLSTREAM_ERROR_*,
+       WL_EGLSTREAM_ATTRIB_* and WL_EGLSTREAM_HANDLE_TYPE_* enums -->
+  <interface name="wl_eglstream" version="1">
+    <enum name="error">
+      <entry name="bad_alloc" value="0" summary="Bad allocation error"/>
+      <entry name="bad_handle" value="1" summary="Bad handle error"/>
+      <entry name="bad_attribs" value="2" summary="Bad attributes error"/>
+      <entry name="bad_address" value="3" summary="Bad IP address error"/>
+    </enum>
+
+    <!-- wl_buffer handle types. This enum defines what the handle given to a
+         create_stream request represents -->
+    <enum name="handle_type">
+      <description summary="Stream handle type">
+          - fd:     The given handle represents a file descriptor, and the
+                    EGLStream connection must be done as described in
+                    EGL_KHR_stream_cross_process_fd
+
+          - inet:   The EGLStream connection must be done using an inet address
+                    and port as described in EGL_NV_stream_socket. The given
+                    handle can be ignored, but both inet address and port must
+                    be given as attributes.
+
+          - socket: The given handle represents a unix socket, and the EGLStream
+                    connection must be done as described in EGL_NV_stream_socket.
+      </description>
+      <entry name="fd" value="0" summary="File descriptor"/>
+      <entry name="inet" value="1" summary="Inet connection"/>
+      <entry name="socket" value="2" summary="Unix socket"/>
+    </enum>
+
+    <!-- EGLStream creation attributes. This enum defines possible attributes to
+         be passed to a create_stream request -->
+    <enum name="attrib">
+      <description summary="Stream creation attributes">
+        - inet_addr: The given attribute encodes an IPv4 address of a client
+                     socket. Both IPv4 address and port must be set at the same
+                     time.
+
+        - inet_port: The given attribute encodes a port of a client socket. Both
+                     IPv4 address and port must be set at the same time.
+      </description>
+      <entry name="inet_addr" value="0" summary="Inet IPv4 address"/>
+      <entry name="inet_port" value="1" summary="IP port"/>
+    </enum>
+  </interface>
+
+  <!-- EGLStream support. This object is created by the server and published
+       using the display's global event. It represents the binding between an
+       EGL display and a wayland display -->
+  <interface name="wl_eglstream_display" version="1">
+    <!-- wl_eglstream_display capabilities. This enum defines a series of
+         capability flags that will be advertised by the server to all its
+         clients -->
+    <enum name="cap">
+      <description summary="wl_eglstream_display capability codes">
+        This enum values should be used as bit masks.
+
+        - stream_fd:     The server supports EGLStream connections as described
+                         in EGL_KHR_stream_cross_process_fd
+
+        - stream_inet:   The server supports EGLStream inet connections as
+                         described in EGL_NV_stream_socket.
+
+        - stream_socket: The server supports EGLStream unix socket connections
+                         as described in EGL_NV_stream_socket.
+      </description>
+      <entry name="stream_fd" value="1" summary="Stream connection with FD"/>
+      <entry name="stream_inet" value="2" summary="Stream inet connection"/>
+      <entry name="stream_socket" value="4" summary="Stream unix connection"/>
+    </enum>
+
+    <!-- Advertise server capabilities as a bit mask. Clients might listen to
+         this event in order to know what features are supported by the server
+         -->
+    <event name="caps">
+      <description summary="Server capabilities event">
+        The capabilities event is sent out at wl_eglstream_display binding
+        time. It allows the server to advertise what features it supports so
+        clients may know what is safe to be used.
+      </description>
+      <arg name="caps" type="int" summary="Capabilities mask"/>
+    </event>
+
+    <event name="swapinterval_override">
+      <description summary="Server Swap interval override event">
+        The swapinterval_override event is sent out whenever a client requests
+        a swapinterval setting through swap_interval() and there is an override
+        in place that will make such request to be ignored.
+        The swapinterval_override event will provide the override value so
+        that the client is made aware of it.
+      </description>
+      <arg name="swapinterval" type="int"
+      summary="Server swap interval override value"/>
+      <arg name="stream" type="object" interface="wl_buffer"
+        summary="wl_buffer corresponding to an EGLStream"/>
+    </event>
+
+    <!-- Create a wl_buffer for the given handle. The attributes array may
+         define additional EGLStream connection data (e.g. inet address/port).
+         The server can use the wl_buffer to create the actual EGLStream handle
+         on its side and attach a consumer. -->
+    <request name="create_stream">
+      <description summary="Create a wl_buffer from the given handle">
+        Create a wl_buffer corresponding to given handle. The attributes list
+        may be used to define additional EGLStream connection data (e.g inet
+        address/port). The server can create its EGLStream handle using the
+        information encoded in the wl_buffer.
+      </description>
+      <arg name="id" type="new_id" interface="wl_buffer" summary="New ID"/>
+      <arg name="width" type="int" summary="Stream framebuffer width"/>
+      <arg name="height" type="int" summary="Stream framebuffer height"/>
+      <arg name="handle" type="fd" summary="Handle for the stream creation"/>
+      <arg name="type" type="int" summary="Handle type"/>
+      <arg name="attribs" type="array" summary="Stream extra connection attribs">
+        <description summary="List of attributes with extra connection data">
+          It contains key-value pairs compatible with intptr_t type. A key must
+          be one of wl_eglstream_display_attrib enumeration values. What a value
+          represents is attribute-specific.
+        </description>
+      </arg>
+    </request>
+
+    <request name="swap_interval">
+      <description summary="change the swap interval of an EGLStream consumer">
+        Set the swap interval for the consumer of the given EGLStream. The swap
+        interval is silently clamped to the valid range on the server side.
+      </description>
+      <arg name="stream" type="object" interface="wl_buffer"
+        summary="wl_buffer corresponding to an EGLStream"/>
+      <arg name="interval" type="int" summary="new swap interval"/>
+    </request>
+  </interface>
+</protocol>

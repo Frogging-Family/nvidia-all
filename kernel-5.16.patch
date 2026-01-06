@@ -1,0 +1,13 @@
+--- a/kernel-dkms/nvidia-uvm/uvm_migrate_pageable.c	2021-10-22 08:48:04.000000000 +0200
++++ b/kernel-dkms/nvidia-uvm/uvm_migrate_pageable_b.c	2021-11-29 17:50:22.467621809 +0100
+@@ -336,6 +336,10 @@
+     return dst_page;
+ }
+
++#ifndef MIGRATE_PFN_LOCKED
++#define MIGRATE_PFN_LOCKED	0
++#endif
++
+ static NV_STATUS migrate_vma_populate_anon_pages(struct vm_area_struct *vma,
+                                                  unsigned long *dst,
+                                                  unsigned long start,

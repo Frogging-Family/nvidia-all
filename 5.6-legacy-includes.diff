@@ -1,0 +1,28 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
+index b9cdaae..c73ed43 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem-nvkms-memory.c
+@@ -31,6 +31,8 @@
+ #include <drm/drm_drv.h>
+ #endif
+ 
++#include <linux/io.h>
++
+ #include "nv-mm.h"
+ 
+ static void __nv_drm_gem_nvkms_memory_free(struct nv_drm_gem_object *nv_gem)
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+index 650b96d..1d3e658 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-linux.c
+@@ -35,6 +35,8 @@
+ #include <drm/drmP.h>
+ #endif
+ 
++#include <linux/vmalloc.h>
++
+ #include "nv-mm.h"
+ 
+ MODULE_PARM_DESC(
+
+ 

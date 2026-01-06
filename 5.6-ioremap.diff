@@ -1,0 +1,55 @@
+diff --git a/kernel-dkms/common/inc/nv-linux.h b/kernel-dkms/common/inc/nv-linux.h
+index e235842..805e525 100644
+--- a/kernel-dkms/common/inc/nv-linux.h
++++ b/kernel-dkms/common/inc/nv-linux.h
+@@ -531,7 +531,11 @@ static inline void *nv_ioremap(NvU64 phys, NvU64 size)
+ 
+ static inline void *nv_ioremap_nocache(NvU64 phys, NvU64 size)
+ {
++#if defined(NV_IOREMAP_NOCACHE_PRESENT)
+     void *ptr = ioremap_nocache(phys, size);
++#else
++    void *ptr = ioremap(phys, size);
++#endif
+     if (ptr)
+         NV_MEMDBG_ADD(ptr, size);
+     return ptr;
+diff --git a/kernel-dkms/nvidia/nvidia.Kbuild b/kernel-dkms/nvidia/nvidia.Kbuild
+index 5ec3e65..2897e31 100644
+--- a/kernel-dkms/nvidia/nvidia.Kbuild
++++ b/kernel-dkms/nvidia/nvidia.Kbuild
+@@ -104,6 +104,7 @@ NV_CONFTEST_FUNCTION_COMPILE_TESTS += set_memory_array_uc
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += acquire_console_sem
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += console_lock
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += ioremap_cache
++NV_CONFTEST_FUNCTION_COMPILE_TESTS += ioremap_nocache
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += ioremap_wc
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += acpi_walk_namespace
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += sg_alloc_table
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index 57d85a4..4902248 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -780,6 +780,22 @@ compile_test() {
+             compile_check_conftest "$CODE" "NV_IOREMAP_CACHE_PRESENT" "" "functions"
+         ;;
+ 
++        ioremap_nocache)
++            #
++            # Determine if the ioremap_nocache() function is present.
++            #
++            # Removed by commit 4bdc0d676a64 ("remove ioremap_nocache and
++            # devm_ioremap_nocache") in v5.6 (2020-01-06)
++            #
++            CODE="
++            #include <asm/io.h>
++            void conftest_ioremap_nocache(void) {
++                ioremap_nocache();
++            }"
++
++            compile_check_conftest "$CODE" "NV_IOREMAP_NOCACHE_PRESENT" "" "functions"
++        ;;
++
+         ioremap_wc)
+             #
+             # Determine if the ioremap_wc() function is present. 

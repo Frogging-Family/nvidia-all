@@ -1,0 +1,95 @@
+From b03fe816d7b2675afdb4c1d10fe7658a5f2b2f82 Mon Sep 17 00:00:00 2001
+From: Rahul Rameshbabu <rrameshbabu@nvidia.com>
+Date: Tue, 12 Nov 2024 15:01:16 -0800
+Subject: [PATCH 6/6] nvidia-drm: Set FOP_UNSIGNED_OFFSET for
+ nv_drm_fops.fop_flags if present
+
+Linux kernel commit 641bb4394f40 ("fs: move FMODE_UNSIGNED_OFFSET to
+fop_flags") introduced a new .fop_flags define, FOP_UNSIGNED_OFFSET, for
+struct file_operations. A check in drm_open_helper was added to ensure DRM
+device drivers mark that all file offsets passed for working with DRM fs
+nodes are unsigned values. If a DRM device driver fails to set this static
+member, opening DRM device nodes (/dev/dri/card*) will fail. This commit
+will land in Linux kernel v6.12.
+
+To ensure DRM clients will continue to function with kernel v6.12 and
+above, set FOP_UNSIGNED_OFFSET for nv_drm_fops.fop_flags if
+FOP_UNSIGNED_OFFSET is present in the linux kernel headers being built
+against. Without doing so, userspace DRM clients will fail to function. An
+example is being unable to launch Wayland compositors.
+
+KWin logs without this change:
+  kwin_core: Failed to open /dev/dri/card1 device (Invalid argument)
+  kwin_wayland_drm: failed to open drm device at "/dev/dri/card1"
+  kwin_core: Failed to open /dev/dri/card0 device (Invalid argument)
+  kwin_wayland_drm: failed to open drm device at "/dev/dri/card0"
+  kwin_wayland_drm: No suitable DRM devices have been found
+
+Linux kernel warning generated without this change:
+  [Oct 2 02:15] ------------[ cut here ]------------
+  [  +0.000009] WARNING: CPU: 2 PID: 464 at drivers/gpu/drm/drm_file.c:312 drm_open_helper+0x134/0x150
+  <snip>
+  [  +0.000108] Unloaded tainted modules: nvidia(OE):1 nvidia_modeset(OE):1 nvidia_drm(OE):1 [last unloaded: ttm]
+  [  +0.000024] CPU: 2 UID: 0 PID: 464 Comm: systemd-logind Tainted: G           OE      6.12.0-rc1-next-20241001-sound+ #10 c8090f98b0209abebde89ba1e4c08c75331eef4d
+  [  +0.000016] Tainted: [O]=OOT_MODULE, [E]=UNSIGNED_MODULE
+  [  +0.000004] Hardware name: System manufacturer PRIME Z390-A/PRIME Z390-A, BIOS 0224 08/14/2018
+  [  +0.000005] RIP: 0010:drm_open_helper+0x134/0x150
+  <snip>
+  [  +0.000005] Call Trace:
+  [  +0.000006]  <TASK>
+  [  +0.000004]  ? drm_open_helper+0x134/0x150
+  [  +0.000008]  ? __warn.cold+0x93/0xf6
+  [  +0.000011]  ? drm_open_helper+0x134/0x150
+  [  +0.000009]  ? report_bug+0xff/0x140
+  [  +0.000009]  ? handle_bug+0x58/0x90
+  [  +0.000010]  ? exc_invalid_op+0x17/0x70
+  [  +0.000010]  ? asm_exc_invalid_op+0x1a/0x20
+  [  +0.000018]  ? drm_open_helper+0x134/0x150
+  [  +0.000008]  drm_open+0x73/0x110
+  [  +0.000007]  drm_stub_open+0x9b/0xd0
+  [  +0.000009]  chrdev_open+0xb0/0x230
+  [  +0.000014]  ? __pfx_chrdev_open+0x10/0x10
+  [  +0.000011]  do_dentry_open+0x14c/0x4a0
+  [  +0.000013]  vfs_open+0x2e/0xe0
+  [  +0.000009]  path_openat+0x82f/0x13f0
+  [  +0.000016]  do_filp_open+0xc4/0x170
+  [  +0.000020]  do_sys_openat2+0xae/0xe0
+  [  +0.000010]  __x64_sys_openat+0x55/0xa0
+  [  +0.000009]  do_syscall_64+0x82/0x190
+  [  +0.000008]  ? do_readlinkat+0xc5/0x180
+  [  +0.000008]  ? syscall_exit_to_user_mode+0x37/0x1c0
+  [  +0.000010]  ? do_syscall_64+0x8e/0x190
+  [  +0.000007]  ? do_sys_openat2+0x9c/0xe0
+  [  +0.000009]  ? syscall_exit_to_user_mode+0x37/0x1c0
+  [  +0.000008]  ? do_syscall_64+0x8e/0x190
+  [  +0.000007]  ? syscall_exit_to_user_mode+0x37/0x1c0
+  [  +0.000007]  ? do_syscall_64+0x8e/0x190
+  [  +0.000006]  ? do_syscall_64+0x8e/0x190
+  [  +0.000007]  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+  [  +0.000012] RIP: 0033:0x7f90c1cec2e3
+  <snip>
+  [  +0.000004] ---[ end trace 0000000000000000 ]---
+
+Signed-off-by: Rahul Rameshbabu <rrameshbabu@nvidia.com>
+---
+ nvidia-drm/nvidia-drm-drv.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index 8cb94219..16f0d13e 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -1711,6 +1711,10 @@ static const struct file_operations nv_drm_fops = {
+     .read           = drm_read,
+ 
+     .llseek         = noop_llseek,
++  
++#if defined(FOP_UNSIGNED_OFFSET)
++    .fop_flags   = FOP_UNSIGNED_OFFSET,
++#endif
+ };
+ 
+ static const struct drm_ioctl_desc nv_drm_ioctls[] = {
+-- 
+2.47.0
+

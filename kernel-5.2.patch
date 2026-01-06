@@ -1,0 +1,57 @@
+From 9b34e3b6b42a826fac66c8ff44e6260a09758c53 Mon Sep 17 00:00:00 2001
+From: Tk-Glitch <ti3nou@gmail.com>
+Date: Mon, 8 Jul 2019 10:19:45 +0200
+Subject: nvidia kernel 5.2 patch
+
+
+diff --git a/kernel-dkms/nvidia-uvm/uvm8_tools.c b/kernel-dkms/nvidia-uvm/uvm8_tools.c
+index 82c890587..cea2eb54c 100644
+--- a/kernel-dkms/nvidia-uvm/uvm8_tools.c
++++ b/kernel-dkms/nvidia-uvm/uvm8_tools.c
+@@ -206,18 +206,34 @@ static bool tracker_is_counter(uvm_tools_event_tracker_t *event_tracker)
+     return event_tracker != NULL && !event_tracker->is_queue;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
++static void uvm_put_user_pages_dirty(struct page **pages, NvU64 page_count)
++{
++    NvU64 i;
++
++    for (i = 0; i < page_count; i++) {
++        set_page_dirty(pages[i]);
++        put_page(pages[i]);
++    }
++}
++#else
+ static void put_user_pages(struct page **pages, NvU64 page_count)
+ {
+     NvU64 i;
+     for (i = 0; i < page_count; i++)
+         put_page(pages[i]);
+ }
++#endif
+ 
+ static void unmap_user_pages(struct page **pages, void *addr, NvU64 size)
+ {
+     size = DIV_ROUND_UP(size, PAGE_SIZE);
+     vunmap((NvU8 *)addr);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
++    uvm_put_user_pages_dirty(pages, size);
++#else
+     put_user_pages(pages, size);
++#endif
+     uvm_kvfree(pages);
+ }
+ 
+@@ -281,7 +297,11 @@ fail:
+     uvm_kvfree(vmas);
+ 
+     if (ret > 0)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
++        uvm_put_user_pages_dirty(*pages, ret);
++#else
+         put_user_pages(*pages, ret);
++#endif
+     else if (ret < 0)
+         status = errno_to_nv_status(ret);
+ 

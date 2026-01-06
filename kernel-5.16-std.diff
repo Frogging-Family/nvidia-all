@@ -1,0 +1,172 @@
+diff --git a/kernel-dkms/common/inc/nv.h a/kernel-dkms/common/inc/nv.h
+index 2ddaa25..40a3fd5 100644
+--- a/kernel-dkms/common/inc/nv.h
++++ a/kernel-dkms/common/inc/nv.h
+@@ -17,13 +17,15 @@
+ #include <nvlimits.h>
+ 
+ #if defined(NV_KERNEL_INTERFACE_LAYER) && defined(__FreeBSD__)
+-  #include <sys/stddef.h> // NULL
++  #include <sys/stddef.h>   // NULL
++#elif defined(NV_KERNEL_INTERFACE_LAYER) && defined(NV_LINUX)
++  #include <linux/stddef.h> // NULL
+ #else
+-  #include <stddef.h>     // NULL
++  #include <stddef.h>       // NULL
+ #endif
+ 
+ #include <nvstatus.h>
+-#include <stdarg.h>
++#include "nv_stdarg.h"
+ #include <nv-caps.h>
+ #include <nv-ioctl.h>
+ #include <nvmisc.h>
+diff --git a/kernel-dkms/common/inc/nv_stdarg.h a/kernel-dkms/common/inc/nv_stdarg.h
+new file mode 100644
+index 0000000..4b63340
+--- /dev/null
++++ a/kernel-dkms/common/inc/nv_stdarg.h
+@@ -0,0 +1,39 @@
++/*
++ * SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
++ * SPDX-License-Identifier: MIT
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++ * DEALINGS IN THE SOFTWARE.
++ */
++
++
++#ifndef _NV_STDARG_H_
++#define _NV_STDARG_H_
++
++#if defined(NV_KERNEL_INTERFACE_LAYER) && defined(NV_LINUX)
++   #include "conftest.h"
++   #if defined(NV_LINUX_STDARG_H_PRESENT)
++     #include <linux/stdarg.h>
++   #else
++     #include <stdarg.h>
++   #endif   
++#else
++   #include <stdarg.h>
++#endif   
++
++#endif // _NV_STDARG_H_
+diff --git a/kernel-dkms/common/inc/os-interface.h a/kernel-dkms/common/inc/os-interface.h
+index b615773..dd3e7a8 100644
+--- a/kernel-dkms/common/inc/os-interface.h
++++ a/kernel-dkms/common/inc/os-interface.h
+@@ -24,7 +24,7 @@
+ 
+ #include <nvtypes.h>
+ #include <nvstatus.h>
+-#include <stdarg.h>
++#include "nv_stdarg.h"
+ #include <nv-kernel-interface-api.h>
+ #include <os/nv_memory_type.h>
+ 
+diff --git a/kernel-dkms/common/inc/rm-gpu-ops.h a/kernel-dkms/common/inc/rm-gpu-ops.h
+index 67b252e..3302e72 100644
+--- a/kernel-dkms/common/inc/rm-gpu-ops.h
++++ a/kernel-dkms/common/inc/rm-gpu-ops.h
+@@ -16,7 +16,7 @@
+ 
+ #include <nvtypes.h>
+ #include <nvCpuUuid.h>
+-#include <stdarg.h>
++#include "nv_stdarg.h"
+ #include <nv-caps.h>
+ #include <nv-ioctl.h>
+ #include <nvmisc.h>
+diff --git a/kernel-dkms/conftest.sh a/kernel-dkms/conftest.sh
+index 1a1f89c..4ae52c7 100755
+--- a/kernel-dkms/conftest.sh
++++ a/kernel-dkms/conftest.sh
+@@ -163,6 +163,7 @@ test_headers() {
+     FILES="$FILES sound/hda_codec.h"
+     FILES="$FILES linux/dma-buf.h"
+     FILES="$FILES linux/time.h"
++    FILES="$FILES linux/stdarg.h"
+ 
+     translate_and_preprocess_header_files $FILES
+ }
+diff --git a/kernel-dkms/nvidia-modeset/nvidia-modeset-os-interface.h a/kernel-dkms/nvidia-modeset/nvidia-modeset-os-interface.h
+index 65130fd..720e0d2 100644
+--- a/kernel-dkms/nvidia-modeset/nvidia-modeset-os-interface.h
++++ a/kernel-dkms/nvidia-modeset/nvidia-modeset-os-interface.h
+@@ -16,8 +16,14 @@
+ #if !defined(_NVIDIA_MODESET_OS_INTERFACE_H_)
+ #define _NVIDIA_MODESET_OS_INTERFACE_H_
+ 
+-#include <stddef.h>  /* size_t */
+-#include <stdarg.h>  /* va_list */
++#if defined(NV_KERNEL_INTERFACE_LAYER) && defined(__FreeBSD__)
++  #include <sys/stddef.h>   // NULL
++#elif defined(NV_KERNEL_INTERFACE_LAYER) && defined(NV_LINUX)
++  #include <linux/stddef.h> // NULL
++#else
++  #include <stddef.h>       // NULL
++#endif
++#include "nv_stdarg.h"  /* va_list */
+ 
+ #include "nvtypes.h" /* NvU8 */
+ 
+diff --git a/kernel-dkms/nvidia-modeset/nvkms.h a/kernel-dkms/nvidia-modeset/nvkms.h
+index d46f97d..4180ed6 100644
+--- a/kernel-dkms/nvidia-modeset/nvkms.h
++++ a/kernel-dkms/nvidia-modeset/nvkms.h
+@@ -9,7 +9,13 @@
+ #define __NV_KMS_H__
+ 
+ #include "nvtypes.h"
+-#include <stddef.h> /* size_t */
++#if defined(NV_KERNEL_INTERFACE_LAYER) && defined(__FreeBSD__)
++  #include <sys/stddef.h>   // NULL
++#elif defined(NV_KERNEL_INTERFACE_LAYER) && defined(NV_LINUX)
++  #include <linux/stddef.h> // NULL
++#else
++  #include <stddef.h>       // NULL
++#endif
+ 
+ #include "nvkms-kapi.h"
+ 
+diff --git a/kernel-dkms/nvidia-uvm/uvm_mmu.c a/kernel-dkms/nvidia-uvm/uvm_mmu.c
+index 68c77be..333da8b 100644
+--- a/kernel-dkms/nvidia-uvm/uvm_mmu.c
++++ a/kernel-dkms/nvidia-uvm/uvm_mmu.c
+@@ -32,7 +32,7 @@
+ #include "uvm_push.h"
+ #include "uvm_mem.h"
+ #include "uvm_va_space.h"
+-#include <stdarg.h>
++#include "nv_stdarg.h"
+ 
+ 
+ 
+diff --git a/kernel-dkms/nvidia/export_nvswitch.h a/kernel-dkms/nvidia/export_nvswitch.h
+index e45666c..618a3e7 100644
+--- a/kernel-dkms/nvidia/export_nvswitch.h
++++ a/kernel-dkms/nvidia/export_nvswitch.h
+@@ -28,7 +28,7 @@
+ extern "C" {
+ #endif
+ 
+-#include <stdarg.h>
++#include "nv_stdarg.h"
+ #include "nvlink_common.h"
+ #include "ioctl_common_nvswitch.h"
+ 

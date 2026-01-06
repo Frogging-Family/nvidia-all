@@ -1,0 +1,26 @@
+Works around dumb_destroy error when compiling for kernel 6.4.0 or newer
+Copied/edited from Joan Bruguera's 470.xx patch
+See: https://gist.github.com/joanbm/77f0650d45747b9a4dc8e330ade2bf5c
+
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -35,6 +35,7 @@
+ #include "nvidia-drm-gem-nvkms-memory.h"
+ #include "nvidia-drm-gem-user-memory.h"
+ #include "nvidia-drm-gem-dma-buf.h"
++#include <linux/version.h>
+
+ #if defined(NV_DRM_AVAILABLE)
+
+@@ -1436,7 +1437,11 @@ static void nv_drm_update_drm_driver_features(void)
+
+     nv_drm_driver.dumb_create      = nv_drm_dumb_create;
+     nv_drm_driver.dumb_map_offset  = nv_drm_dumb_map_offset;
+-    nv_drm_driver.dumb_destroy     = nv_drm_dumb_destroy;
++    // Rel. commit "drm: remove dumb_destroy callback" (Christian König, 26 Jan 2023)
++    // NB: No resources are leaked, the kernel releases the same resources by default
++    #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
++        nv_drm_driver.dumb_destroy     = nv_drm_dumb_destroy;
++    #endif
+ #endif /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
+ }

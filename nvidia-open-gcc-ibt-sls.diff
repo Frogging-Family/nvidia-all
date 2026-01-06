@@ -1,0 +1,28 @@
+diff --git a/src/nvidia-modeset/Makefile b/src/nvidia-modeset/Makefile
+index c63b86b..a67d2fc 100644
+--- a/src/nvidia-modeset/Makefile
++++ b/src/nvidia-modeset/Makefile
+@@ -95,7 +95,8 @@ CFLAGS += -ffunction-sections
+ CFLAGS += -fdata-sections
+ CFLAGS += -ffreestanding
+
+-CONDITIONAL_CFLAGS := $(call TEST_CC_ARG, -fcf-protection=none)
++CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -fcf-protection=branch)
++CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -mharden-sls=all)
+ CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -Wformat-overflow=2)
+ CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -Wformat-truncation=1)
+ ifeq ($(TARGET_ARCH),x86_64)
+diff --git a/src/nvidia/Makefile b/src/nvidia/Makefile
+index 9bdb826..3f1e330 100644
+--- a/src/nvidia/Makefile
++++ b/src/nvidia/Makefile
+@@ -119,7 +119,8 @@ CFLAGS += -fdata-sections
+ NV_KERNEL_O_LDFLAGS += --gc-sections
+ EXPORTS_LINK_COMMAND = exports_link_command.txt
+
+-CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -fcf-protection=none)
++CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -fcf-protection=branch -mindirect-branch-register)
++CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -mharden-sls=all)
+
+ ifeq ($(TARGET_ARCH),x86_64)
+   CONDITIONAL_CFLAGS += $(call TEST_CC_ARG, -mindirect-branch-register)

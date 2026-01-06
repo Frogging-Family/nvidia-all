@@ -335,6 +335,7 @@ optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch ke
 options=(!strip !lto !buildflags)
 
 cp "${where}"/patches/* "${where}" && cp -r "${where}"/system/* "${where}"
+cp "${where}"/legacy/patches/* "${where}" && cp -r "${where}"/legacy/system/* "${where}"
 
 # Installer name
 _pkg="NVIDIA-Linux-x86_64-${pkgver}"
@@ -683,17 +684,49 @@ prepare() {
       patch -Np1 -i "${srcdir}/fix-hdmi-names.diff"
     fi
 
-    # Enable by default from 570.xx onwards
-    if (( ${pkgver%%.*} >= 580 )); then
-      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
+    #
+    # TODO 570xx patches
+    #
+    if (( ${pkgver%%.*} == 570 )); then
+      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
 
-      msg2 "Applying Add-IBT-support.diff to kernel-open..."
+      msg2 "Applying Add-IBT-support.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
 
+    #
+    # TODO 580xx patches
+    #
+    if (( ${pkgver%%.*} == 580 )); then
+      msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.patch to kernel-open ${pkgver}..."
+      # Enable modeset by default
+      # This avoids various issue, when Simplefb is used
+      # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+      # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+      patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.patch" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+
+      msg2 "Applying 0002-Add-IBT-support.patch to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0002-Add-IBT-support.patch" -d "${srcdir}/${_srcbase}-${pkgver}"
+    fi
+
+    #
+    # TODO 590xx patches
+    #
+    if (( ${pkgver%%.*} == 590 )); then
+      msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.patch to kernel-open ${pkgver}..."
+      # Enable modeset by default
+      # This avoids various issue, when Simplefb is used
+      # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/issues/14
+      # https://github.com/rpmfusion/nvidia-kmod/blob/master/make_modeset_default.patch
+      patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.patch" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+
+      msg2 "Applying 0002-Add-IBT-support.patch to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0002-Add-IBT-support.patch" -d "${srcdir}/${_srcbase}-${pkgver}"
+    fi
+
     # 6.19 whitelist definition
-    _open_whitelist619=( 470* 590* )
+    _open_whitelist619=( 590* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -723,17 +756,6 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
         else
           msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
-        fi
-      elif (( ${pkgver%%.*} == 470 )); then
-        patchy=0
-        for yup in "${_open_whitelist619[@]}"; do
-          [[ ${pkgver} = ${yup} ]] && patchy=1
-        done
-        if [ "${patchy}" = "1" ]; then
-          msg2 "Applying kernel-6.19-470.patch to kernel-open..."
-          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19-470.patch" )
-        else
-          msg2 "Skipping kernel-6.19-470.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi

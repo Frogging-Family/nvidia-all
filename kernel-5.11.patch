@@ -1,0 +1,341 @@
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index 282a911..c2d0fc3 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -159,6 +159,7 @@ test_headers() {
+     FILES="$FILES asm/pgtable_types.h"
+     FILES="$FILES linux/stringhash.h"
+     FILES="$FILES linux/dma-map-ops.h"
++    FILES="$FILES asm/kmap_types.h"
+ 
+     translate_and_preprocess_header_files $FILES
+ }
+@@ -1265,6 +1266,8 @@ compile_test() {
+         drm_available)
+             # Determine if the DRM subsystem is usable
+             CODE="
++            #include <linux/version.h>
++
+             #if defined(NV_DRM_DRMP_H_PRESENT)
+             #include <drm/drmP.h>
+             #endif
+@@ -1273,6 +1276,10 @@ compile_test() {
+             #include <drm/drm_drv.h>
+             #endif
+ 
++            #if defined(NV_DRM_DRM_GEM_H_PRESENT)
++            #include <drm/drm_gem.h>
++            #endif
++
+             #if defined(NV_DRM_DRM_PRIME_H_PRESENT)
+             #include <drm/drm_prime.h>
+             #endif
+@@ -1282,6 +1289,7 @@ compile_test() {
+             #endif
+ 
+             void conftest_drm_available(void) {
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
+                 struct drm_driver drv;
+ 
+                 /* 2013-01-15 89177644a7b6306e6084a89eab7e290f4bfef397 */
+@@ -1291,6 +1299,13 @@ compile_test() {
+                 drv.gem_prime_vunmap = 0;
+                 (void)drm_gem_prime_import;
+                 (void)drm_gem_prime_export;
++#else
++                struct drm_gem_object_funcs gem;
++                gem.pin = 0;
++                gem.get_sg_table = 0;
++                gem.vmap = 0;
++                gem.vunmap = 0;
++#endif
+ 
+                 /* 2013-10-02 1bb72532ac260a2d3982b40bdd4c936d779d0d16 */
+                 (void)drm_dev_alloc;
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-crtc.c b/kernel-dkms/nvidia-drm/nvidia-drm-crtc.c
+index b966bb2..b104d13 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-crtc.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-crtc.c
+@@ -42,6 +42,8 @@
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_atomic_helper.h>
+ 
++#include <linux/version.h>
++
+ static void nv_drm_plane_destroy(struct drm_plane *plane)
+ {
+     /* plane->state gets freed here */
+@@ -460,8 +462,14 @@ static int head_modeset_config_attach_connector(
+  * will be discarded if ->atomic_check() fails.
+  */
+ static int nv_drm_crtc_atomic_check(struct drm_crtc *crtc,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
+                                     struct drm_crtc_state *crtc_state)
+ {
++#else
++                                    struct drm_atomic_state *state)
++{
++    struct drm_crtc_state *crtc_state = drm_atomic_get_new_crtc_state(state,crtc);
++#endif
+     struct nv_drm_crtc_state *nv_crtc_state = to_nv_crtc_state(crtc_state);
+     struct NvKmsKapiHeadRequestedConfig *req_config =
+         &nv_crtc_state->req_config;
+@@ -532,7 +540,11 @@ static void nv_drm_crtc_disable(struct drm_crtc *crtc)
+ 
+ #ifdef NV_DRM_CRTC_HELPER_FUNCS_HAS_ATOMIC_ENABLE
+ static void nv_drm_crtc_atomic_enable(struct drm_crtc *crtc,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
+                                       struct drm_crtc_state *old_crtc_state)
++#else
++                                      struct drm_atomic_state *state)
++#endif
+ {
+ 
+ }
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index ebfb5cd..e816f26 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -20,6 +20,7 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
+ #include "nvidia-drm-conftest.h" /* NV_DRM_AVAILABLE and NV_DRM_DRM_GEM_H_PRESENT */
+ 
+ #include "nvidia-drm-priv.h"
+@@ -755,12 +756,21 @@ static struct drm_driver nv_drm_driver = {
+ 
+     .prime_handle_to_fd     = drm_gem_prime_handle_to_fd,
+     .prime_fd_to_handle     = drm_gem_prime_fd_to_handle,
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
++    // Deprecated in favour of equivalent in drm_get_object in torvalds/linux commit d693def4fd1c23f1ca5aed1afb9993b3a2069ad2
+     .gem_prime_export       = drm_gem_prime_export,
++#endif
+     .gem_prime_import       = nv_drm_gem_prime_import,
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
++    // Deprecated in favour of equivalent in drm_get_object in torvalds/linux commit d693def4fd1c23f1ca5aed1afb9993b3a2069ad2
+     .gem_prime_get_sg_table = nv_drm_gem_prime_get_sg_table,
++#endif
+     .gem_prime_import_sg_table = nv_drm_gem_prime_import_sg_table,
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
++    // Deprecated in favour of equivalent in drm_get_object in torvalds/linux commit d693def4fd1c23f1ca5aed1afb9993b3a2069ad2
+     .gem_prime_vmap         = nv_drm_gem_prime_vmap,
+     .gem_prime_vunmap       = nv_drm_gem_prime_vunmap,
++#endif
+ 
+ #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+     .gem_prime_res_obj      = nv_drm_gem_prime_res_obj,
+@@ -784,12 +794,16 @@ static struct drm_driver nv_drm_driver = {
+     .desc                   = "NVIDIA DRM driver",
+     .date                   = "20160202",
+ 
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
++    // This is now behind a CONFIG_DRM_LEGACY Kconfig flag.(torvalds/linux commit 57bb1ee6034046be70aed33fd6d447bb2b7261fa)
++    // (Was this used anyway? Just remove it entirely for now)
+ #if defined(NV_DRM_DRIVER_HAS_LEGACY_DEV_LIST)
+     .legacy_dev_list        = LIST_HEAD_INIT(nv_drm_driver.legacy_dev_list),
+ #else
+     .device_list            = LIST_HEAD_INIT(nv_drm_driver.device_list),
+ #endif
+     .gem_vm_ops             = &nv_drm_gem_vma_ops,
++#endif
+ };
+ 
+ 
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
+index e554adc..4aa082b 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem-user-memory.c
+@@ -20,6 +20,7 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
+ #include "nvidia-drm-conftest.h"
+ 
+ #if defined(NV_DRM_AVAILABLE)
+@@ -58,6 +59,7 @@ static struct sg_table *__nv_drm_gem_user_memory_prime_get_sg_table(
+                                     nv_user_memory->pages_count);
+ }
+ 
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
+ static void *__nv_drm_gem_user_memory_prime_vmap(
+     struct nv_drm_gem_object *nv_gem)
+ {
+@@ -73,6 +75,28 @@ static void __nv_drm_gem_user_memory_prime_vunmap(
+ {
+     nv_drm_vunmap(address);
+ }
++#else
++// Updated vmap/vunmap operations to use struct dma_buf_map instead of raw pointers
++// See torvalds/linux commits ccc22d41bd9acec58cdc7c3b012e1887aba40af4, 6619ccf1bb1d0ebb071f758111efa83918b216fc
++static int __nv_drm_gem_user_memory_prime_vmap(
++    struct nv_drm_gem_object *nv_gem,
++    struct dma_buf_map *map)
++{
++    struct nv_drm_gem_user_memory *nv_user_memory = to_nv_user_memory(nv_gem);
++
++    map->vaddr = nv_drm_vmap(nv_user_memory->pages,
++                           nv_user_memory->pages_count);
++    map->is_iomem = false;
++    return 0;
++}
++
++static void __nv_drm_gem_user_memory_prime_vunmap(
++    struct nv_drm_gem_object *gem,
++    struct dma_buf_map *map)
++{
++    nv_drm_vunmap(map->vaddr);
++}
++#endif
+ 
+ static int __nv_drm_gem_user_memory_mmap(struct nv_drm_gem_object *nv_gem,
+                                          struct vm_area_struct *vma)
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
+index a6b54f0..ca45362 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
+@@ -20,6 +20,7 @@
+  * DEALINGS IN THE SOFTWARE.
+  */
+ 
++#include <linux/version.h>
+ #include "nvidia-drm-conftest.h"
+ 
+ #if defined(NV_DRM_AVAILABLE)
+@@ -67,6 +68,13 @@ void nv_drm_gem_free(struct drm_gem_object *gem)
+ static struct drm_gem_object_funcs nv_drm_gem_funcs = {
+     .free = nv_drm_gem_free,
+     .get_sg_table = nv_drm_gem_prime_get_sg_table,
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
++    // New functions moved from drm_driver because of torvalds/linux commit d693def4fd1c23f1ca5aed1afb9993b3a2069ad2
++    .export       = drm_gem_prime_export,
++    .vmap         = nv_drm_gem_prime_vmap,
++    .vunmap       = nv_drm_gem_prime_vunmap,
++    .vm_ops       = &nv_drm_gem_vma_ops,
++#endif
+ };
+ #endif
+ 
+@@ -141,6 +149,7 @@ struct sg_table *nv_drm_gem_prime_get_sg_table(struct drm_gem_object *gem)
+     return ERR_PTR(-ENOTSUPP);
+ }
+ 
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
+ void *nv_drm_gem_prime_vmap(struct drm_gem_object *gem)
+ {
+     struct nv_drm_gem_object *nv_gem = to_nv_gem_object(gem);
+@@ -160,6 +169,29 @@ void nv_drm_gem_prime_vunmap(struct drm_gem_object *gem, void *address)
+         nv_gem->ops->prime_vunmap(nv_gem, address);
+     }
+ }
++#else
++// Updated vmap/vunmap operations to use struct dma_buf_map instead of raw pointers
++// See torvalds/linux commits ccc22d41bd9acec58cdc7c3b012e1887aba40af4, 6619ccf1bb1d0ebb071f758111efa83918b216fc
++int nv_drm_gem_prime_vmap(struct drm_gem_object *gem, struct dma_buf_map *map)
++{
++    struct nv_drm_gem_object *nv_gem = to_nv_gem_object(gem);
++
++    if (nv_gem->ops->prime_vmap != NULL) {
++        return nv_gem->ops->prime_vmap(nv_gem, map);
++    }
++
++    return -ENOTSUPP;
++}
++
++void nv_drm_gem_prime_vunmap(struct drm_gem_object *gem, struct dma_buf_map *map)
++{
++    struct nv_drm_gem_object *nv_gem = to_nv_gem_object(gem);
++
++    if (nv_gem->ops->prime_vunmap != NULL) {
++        nv_gem->ops->prime_vunmap(nv_gem, map);
++    }
++}
++#endif
+ 
+ #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+ nv_dma_resv_t* nv_drm_gem_prime_res_obj(struct drm_gem_object *obj)
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+index 5c9f33d..24576e2 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+@@ -23,6 +23,7 @@
+ #ifndef __NVIDIA_DRM_GEM_H__
+ #define __NVIDIA_DRM_GEM_H__
+ 
++#include <linux/version.h>
+ #include "nvidia-drm-conftest.h"
+ 
+ #if defined(NV_DRM_AVAILABLE)
+@@ -50,8 +51,15 @@ struct nv_drm_gem_object;
+ struct nv_drm_gem_object_funcs {
+     void (*free)(struct nv_drm_gem_object *nv_gem);
+     struct sg_table *(*prime_get_sg_table)(struct nv_drm_gem_object *nv_gem);
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
+     void *(*prime_vmap)(struct nv_drm_gem_object *nv_gem);
+     void (*prime_vunmap)(struct nv_drm_gem_object *nv_gem, void *address);
++#else
++    // Updated vmap/vunmap operations to use struct dma_buf_map instead of raw pointers
++    // See torvalds/linux commits ccc22d41bd9acec58cdc7c3b012e1887aba40af4, 6619ccf1bb1d0ebb071f758111efa83918b216fc
++    int (*prime_vmap)(struct nv_drm_gem_object *nv_gem, struct dma_buf_map *map);
++    void (*prime_vunmap)(struct nv_drm_gem_object *nv_gem, struct dma_buf_map *map);
++#endif
+     struct drm_gem_object *(*prime_dup)(struct drm_device *dev,
+                                         const struct nv_drm_gem_object *nv_gem_src);
+     int (*mmap)(struct nv_drm_gem_object *nv_gem, struct vm_area_struct *vma);
+@@ -188,9 +196,17 @@ struct drm_gem_object *nv_drm_gem_prime_import(struct drm_device *dev,
+ 
+ struct sg_table *nv_drm_gem_prime_get_sg_table(struct drm_gem_object *gem);
+ 
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0))
+ void *nv_drm_gem_prime_vmap(struct drm_gem_object *gem);
+ 
+ void nv_drm_gem_prime_vunmap(struct drm_gem_object *gem, void *address);
++#else
++// Updated vmap/vunmap operations to use struct dma_buf_map instead of raw pointers
++// See torvalds/linux commits ccc22d41bd9acec58cdc7c3b012e1887aba40af4, 6619ccf1bb1d0ebb071f758111efa83918b216fc
++int nv_drm_gem_prime_vmap(struct drm_gem_object *gem, struct dma_buf_map *map);
++
++void nv_drm_gem_prime_vunmap(struct drm_gem_object *gem, struct dma_buf_map *map);
++#endif
+ 
+ #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+ nv_dma_resv_t* nv_drm_gem_prime_res_obj(struct drm_gem_object *obj);
+diff --git a/kernel-dkms/nvidia/nv-caps.c b/kernel-dkms/nvidia/nv-caps.c
+index 90e866f..5cde194 100644
+--- a/kernel-dkms/nvidia/nv-caps.c
++++ b/kernel-dkms/nvidia/nv-caps.c
+@@ -37,8 +37,12 @@ MODULE_PARM_DESC(nv_cap_enable_devfs, "Enable (1) or disable (0) nv-caps " \
+ 
+ extern int NVreg_ModifyDeviceFiles;
+ 
++#if NV_IS_EXPORT_SYMBOL_PRESENT_close_fd
++#include <linux/fdtable.h>
++#else
+ /* sys_close() or __close_fd() */
+ #include <linux/syscalls.h>
++#endif
+ 
+ #define NV_CAP_DRV_MINOR_COUNT 8192
+ 
+@@ -586,7 +590,9 @@ void NV_API_CALL nv_cap_close_fd(int fd)
+  * 2018-04-02 2ca2a09d6215 ("fs: add ksys_close() wrapper; remove in-kernel
+  *  calls to sys_close()")
+  */
+-#if NV_IS_EXPORT_SYMBOL_PRESENT___close_fd
++#if NV_IS_EXPORT_SYMBOL_PRESENT_close_fd
++    close_fd(fd);
++#elif NV_IS_EXPORT_SYMBOL_PRESENT___close_fd
+     __close_fd(current->files, fd);
+ #else
+     sys_close(fd);
+diff --git a/kernel-dkms/nvidia/nvidia.Kbuild b/kernel-dkms/nvidia/nvidia.Kbuild
+index 90579de..c6f3614 100644
+--- a/kernel-dkms/nvidia/nvidia.Kbuild
++++ b/kernel-dkms/nvidia/nvidia.Kbuild
+@@ -172,3 +172,4 @@
++NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_close_fd
+ 
+ NV_CONFTEST_TYPE_COMPILE_TESTS += acpi_op_remove
+ NV_CONFTEST_TYPE_COMPILE_TESTS += outer_flush_all

@@ -1,0 +1,18 @@
+diff --git a/kernel-dkms/common/inc/nv-linux.h b/kernel-dkms/common/inc/nv-linux.h
+index 70d336d..c31ec94 100644
+--- a/kernel-dkms/common/inc/nv-linux.h
++++ b/kernel-dkms/common/inc/nv-linux.h
+@@ -509,7 +509,13 @@ extern NvBool nvos_is_chipset_io_coherent(void);
+ 
+ static inline void *nv_vmalloc(unsigned long size)
+ {
++#if NV_VMALLOC_ARGUMENT_COUNT_ARGUMENT_COUNT == 3
+     void *ptr = __vmalloc(size, GFP_KERNEL, PAGE_KERNEL);
++#elif NV_VMALLOC_ARGUMENT_COUNT_ARGUMENT_COUNT == 2
++    void *ptr = __vmalloc(size, GFP_KERNEL);
++#else
++#error "NV_VMALLOC_ARGUMENT_COUNT_ARGUMENT_COUNT value unrecognized!"
++#endif
+     if (ptr)
+         NV_MEMDBG_ADD(ptr, size);
+     return ptr; 

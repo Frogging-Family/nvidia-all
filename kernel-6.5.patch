@@ -1,0 +1,99 @@
+Works around get_user_pages argument error when compiling for kernel 6.5 or newer
+Should work with 525xx, 530xx 535xx prior to 535.86(?), potentially some older versions?
+Original patch by Fjodor42 - this just changes some driver-specific lines
+See: https://gist.github.com/Fjodor42/cfd29b3ffd1d1957894469f2def8f4f6
+Original original patch for 470xx by Joan Bruguera at https://gist.github.com/joanbm/dfe8dc59af1c83e2530a1376b77be8ba
+
+--- a/kernel-dkms/common/inc/nv-mm.h
++++ b/kernel-dkms/common/inc/nv-mm.h
+
+@@ -23,6 +23,7 @@
+ #ifndef __NV_MM_H__
+ #define __NV_MM_H__
+
++#include <linux/version.h>
+ #include "conftest.h"
+
+ #if !defined(NV_VM_FAULT_T_IS_PRESENT)
+@@ -41,7 +42,16 @@ typedef int vm_fault_t;
+ #include <linux/mm.h>
+ #include <linux/sched.h>
+ #if defined(NV_PIN_USER_PAGES_PRESENT)
+-    #define NV_PIN_USER_PAGES pin_user_pages
++    #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
++        static inline long NV_PIN_USER_PAGES(unsigned long start, unsigned long nr_pages,
++                               unsigned int gup_flags, struct page **pages,
++                               struct vm_area_struct **vmas) {
++            return pin_user_pages(start, nr_pages, gup_flags, pages);
++        }
++    #else
++        #define NV_PIN_USER_PAGES pin_user_pages
++    #endif
++
+     #define NV_UNPIN_USER_PAGE unpin_user_page
+ #else
+     #define NV_PIN_USER_PAGES NV_GET_USER_PAGES
+@@ -66,7 +76,25 @@ typedef int vm_fault_t;
+  *
+  */
+
+-#if defined(NV_GET_USER_PAGES_HAS_ARGS_FLAGS)
++// Rel. commit. "mm/gup: remove unused vmas parameter from get_user_pages()" (Lorenzo Stoakes, 14 May 2023)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
++static inline long NV_GET_USER_PAGES(unsigned long start,
++                                     unsigned long nr_pages,
++                                     int write,
++                                     int force,
++                                     struct page **pages,
++                                     struct vm_area_struct **vmas)
++{
++    unsigned int flags = 0;
++
++    if (write)
++        flags |= FOLL_WRITE;
++    if (force)
++        flags |= FOLL_FORCE;
++
++    return get_user_pages(start, nr_pages, flags, pages);
++}
++#elif defined(NV_GET_USER_PAGES_HAS_ARGS_FLAGS)
+     #define NV_GET_USER_PAGES get_user_pages
+ #elif defined(NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS)
+     #define NV_GET_USER_PAGES(start, nr_pages, flags, pages, vmas) \
+@@ -103,7 +131,14 @@ typedef int vm_fault_t;
+  */
+
+ #if defined(NV_PIN_USER_PAGES_REMOTE_PRESENT)
+-    #if defined (NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK)
++    #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
++        static inline long NV_PIN_USER_PAGES_REMOTE(struct mm_struct *mm,
++                                      unsigned long start, unsigned long nr_pages,
++                                      unsigned int gup_flags, struct page **pages,
++                                      struct vm_area_struct **vmas, int *locked) {
++            return pin_user_pages_remote(mm, start, nr_pages, gup_flags, pages, locked);
++        }
++    #elif defined (NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK)
+         #define NV_PIN_USER_PAGES_REMOTE(mm, start, nr_pages, flags, pages, vmas, locked) \
+             pin_user_pages_remote(NULL, mm, start, nr_pages, flags, pages, vmas, locked)
+     #else
+@@ -137,7 +172,20 @@ typedef int vm_fault_t;
+  *
+  */
+
+-#if defined(NV_GET_USER_PAGES_REMOTE_PRESENT)
++//#if defined(NV_GET_USER_PAGES_REMOTE_PRESENT)
++// Rel. commit. "mm/gup: remove unused vmas parameter from get_user_pages_remote()" (Lorenzo Stoakes, 14 May 2023)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
++static inline long NV_GET_USER_PAGES_REMOTE(                                            struct mm_struct *mm,
++                                            unsigned long start,
++                                            unsigned long nr_pages,
++                                            unsigned int gup_flags,
++                                            struct page **pages,
++                                            struct vm_area_struct **vmas,
++                                            int *locked)
++{
++    return get_user_pages_remote(mm, start, nr_pages, gup_flags, pages, locked);
++}
++#elif defined(NV_GET_USER_PAGES_REMOTE_PRESENT)
+     #if defined(NV_GET_USER_PAGES_REMOTE_HAS_ARGS_FLAGS_LOCKED)
+         #define NV_GET_USER_PAGES_REMOTE get_user_pages_remote

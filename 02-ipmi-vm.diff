@@ -1,0 +1,16 @@
+diff --git a/kernel-dkms/nvidia/linux_nvswitch.c b/kernel-dkms/nvidia/linux_nvswitch.c
+index 75b5598..9841775 100644
+--- a/kernel-dkms/nvidia/linux_nvswitch.c
++++ b/kernel-dkms/nvidia/linux_nvswitch.c
+@@ -1582,7 +1582,11 @@ nvswitch_os_snprintf_time
+     struct tm t;
+     NvS32 date_end;
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+     time_to_tm(time_nsec / NVSWITCH_NSEC_PER_SEC, 0, &t);
++#else
++    time64_to_tm(time_nsec / NVSWITCH_NSEC_PER_SEC, 0, &t);
++#endif
+ 
+     date_end = snprintf(date,
+                         date_len, 

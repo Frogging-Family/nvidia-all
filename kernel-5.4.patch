@@ -1,0 +1,51 @@
+diff --git a/kernel-dkms/Kbuild b/kernel-dkms/Kbuild
+index 1e79d0b..c587f7e 100644
+--- a/kernel-dkms/Kbuild
++++ b/kernel-dkms/Kbuild
+@@ -27,10 +27,17 @@
+ # $(2): The CFLAGS to add for those object files.
+ #
+ 
++ifeq ($(shell [ $(VERSION) -gt 5 ] || [ $(VERSION) -eq 5 -a $(PATCHLEVEL) -gt 3 ]; echo $$? ),0)
++ASSIGN_PER_OBJ_CFLAGS = \
++ $(foreach _cflags_variable, \
++ $(addprefix CFLAGS_,$(1)), \
++ $(eval $(_cflags_variable) += $(2)))
++else
+ ASSIGN_PER_OBJ_CFLAGS = \
+  $(foreach _cflags_variable, \
+  $(addprefix CFLAGS_,$(notdir $(1))), \
+  $(eval $(_cflags_variable) += $(2)))
++endif
+ 
+ 
+ #
+diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+index c00c826..40c54f6 100755
+--- a/kernel-dkms/conftest.sh
++++ b/kernel-dkms/conftest.sh
+@@ -3585,7 +3585,7 @@ case "$5" in
+         TAB='	'
+ 
+         if [ -f "$OUTPUT/Module.symvers" ] && \
+-             grep -e "^[^${TAB}]*${TAB}[^${TAB}]*${TAB}vmlinux" \
++             grep -e "^[^${TAB}]*${TAB}[^${TAB}]*.*${TAB}vmlinux" \
+                      "$OUTPUT/Module.symvers" >/dev/null 2>&1; then
+             exit 0
+         fi
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+index bc31de7..7eefe95 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+@@ -659,7 +660,11 @@ static const struct drm_ioctl_desc nv_drm_ioctls[] = {
+ 
+ static struct drm_driver nv_drm_driver = {
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+     .driver_features        = DRIVER_GEM | DRIVER_PRIME | DRIVER_RENDER,
++#else
++    .driver_features        = DRIVER_GEM | DRIVER_RENDER,
++#endif
+ 
+     .gem_free_object        = nv_drm_gem_free,
+ 

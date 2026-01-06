@@ -1,0 +1,110 @@
+    diff --git a/kernel-dkms/conftest.sh b/kernel-dkms/conftest.sh
+    index c9c2db3..a10463d 100755
+    --- a/kernel-dkms/conftest.sh
+    +++ b/kernel-dkms/conftest.sh
+    @@ -130,6 +130,7 @@ test_headers() {
+         FILES="$FILES linux/sched/signal.h"
+         FILES="$FILES linux/sched/task.h"
+         FILES="$FILES linux/sched/task_stack.h"
+    +    FILES="$FILES linux/reservation.h"
+         FILES="$FILES xen/ioemu.h"
+         FILES="$FILES linux/fence.h"
+         FILES="$FILES soc/tegra/chip-id.h"
+    @@ -2063,7 +2064,7 @@ compile_test() {
+                 CODE="
+                 #include <drm/drmP.h>
+                 int conftest_drm_driver_has_gem_prime_res_obj(void) {
+    -                return offsetof(struct drm_driver, gem_prime_res_obj);
+    +                //return offsetof(struct drm_driver, gem_prime_res_obj);
+                 }"
+     
+                 compile_check_conftest "$CODE" "NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ" "" "types"
+    diff --git a/kernel-dkms/nvidia-drm/nvidia-dma-fence-helper.h b/kernel-dkms/nvidia-drm/nvidia-dma-fence-helper.h
+    index 0aa5a4f..f289636 100644
+    --- a/kernel-dkms/nvidia-drm/nvidia-dma-fence-helper.h
+    +++ b/kernel-dkms/nvidia-drm/nvidia-dma-fence-helper.h
+    @@ -40,7 +40,9 @@
+     #include <linux/dma-fence.h>
+     #endif
+     
+    +#if defined(NV_LINUX_RESERVATION_H_PRESENT)
+     #include <linux/reservation.h>
+    +#endif
+     
+     #if defined(NV_LINUX_FENCE_H_PRESENT)
+     typedef struct fence nv_dma_fence_t;
+    diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+    index a66d3cc..b79330a 100644
+    --- a/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+    +++ b/kernel-dkms/nvidia-drm/nvidia-drm-drv.c
+    @@ -681,7 +681,7 @@ static struct drm_driver nv_drm_driver = {
+         .gem_prime_vunmap       = nv_drm_gem_prime_vunmap,
+     
+     #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+    -    .gem_prime_res_obj      = nv_drm_gem_prime_res_obj,
+    +    //.gem_prime_res_obj      = nv_drm_gem_prime_res_obj,
+     #endif
+     
+     #if defined(NV_DRM_DRIVER_HAS_SET_BUSID)
+    diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.c b/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
+    index 7201ade..d58f4f0 100644
+    --- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
+    +++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.c
+    @@ -46,7 +46,7 @@ void nv_drm_gem_free(struct drm_gem_object *gem)
+         drm_gem_object_release(&nv_gem->base);
+     
+     #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+    -    reservation_object_fini(&nv_gem->resv);
+    +    dma_resv_fini(&nv_gem->resv);
+     #endif
+     
+         nv_gem->ops->free(nv_gem);
+    @@ -113,12 +113,14 @@ void nv_drm_gem_prime_vunmap(struct drm_gem_object *gem, void *address)
+     }
+     
+     #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+    +/*
+     struct reservation_object* nv_drm_gem_prime_res_obj(struct drm_gem_object *obj)
+     {
+         struct nv_drm_gem_object *nv_gem = to_nv_gem_object(obj);
+     
+         return &nv_gem->resv;
+     }
+    +*/
+     #endif
+     
+     #endif /* NV_DRM_AVAILABLE */
+    diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+    index b621969..e671795 100644
+    --- a/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+    +++ b/kernel-dkms/nvidia-drm/nvidia-drm-gem.h
+    @@ -56,7 +56,7 @@ struct nv_drm_gem_object {
+         const struct nv_drm_gem_object_funcs *ops;
+     
+     #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+    -    struct reservation_object resv;
+    +    struct dma_resv resv;
+     #endif
+     };
+     
+    @@ -127,7 +127,7 @@ void nv_drm_gem_object_init(struct nv_drm_device *nv_dev,
+         drm_gem_private_object_init(dev, &nv_gem->base, size);
+     
+     #if defined(NV_DRM_DRIVER_HAS_GEM_PRIME_RES_OBJ)
+    -    reservation_object_init(&nv_gem->resv);
+    +    dma_resv_init(&nv_gem->resv);
+     #endif
+     }
+     
+    diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-prime-fence.c b/kernel-dkms/nvidia-drm/nvidia-drm-prime-fence.c
+    index 1f10940..5114965 100644
+    --- a/kernel-dkms/nvidia-drm/nvidia-drm-prime-fence.c
+    +++ b/kernel-dkms/nvidia-drm/nvidia-drm-prime-fence.c
+    @@ -518,7 +518,7 @@ int nv_drm_gem_fence_attach_ioctl(struct drm_device *dev,
+             goto fence_context_create_fence_failed;
+         }
+     
+    -    reservation_object_add_excl_fence(&nv_gem->resv, fence);
+    +    dma_resv_add_excl_fence(&nv_gem->resv, fence);
+     
+         ret = 0; 

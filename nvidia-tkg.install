@@ -1,0 +1,47 @@
+_depmod() {
+    # Update module dependencies for all kernels
+    local -a _kernels
+    mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} +)
+    for _kernel in "${_kernels[@]}"; do
+        depmod $_kernel
+    done
+}
+
+_rmmod() {
+    # Try unloading
+    if lsmod | grep -q nvidia; then
+        rmmod nvidia
+    fi
+
+    # What?
+    if [[ $? != 0 ]]; then
+        # X running?
+        if pidof Xorg >/dev/null; then
+            echo ":: Please reboot or exit X first."
+        fi
+    fi
+}
+
+post_install() {
+    _depmod
+
+    # X running?
+    if pidof Xorg >/dev/null; then
+        echo ":: Please reboot or exit X to unload the current module."
+    fi
+}
+
+post_upgrade() {
+    _depmod
+
+    # Not rebuilding?
+    if (( $(vercmp $1 $2) != 0 )); then
+        _rmmod
+    fi
+}
+
+post_remove() {
+    _depmod
+
+    _rmmod
+}

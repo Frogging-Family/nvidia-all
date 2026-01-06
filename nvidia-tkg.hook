@@ -1,0 +1,17 @@
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+Target=nvidia-tkg
+Target=nvidia-dkms-tkg
+Target=nvidia-dev-tkg
+Target=nvidia-dev-dkms-tkg
+Target=nvidia-open-tkg
+Target=nvidia-open-dkms-tkg
+
+[Action]
+Description=Update Nvidia modules in initcpio
+When=PostTransaction
+NeedsTargets
+Exec=/bin/sh -c 'if command -v mkinitcpio >/dev/null 2>&1; then mkinitcpio -P; elif command -v /usr/lib/booster/regenerate_images >/dev/null 2>&1; then /usr/lib/booster/regenerate_images; elif command -v dracut >/dev/null 2>&1; then dracut --regenerate-all --force; else printf "\\033[31m The initramfs generator was not found, please update initramfs manually\\033[0m\\n"; fi'

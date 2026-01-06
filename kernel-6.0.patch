@@ -1,0 +1,12 @@
+diff --git a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+index b04ff67..2df20a3 100644
+--- a/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
++++ b/kernel-dkms/nvidia-drm/nvidia-drm-helper.c
+@@ -30,6 +30,7 @@ typedef int vm_fault_t;
+  * present simplifies nvidia-drm.ko source.
+  */
+
++#include <drm/drm_framebuffer.h>
+ #include "nvidia-drm-helper.h"
+
+ #include "nvmisc.h"

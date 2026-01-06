@@ -1,0 +1,39 @@
+From d42eed1eca8947a3c601a5e21c7820f0bba8550b Mon Sep 17 00:00:00 2001
+From: Tk-Glitch <ti3nou@gmail.com>
+Date: Wed, 3 Apr 2019 18:41:21 +0200
+Subject: nvidia-fix-2
+
+
+diff --git a/kernel-dkms/common/inc/nv-list-helpers.h b/kernel-dkms/common/inc/nv-list-helpers.h
+index 2feaa1afd..0d66f00c8 100644
+--- a/kernel-dkms/common/inc/nv-list-helpers.h
++++ b/kernel-dkms/common/inc/nv-list-helpers.h
+@@ -23,6 +23,8 @@
+ #ifndef __NV_LIST_HELPERS_H__
+ #define __NV_LIST_HELPERS_H__
+ 
++#include <linux/version.h>
++
+ #include <linux/list.h>
+ #include "conftest.h"
+ 
+diff --git a/kernel-dkms/nvidia-uvm/uvm8_range_tree.c b/kernel-dkms/nvidia-uvm/uvm8_range_tree.c
+index b7170d03c..7d24b01f3 100644
+--- a/kernel-dkms/nvidia-uvm/uvm8_range_tree.c
++++ b/kernel-dkms/nvidia-uvm/uvm8_range_tree.c
+@@ -31,9 +31,15 @@ static uvm_range_tree_node_t *get_range_node(struct rb_node *rb_node)
+ 
+ uvm_range_tree_node_t *uvm_range_tree_prev(uvm_range_tree_t *tree, uvm_range_tree_node_t *node)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+     if (list_is_first(&node->list, &tree->head))
+         return NULL;
+     return list_prev_entry(node, list);
++#else
++    if (nv_list_is_first(&node->list, &tree->head))
++        return NULL;
++    return list_prev_entry(node, list);
++#endif
+ }
+ 
+ uvm_range_tree_node_t *uvm_range_tree_next(uvm_range_tree_t *tree, uvm_range_tree_node_t *node)

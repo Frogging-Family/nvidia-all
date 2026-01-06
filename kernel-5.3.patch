@@ -1,0 +1,53 @@
+From 635b901ffad338c398a0e2570e990b0df66dd12f Mon Sep 17 00:00:00 2001
+From: Tk-Glitch <ti3nou@gmail.com>
+Date: Mon, 22 Jul 2019 13:29:48 +0200
+Subject: nvidia kernel 5.3 patch
+
+
+diff --git a/kernel-dkms/common/inc/nv-linux.h b/kernel-dkms/common/inc/nv-linux.h
+index 9341e676b..41289217e 100644
+--- a/kernel-dkms/common/inc/nv-linux.h
++++ b/kernel-dkms/common/inc/nv-linux.h
+@@ -475,7 +475,11 @@ extern int nv_pat_mode;
+         __cpuc_flush_kern_all();
+     }
+ #define CACHE_FLUSH()            nv_flush_cache_cpu(NULL)
+-#define CACHE_FLUSH_ALL()        NV_ON_EACH_CPU(nv_flush_cache_cpu, NULL)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
++#define CACHE_FLUSH_ALL()        on_each_cpu(nv_flush_cache_cpu, NULL, 1)
++#else
++#define CACHE_FLUSH_ALL()        NV_ON_EACH_CPU(nv_flush_cache_cpu, NULL)
++#endif
+ #if defined(NV_OUTER_FLUSH_ALL_PRESENT)
+ #define OUTER_FLUSH_ALL()               outer_flush_all()
+ #endif
+@@ -489,7 +493,11 @@ extern int nv_pat_mode;
+         flush_cache_all();
+     }
+ #define CACHE_FLUSH()            nv_flush_cache_cpu(NULL)
+-#define CACHE_FLUSH_ALL()        NV_ON_EACH_CPU(nv_flush_cache_cpu, NULL)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
++#define CACHE_FLUSH_ALL()        on_each_cpu(nv_flush_cache_cpu, NULL, 1)
++#else
++#define CACHE_FLUSH_ALL()        NV_ON_EACH_CPU(nv_flush_cache_cpu, NULL)
++#endif
+ #define WRITE_COMBINE_FLUSH()    mb()
+ #endif
+ #elif defined(NVCPU_PPC64LE)
+
+diff --git a/kernel-dkms/nvidia/nv_uvm_interface.c b/kernel-dkms/nvidia/nv_uvm_interface.c
+index e96b04e0c..18d80b09f 100644
+--- a/kernel-dkms/nvidia/nv_uvm_interface.c
++++ b/kernel-dkms/nvidia/nv_uvm_interface.c
+@@ -988,7 +988,11 @@ void nvUvmInterfaceDeRegisterUvmOps(void)
+     // Note that since we dropped the lock, another set of callbacks could have
+     // already been registered. That's ok, since we just need to wait for old
+     // ones to finish.
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
++    on_each_cpu(flush_top_half, NULL, 1);
++#else
+     NV_ON_EACH_CPU(flush_top_half, NULL);
++#endif
+ }
+ EXPORT_SYMBOL(nvUvmInterfaceDeRegisterUvmOps);
+ 

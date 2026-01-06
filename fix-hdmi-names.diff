@@ -1,0 +1,47 @@
+From 2585511f4d92c57a77f3c144c86ba30017df338c Mon Sep 17 00:00:00 2001
+From: Aaron Plattner <aplattner@nvidia.com>
+Date: Fri, 4 Oct 2024 16:01:54 -0700
+Subject: [PATCH] nvkms: Sanitize & trim ELD product name strings
+
+---
+ src/nvidia-modeset/src/nvkms-hdmi.c | 26 ++++++--------------------
+ 1 file changed, 6 insertions(+), 20 deletions(-)
+
+diff --git a/src/nvidia-modeset/src/nvkms-hdmi.c b/src/nvidia-modeset/src/nvkms-hdmi.c
+index 1dbc6c482..963c47f6f 100644
+--- a/src/nvidia-modeset/src/nvkms-hdmi.c
++++ b/src/nvidia-modeset/src/nvkms-hdmi.c
+@@ -1030,27 +1030,13 @@ static NvBool FillELDBuffer(const NVDpyEvoRec *pDpyEvo,
+
+     if (status == NVT_STATUS_SUCCESS) {
+         /*
+-         * NvTiming_GetProductName() returns a nul-terminated string, but the
+-         * string in the EDID is terminated with 0x0A and padded with 0x20.
+-         * Put back these special characters.
++         * NvTiming_GetProductName returns a nul-terminated string. Figure out
++         * how long it is and copy the bytes up to, but not including, the nul
++         * terminator.
+          */
+-        NvBool pastTerminator = FALSE;
+-        NvU32 i;
+-
+-        for (i = 0; i < NVT_EDID_LDD_PAYLOAD_SIZE; i++) {
+-            if (pastTerminator) {
+-                name[i] = 0x20;
+-            }
+-            if (name[i] == '\0') {
+-                name[i] = 0x0A;
+-                pastTerminator = TRUE;
+-            }
+-        }
+-
+-        monitorNameLen = NVT_EDID_LDD_PAYLOAD_SIZE;
+-        pEld->buffer[4] |= NVT_EDID_LDD_PAYLOAD_SIZE;
+-        nvkms_memcpy(&pEld->buffer[20], name,
+-                     NVT_EDID_LDD_PAYLOAD_SIZE);
++        monitorNameLen = nvkms_strlen((char *)name);
++        pEld->buffer[4] |= monitorNameLen;
++        nvkms_memcpy(&pEld->buffer[20], name, monitorNameLen);
+     }
+
+     /* offset 20 + MNL ~ 20 + MNL + (3 * SAD_Count) - 1 : CEA_SADs */
