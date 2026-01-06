@@ -352,143 +352,231 @@ else
   _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/NVIDIA-Linux-x86_64-${pkgver}.run"
 fi
 
-source=("$_source_name"
-        '10-nvidia-drm-outputclass.conf'
-        'nvidia-utils-tkg.sysusers'
-        '60-nvidia.rules'
-        'nvidia-tkg.hook'
-        'gsk-renderer.sh'
-        'nvidia-open-gcc-ibt-sls.diff'
-        'gcc-14-470.diff'
-        'gcc-14.diff'
-        'linux-version.diff' # include linux version
-        '01-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (396.xx)
-        '02-ipmi-vm.diff' # ipmi & vm patch for older than 415.22 releases (2018.12.7) (addon for 410+)
-        'list_is_first.diff' # fix for "redefinition of ‘list_is_first’" on <418.56 drivers when used on 5.1+
-        'kernel-4.16.patch' # 4.16 workaround
-        'kernel-4.19.patch' # 4.19 workaround
-        'kernel-5.0.patch' # 5.0 workaround
-        'kernel-5.1.patch' # 5.1 workaround
-        'kernel-5.2.patch' # 5.2 workaround
-        'kernel-5.3.patch' # 5.3 workaround
-        'kernel-5.4.patch' # 5.4 workaround
-        'kernel-5.4-symver.diff' # 5.4 symver fix only
-        'kernel-5.4-prime.diff' # 5.4+ PRIME fixing attempt
-        'kernel-5.5.patch' # 5.5 workaround
-        'kernel-5.6.patch' # 5.6 workaround
-        '5.6-legacy-includes.diff' # 5.6 includes needed for <440.59(stable) and <440.58.01(vk dev)
-        '5.6-ioremap.diff' # 5.6 additional ioremap workaround (<440.64)
-        'kernel-5.7.patch' # 5.7 workaround
-        'kernel-5.8.patch' # 5.8 workaround
-        '5.8-legacy.diff' # 5.8 additional vmalloc workaround (<450.57)
-        'kernel-5.9.patch' # 5.9 workaround
-        '5.9-gpl.diff' # 5.9 cuda/nvenc workaround
-        'kernel-5.10.patch' # 5.10 workaround
-        'kernel-5.11.patch' # 5.11 workaround
-        '5.11-legacy.diff' # 5.11 additional workaround (<460.32.03)
-        '455-crashfix.diff' # 455 drivers fix - https://forums.developer.nvidia.com/t/455-23-04-page-allocation-failure-in-kernel-module-at-random-points/155250/79
-        'kernel-5.12.patch' # 5.12 workaround
-        'kernel-5.14.patch' # 5.14 workaround
-        'kernel-5.16.patch' # 5.16 workaround
-        'kernel-5.16-std.diff' # 5.16 workaround for 470.6x
-        'kernel-5.17.patch' # 5.17 workaround
-        'kernel-6.0.patch'
-        'kernel-6.0-470.patch' # acpi backports from 515.x for 470.x
-        'kernel-6.2.patch'
-        'kernel-6.3.patch'
-        'legacy-kernel-6.4.diff'
-        'kernel-6.4.patch'
-        'legacy-kernel-6.5.diff'
-        'kernel-6.5.patch'
-        'legacy-kernel-6.6.diff'
-        '6.1-6-7-8-gpl.diff'
-        'kernel-6.8.patch'
-        'make-modeset-fbdev-default.diff'
-        'make-modeset-fbdev-default-565.diff'
-        '6.11-fbdev.diff'
-        'nvidia-sleep.conf'
-        'kernel-6.12.patch'
-        'silence-event-assert-until-570.diff'
-        'fix-hdmi-names.diff'
-        'Enable-atomic-kernel-modesetting-by-default.diff'
-        'Add-IBT-support.diff'
-        'gcc-15.diff'
-        'kernel-6.17.patch'
-        'limit-vram-usage'
-        'cuda-no-stable-perf-limit'
-        '50-nvidia-cuda-disable-perf-boost.conf'
-        'kernel-6.19.patch'
-        'kernel-6.19-470.patch')
+source=("${_source_name}"
+'01-ipmi-vm.diff'
+'02-ipmi-vm.diff'
+'455-crashfix.diff'
+'5.11-legacy.diff'
+'5.6-ioremap.diff'
+'5.6-legacy-includes.diff'
+'5.8-legacy.diff'
+'5.9-gpl.diff'
+'6.11-fbdev.diff'
+'6.1-6-7-8-gpl.diff'
+'Add-IBT-support.diff'
+'Enable-atomic-kernel-modesetting-by-default.diff'
+'fix-hdmi-names.diff'
+'gcc-14-470.diff'
+'gcc-14.diff'
+'gcc-15.diff'
+'GFP_RETRY_MAYFAIL-test.diff'
+'kernel-4.16.patch'
+'kernel-4.19.patch'
+'kernel-5.0.patch'
+'kernel-5.10.patch'
+'kernel-5.11.patch'
+'kernel-5.12.patch'
+'kernel-5.14.patch'
+'kernel-5.16.patch'
+'kernel-5.16-std.diff'
+'kernel-5.17.patch'
+'kernel-5.1.patch'
+'kernel-5.2.patch'
+'kernel-5.3.patch'
+'kernel-5.4.patch'
+'kernel-5.4-prime.diff'
+'kernel-5.4-symver.diff'
+'kernel-5.5.patch'
+'kernel-5.6.patch'
+'kernel-5.7.patch'
+'kernel-5.8.patch'
+'kernel-5.9.patch'
+'kernel-6.0-470.patch'
+'kernel-6.0.patch'
+'kernel-6.12.patch'
+'kernel-6.17.patch'
+'kernel-6.19-470.patch'
+'kernel-6.19.patch'
+'kernel-6.2.patch'
+'kernel-6.3.patch'
+'kernel-6.4.patch'
+'kernel-6.5.patch'
+'kernel-6.8.patch'
+'legacy-kernel-6.4.diff'
+'legacy-kernel-6.5.diff'
+'legacy-kernel-6.6.diff'
+'linux-version.diff'
+'list_is_first.diff'
+'make-modeset-fbdev-default-565.diff'
+'make-modeset-fbdev-default.diff'
+'nvidia-open-gcc-ibt-sls.diff'
+'silence-event-assert-until-570.diff'
+'gsk-renderer.sh'
+'0001-Enable-atomic-kernel-modesetting-by-default.patch'
+'0001-Fix-conftest-to-ignore-implicit-function-declaration-470.patch'
+'0002-Add-IBT-support.patch'
+'0002-CFLAGS-Set-std-gnu17-for-all-compilation-flags-550.patch'
+'0002-Fix-conftest-to-use-a-short-wchar_t-470.patch'
+'0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se-470.patch'
+'0003-nvidia-uvm-Remove-unused-get_devmap_page-parameter-580.patch'
+'0004-nvkms-Limit-default-maximum-TMDS-character-rate-to-3-580.patch'
+'clang-390.patch'
+'clang-470.patch'
+'gcc-14-390.patch'
+'gcc-15-390.patch'
+'gcc-15-470.patch'
+'kernel-4.16+-memory-encryption-390.patch'
+'kernel-6.10-390.patch'
+'kernel-6.10-470.patch'
+'kernel-6.12-390.patch'
+'kernel-6.12-470.patch'
+'kernel-6.13-390.patch'
+'kernel-6.13-470.patch'
+'kernel-6.14-390.patch'
+'kernel-6.14-470.patch'
+'kernel-6.15-390.patch'
+'kernel-6.15-470.patch'
+'kernel-6.17-390.patch'
+'kernel-6.17-470.patch'
+'kernel-6.1.76_6.6.15_6.7.3-470.patch'
+'kernel-6.19-470.patch'
+'kernel-6.19-590.patch'
+'kernel-6.2-390.patch'
+'kernel-6.3-390.patch'
+'kernel-6.4-390.patch'
+'kernel-6.4-470.patch'
+'kernel-6.5-390.patch'
+'kernel-6.5-470.patch'
+'kernel-6.6-390.patch'
+'kernel-6.6-470.patch'
+'kernel-6.8-390.patch'
+'nvidia-470xx-Enable-modeset-by-default-470.patch'
+'nvidia-drivers-470.223.02-gpl-pfn_valid-550.patch'
+'10-nvidia-drm-outputclass.conf'
+'50-nvidia-cuda-disable-perf-boost.conf'
+'60-nvidia.rules'
+'cuda-no-stable-perf-limit'
+'limit-vram-usage'
+'nvidia-sleep.conf'
+'nvidia-tkg.hook'
+'nvidia-tkg.install'
+'nvidia-utils-tkg.install'
+'nvidia-utils-tkg.sysusers'
+)
 
-msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
+msg2 "Selected driver integrity check behavior (md5sum or SKIP): ${_md5sum}" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
-md5sums=("$_md5sum"
-         'cb27b0f4a78af78aa96c5aacae23256c'
-         'ddd9f92c121ff64846b27bcee2513cb4'
-         '552087b81ab385edf016adac0b33db7a'
-         '596f7cbf2db48d4f5b1c38967bb93cea'
-         'b4266d215fb224488eeca12359c563f8'
-         '9b1543768ea75320fd0d2315de66d1c8'
-         'afb98b1dab0c61df526d4c0ee4d18abf'
-         'e5d1574892eb68de9af1b79a6bfb5e7b'
-         '7a825f41ada7e106c8c0b713a49b3bfa'
-         'd961d1dce403c15743eecfe3201e4b6a'
-         '14460615a9d4e247c8d9bcae8776ed48'
-         '401859ea7bb4a9864af24ecd67abf34c'
-         'adb83cede754daf5adb001f077b1ff67'
-         '58d058367934813d29d38328bc3b4dcd'
-         '6cff80c311debfdb6b543e575a81820a'
-         'a3ce8ebab6506f556f4b222e2372ce87'
-         '98b67a671ece0a796f9767793c209c93'
-         '6f9a62ef76ac86f299b0174f44488987'
-         '8bf41d705afdf9aad7d934be06a7b12b'
-         '0d9aa49647cc73a4522246cc22ae15e1'
-         'e6270c2d19afd982efc92bdecd9f48f0'
-         '1c1966d6ee6f3cd381ebcc92f1488c68'
-         'c44e43638e1ab708fbdd6d7aa76afcf2'
-         '84dc2d2eff2846b2f961388b153e2a89'
-         '1f11f5c765e42c471b202e630e3cd407'
-         'd911a0531c6f270926cacabd1dd80f02'
-         '589dfc0c801605018b7ccd690f06141a'
-         'd67bf0a9aa5c19f07edbaf6bd157d661'
-         '888d12b9aea711e6a025835b8ad063e2'
-         '0758046ed7c50463fd0ec378e9e34f95'
-         'bcdd512edad1bad8331a8872259d2581'
-         'fd0d6e14e675a61f32279558678cfc36'
-         '8764cc714e61363cc8f818315957ad17'
-         '08bec554de265ce5fdcfdbd55fb608fc'
-         '3980770412a1d4d7bd3a16c9042200df'
-         'f5fd091893f513d2371654e83049f099'
-         'd684ca11fdc9894c14ead69cb35a5946'
-         '0f987607c98eb6faeb7d691213de6a70'
-         'a70bc9cbbc7e8563b48985864a11de71'
-         '31128900574dec9ebdb753db50ef4f16'
-         '0b9b855d9be313153a5903e46e774a30'
-         '5d573b1aa0712b9bd2000c9fefdf84c2'
-         'a6acbba08173769399658914eb86a212'
-         'f0173a8bce0124b2d62a54f2e22d1552'
-         '4f855bb0e0b84e8e5d072c687256767a'
-         '50d3eac54d14d44d70df92770a3a9abf'
-         'b81cac7573842ebd7af30fdf851c63f9'
-         'd11cb3bd76ab61a0f086aea9a0c53087'
-         'f7f95287eb18be63bfad0427f13b6d43'
-         '7481cb7f52b76c426d579b115e4c84b6'
-         'c06a9359969ba331bc9fac91fe0eeff2'
-         'c691df97015eee42d51b34b147dd5236'
-         'adfcf56ea4a4a420d9ef07b9d4b451dc'
-         '2b5b62c1265b3b6b18022a0a716e5fcd'
-         '676d7039ff5b5e2bdd03db08fd1cba4e'
-         '0e54e7d932e520c403181e3348d4d42b'
-         '6904323d3a4ad04a708c927e930efc34'
-         '24bd1c8e7b9265020969a8da2962e114'
-         '84ca49afabf4907f19c81e0bb56b5873'
-         '6c26d0df1e30c8bedf6abfe99e842944'
-         'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46'
-         'f52a9eb49a21f7b6fe34cc5399bb61de'
-         'f6d0a9b1e503d0e8c026a20b61f889c2'
-         '12bb56d62196fb3ddbcd62a27f3b4943'
-         'fd442172857d1827db9ca85f6b6a8ce3')
+md5sums=("${_md5sum}"
+'d961d1dce403c15743eecfe3201e4b6a' # 01-ipmi-vm.diff
+'14460615a9d4e247c8d9bcae8776ed48' # 02-ipmi-vm.diff
+'08bec554de265ce5fdcfdbd55fb608fc' # 455-crashfix.diff
+'8764cc714e61363cc8f818315957ad17' # 5.11-legacy.diff
+'1f11f5c765e42c471b202e630e3cd407' # 5.6-ioremap.diff
+'84dc2d2eff2846b2f961388b153e2a89' # 5.6-legacy-includes.diff
+'d67bf0a9aa5c19f07edbaf6bd157d661' # 5.8-legacy.diff
+'0758046ed7c50463fd0ec378e9e34f95' # 5.9-gpl.diff
+'adfcf56ea4a4a420d9ef07b9d4b451dc' # 6.11-fbdev.diff
+'f7f95287eb18be63bfad0427f13b6d43' # 6.1-6-7-8-gpl.diff
+'84ca49afabf4907f19c81e0bb56b5873' # Add-IBT-support.diff
+'40ef984416b49c841a715bb7b7fd3e23' # Enable-atomic-kernel-modesetting-by-default.diff
+'6904323d3a4ad04a708c927e930efc34' # fix-hdmi-names.diff
+'afb98b1dab0c61df526d4c0ee4d18abf' # gcc-14-470.diff
+'e5d1574892eb68de9af1b79a6bfb5e7b' # gcc-14.diff
+'6c26d0df1e30c8bedf6abfe99e842944' # gcc-15.diff
+'559c4f7655a8bf891bd9d5c17563b99e' # GFP_RETRY_MAYFAIL-test.diff
+'adb83cede754daf5adb001f077b1ff67' # kernel-4.16.patch
+'58d058367934813d29d38328bc3b4dcd' # kernel-4.19.patch
+'6cff80c311debfdb6b543e575a81820a' # kernel-5.0.patch
+'bcdd512edad1bad8331a8872259d2581' # kernel-5.10.patch
+'fd0d6e14e675a61f32279558678cfc36' # kernel-5.11.patch
+'3980770412a1d4d7bd3a16c9042200df' # kernel-5.12.patch
+'f5fd091893f513d2371654e83049f099' # kernel-5.14.patch
+'d684ca11fdc9894c14ead69cb35a5946' # kernel-5.16.patch
+'0f987607c98eb6faeb7d691213de6a70' # kernel-5.16-std.diff
+'a70bc9cbbc7e8563b48985864a11de71' # kernel-5.17.patch
+'a3ce8ebab6506f556f4b222e2372ce87' # kernel-5.1.patch
+'98b67a671ece0a796f9767793c209c93' # kernel-5.2.patch
+'6f9a62ef76ac86f299b0174f44488987' # kernel-5.3.patch
+'8bf41d705afdf9aad7d934be06a7b12b' # kernel-5.4.patch
+'e6270c2d19afd982efc92bdecd9f48f0' # kernel-5.4-prime.diff
+'0d9aa49647cc73a4522246cc22ae15e1' # kernel-5.4-symver.diff
+'1c1966d6ee6f3cd381ebcc92f1488c68' # kernel-5.5.patch
+'c44e43638e1ab708fbdd6d7aa76afcf2' # kernel-5.6.patch
+'d911a0531c6f270926cacabd1dd80f02' # kernel-5.7.patch
+'589dfc0c801605018b7ccd690f06141a' # kernel-5.8.patch
+'888d12b9aea711e6a025835b8ad063e2' # kernel-5.9.patch
+'0b9b855d9be313153a5903e46e774a30' # kernel-6.0-470.patch
+'31128900574dec9ebdb753db50ef4f16' # kernel-6.0.patch
+'676d7039ff5b5e2bdd03db08fd1cba4e' # kernel-6.12.patch
+'c39df46bb99047ca7d09f9122a7370a8' # kernel-6.17.patch
+'fd442172857d1827db9ca85f6b6a8ce3' # kernel-6.19-470.patch
+'12bb56d62196fb3ddbcd62a27f3b4943' # kernel-6.19.patch
+'5d573b1aa0712b9bd2000c9fefdf84c2' # kernel-6.2.patch
+'a6acbba08173769399658914eb86a212' # kernel-6.3.patch
+'4f855bb0e0b84e8e5d072c687256767a' # kernel-6.4.patch
+'b81cac7573842ebd7af30fdf851c63f9' # kernel-6.5.patch
+'7481cb7f52b76c426d579b115e4c84b6' # kernel-6.8.patch
+'f0173a8bce0124b2d62a54f2e22d1552' # legacy-kernel-6.4.diff
+'50d3eac54d14d44d70df92770a3a9abf' # legacy-kernel-6.5.diff
+'d11cb3bd76ab61a0f086aea9a0c53087' # legacy-kernel-6.6.diff
+'7a825f41ada7e106c8c0b713a49b3bfa' # linux-version.diff
+'401859ea7bb4a9864af24ecd67abf34c' # list_is_first.diff
+'c691df97015eee42d51b34b147dd5236' # make-modeset-fbdev-default-565.diff
+'c06a9359969ba331bc9fac91fe0eeff2' # make-modeset-fbdev-default.diff
+'9b1543768ea75320fd0d2315de66d1c8' # nvidia-open-gcc-ibt-sls.diff
+'0e54e7d932e520c403181e3348d4d42b' # silence-event-assert-until-570.diff
+'b4266d215fb224488eeca12359c563f8' # gsk-renderer.sh
+'24bd1c8e7b9265020969a8da2962e114' # 0001-Enable-atomic-kernel-modesetting-by-default.patch
+'0858659bc7eae0e57b68865fb4e923d7' # 0001-Fix-conftest-to-ignore-implicit-function-declaration-470.patch
+'84ca49afabf4907f19c81e0bb56b5873' # 0002-Add-IBT-support.patch
+'64f91060a3318dd1f11de6a79d7604de' # 0002-CFLAGS-Set-std-gnu17-for-all-compilation-flags-550.patch
+'a85817c1ff7ed346e7112022676b9386' # 0002-Fix-conftest-to-use-a-short-wchar_t-470.patch
+'dfcf2ae4ab9337c9883bd54cbfe58309' # 0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se-470.patch
+'873f6f3c7ea6b2d3438f14eb0cbbcc6f' # 0003-nvidia-uvm-Remove-unused-get_devmap_page-parameter-580.patch
+'74f20f3c7f68fce76cec0b6062e417e4' # 0004-nvkms-Limit-default-maximum-TMDS-character-rate-to-3-580.patch
+'f9f8f00b426d4382edc2b3dfbcfe4e48' # clang-390.patch
+'e4f62a975771fab5c9ee03ad404e36a1' # clang-470.patch
+'71a67278734d0af6f53f0e7013b07e84' # gcc-14-390.patch
+'95f4530adce1748230c298643b372d12' # gcc-15-390.patch
+'9d3045b12680bd4ce6694d077897e9fe' # gcc-15-470.patch
+'b610f9a0cf270e66c1f5a593e5b73164' # kernel-4.16+-memory-encryption-390.patch
+'a10151a91cb4121822cb28128e666c7d' # kernel-6.10-390.patch
+'77df0c9cbc081a979a5207dc740616cd' # kernel-6.10-470.patch
+'4d620fe0117cbdff1767cceb0812aa76' # kernel-6.12-390.patch
+'97bfa7d96584cd5421437ffc69c4698a' # kernel-6.12-470.patch
+'8177305d8072b1579748ae7c78d1c19f' # kernel-6.13-390.patch
+'c5a61286317d851938112b3cb37b3ca1' # kernel-6.13-470.patch
+'358562bfef90f0dc761963f53a9297c2' # kernel-6.14-390.patch
+'358562bfef90f0dc761963f53a9297c2' # kernel-6.14-470.patch
+'50a6bdcfb98e54daea9e0132a8019110' # kernel-6.15-390.patch
+'93a90d1108a235004d347617c08714c8' # kernel-6.15-470.patch
+'4dd34f8b7901ddd501d0ea55aa266821' # kernel-6.17-390.patch
+'1bd0d8ec84332e745a1f02b3a0b28842' # kernel-6.17-470.patch
+'60e34669636dfcc4624722574c67e9b8' # kernel-6.1.76_6.6.15_6.7.3-470.patch
+'fd442172857d1827db9ca85f6b6a8ce3' # kernel-6.19-470.patch
+'12bb56d62196fb3ddbcd62a27f3b4943' # kernel-6.19-590.patch
+'4a8e559ce20f5f0a0a67c2a1239602f8' # kernel-6.2-390.patch
+'4629db5fc380de975ed4408e0c89cfc9' # kernel-6.3-390.patch
+'489d643d43b4337bb5d6a65785c0b97d' # kernel-6.4-390.patch
+'348c70fad3143400767e5be4edc2b8a8' # kernel-6.4-470.patch
+'be318d2357051e45563b0739cb32b23e' # kernel-6.5-390.patch
+'928b1e30a8624a193838e96b049763ed' # kernel-6.5-470.patch
+'e16d8b520642703ef87fb2c43e201d25' # kernel-6.6-390.patch
+'9beb71b7f9a429b952f59cca958ed670' # kernel-6.6-470.patch
+'fdaba09a64f44027fbfec4bee5736d5e' # kernel-6.8-390.patch
+'4a48f67b317b67fb3f24c24e6acb60fc' # nvidia-470xx-Enable-modeset-by-default-470.patch
+'a2579e8be54ed3efdcd6d0e9f1531a83' # nvidia-drivers-470.223.02-gpl-pfn_valid-550.patch
+'cb27b0f4a78af78aa96c5aacae23256c' # 10-nvidia-drm-outputclass.conf
+'f6d0a9b1e503d0e8c026a20b61f889c2' # 50-nvidia-cuda-disable-perf-boost.conf
+'552087b81ab385edf016adac0b33db7a' # 60-nvidia.rules
+'f52a9eb49a21f7b6fe34cc5399bb61de' # cuda-no-stable-perf-limit
+'0cdd9458228beb04e34d5128cb43fe46' # limit-vram-usage
+'2b5b62c1265b3b6b18022a0a716e5fcd' # nvidia-sleep.conf
+'596f7cbf2db48d4f5b1c38967bb93cea' # nvidia-tkg.hook
+'6cba38d139acef28586c37dffd80b15d' # nvidia-tkg.install
+'c8b9182081114141734b123dc2f26062' # nvidia-utils-tkg.install
+'ddd9f92c121ff64846b27bcee2513cb4' # nvidia-utils-tkg.sysusers
+)
 
 if [ "${_open_source_modules}" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
