@@ -1,8 +1,0 @@
-prefix=/usr
-datarootdir=${prefix}/share
-pkgdatadir=${datarootdir}/wayland-eglstream
-
-Name: wayland-eglstream-protocols
-Description: Nvidia Wayland EGLStream XML protocol files
-Version: 1.1.2
- 
