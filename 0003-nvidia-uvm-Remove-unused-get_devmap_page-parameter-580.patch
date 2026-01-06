@@ -1,0 +1,75 @@
+From 3e230516034d29e84ca023fe95e284af5cd5a065 Mon Sep 17 00:00:00 2001
+From: Aleksey Smolenchuk <lxe@lxe.co>
+Date: Tue, 21 Oct 2025 09:51:30 -0700
+Subject: [PATCH] nvidia-uvm: Add support for kernel 6.18 get_dev_pagemap API
+ change
+
+The get_dev_pagemap() function signature changed in Linux kernel 6.18
+to take only a single pfn parameter, removing the lock parameter.
+
+This commit adds a conftest check to detect the API version and
+conditionally calls get_dev_pagemap() with the appropriate number
+of arguments.
+---
+ kernel-open/conftest.sh                        | 18 ++++++++++++++++++
+ kernel-open/nvidia-uvm/nvidia-uvm.Kbuild       |  1 +
+ .../nvidia-uvm/uvm_va_range_device_p2p.c       |  4 ++++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/kernel-open/conftest.sh b/kernel-open/conftest.sh
+index cfa387129..731ed18bd 100755
+--- a/kernel-open/conftest.sh
++++ b/kernel-open/conftest.sh
+@@ -4871,6 +4871,24 @@ compile_test() {
+             compile_check_conftest "$CODE" "NV_MEMORY_DEVICE_COHERENT_PRESENT" "" "types"
+         ;;
+ 
++        get_dev_pagemap_single_arg)
++            #
++            # Determine if get_dev_pagemap() takes single argument.
++            #
++            # The get_dev_pagemap() function was updated to take only pfn argument
++            # and the lock parameter was removed in kernel v6.18.
++            #
++            CODE="
++            #include <linux/mm.h>
++            #include <linux/memremap.h>
++            void conftest_get_dev_pagemap(void) {
++                struct dev_pagemap *pgmap;
++                unsigned long pfn = 0;
++                pgmap = get_dev_pagemap(pfn);
++            }"
++
++            compile_check_conftest "$CODE" "NV_GET_DEV_PAGEMAP_SINGLE_ARG" "" "types"
++        ;;
+ 
+         # When adding a new conftest entry, please use the correct format for
+         # specifying the relevant upstream Linux kernel commit.  Please
+diff --git a/kernel-open/nvidia-uvm/nvidia-uvm.Kbuild b/kernel-open/nvidia-uvm/nvidia-uvm.Kbuild
+index 485f0f85d..db5e160ef 100644
+--- a/kernel-open/nvidia-uvm/nvidia-uvm.Kbuild
++++ b/kernel-open/nvidia-uvm/nvidia-uvm.Kbuild
+@@ -61,6 +61,7 @@ NV_CONFTEST_TYPE_COMPILE_TESTS += mmu_notifier_ops_arch_invalidate_secondary_tlb
+ NV_CONFTEST_TYPE_COMPILE_TESTS += migrate_vma_added_flags
+ NV_CONFTEST_TYPE_COMPILE_TESTS += migrate_device_range
+ NV_CONFTEST_TYPE_COMPILE_TESTS += handle_mm_fault_has_pt_regs_arg
++NV_CONFTEST_TYPE_COMPILE_TESTS += get_dev_pagemap_single_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += mempolicy_has_unified_nodes
+ NV_CONFTEST_TYPE_COMPILE_TESTS += mempolicy_has_home_node
+ NV_CONFTEST_TYPE_COMPILE_TESTS += mpol_preferred_many_present
+diff --git a/kernel-open/nvidia-uvm/uvm_va_range_device_p2p.c b/kernel-open/nvidia-uvm/uvm_va_range_device_p2p.c
+index 8a5c87bd3..27bb087c5 100644
+--- a/kernel-open/nvidia-uvm/uvm_va_range_device_p2p.c
++++ b/kernel-open/nvidia-uvm/uvm_va_range_device_p2p.c
+@@ -360,7 +360,11 @@ static NV_STATUS alloc_device_p2p_mem(uvm_gpu_t *gpu,
+         // a reference to them, so take one now if using DEVICE_COHERENT pages.
+         if (gpu->parent->cdmm_enabled) {
+             get_page(page);
++#if defined(NV_GET_DEV_PAGEMAP_SINGLE_ARG)
++            get_dev_pagemap(page_to_pfn(page));
++#else
+             get_dev_pagemap(page_to_pfn(page), NULL);
++#endif
+         }
+ #else
+         // CDMM P2PDMA will never be enabled for this case
