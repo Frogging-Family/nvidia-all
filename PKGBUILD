@@ -600,18 +600,12 @@ prepare() {
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
     fi
 
-    #if (( ${pkgver%%.*} >= 570 )); then
-    #  msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-    #  ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
-    #fi
-#
+    #
     # TODO 570xx patches
     #
     if (( ${pkgver%%.*} == 570 )); then
       msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" )
-      msg2 "Applying Add-IBT-support.diff to kernel-open ${pkgver}..."
-      patch -Np1 -i "${srcdir}/Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
 
     #
