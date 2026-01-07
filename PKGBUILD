@@ -418,8 +418,8 @@ source=($_source_name
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
-        '0001-Enable-atomic-kernel-modesetting-by-default.patch'
-        '0002-Add-IBT-support.patch')
+        '0001-Enable-atomic-kernel-modesetting-by-default.diff'
+        '0002-Add-IBT-support.diff')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -612,11 +612,11 @@ prepare() {
     # TODO 580xx patches
     #
     if (( ${pkgver%%.*} >= 580 )); then
-      msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.patch to kernel-open ${pkgver}..."
-      patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.patch" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+      msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
 
-      msg2 "Applying 0002-Add-IBT-support.patch to kernel-open ${pkgver}..."
-      patch -Np1 -i "${srcdir}/0002-Add-IBT-support.patch" -d "${srcdir}/${_srcbase}-${pkgver}"
+      msg2 "Applying 0002-Add-IBT-support.diff to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
 
     # 6.19 whitelist definition
