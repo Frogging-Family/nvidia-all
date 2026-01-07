@@ -273,6 +273,40 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
   fi
 fi
 
+# Install advanced NVIDIA module parameters (NVreg_*)
+_install_nvidia_modprobe_nvreg_conf() {
+  if [ "$_modprobe" = "true" ]; then
+    install -dm 755 "${pkgdir}/usr/lib/modprobe.d/"
+    cat > "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf" <<'EOF'
+# NVreg_UsePageAttributeTable=1 (Default 0) - Activating the better memory
+# management method (PAT). The PAT method creates a partition type table at a
+# specific address mapped inside the register and utilizes the memory
+# architecture and instruction set more efficiently and faster. If your system
+# can support this feature, it should improve CPU performance.
+#
+# NVreg_InitializeSystemMemoryAllocations=0 (Default 1) - Disables clearing
+# system memory allocation before using it for the GPU. Potentially improves
+# performance, but at the cost of increased security risks. Write "options
+# nvidia NVreg_InitializeSystemMemoryAllocations=1" in
+# /etc/modprobe.d/nvidia.conf, if you want to return the default value. Note:
+# It is possible to use more memory (?)
+#
+# NVreg_DynamicPowerManagement=0x02 - Enables the use of dynamic power
+# management for Turing generation mobile cards, allowing the dGPU to be
+# powered down during idle time.
+#
+# NVreg_RegistryDwords=RmEnableAggressiveVblank=1
+# Reduce time spent in interrupt top half for low latency display interrupts
+# by deferring the work until later
+#
+options nvidia NVreg_UsePageAttributeTable=1 \
+               NVreg_InitializeSystemMemoryAllocations=0 \
+               NVreg_DynamicPowerManagement=0x02 \
+               NVreg_RegistryDwords=RmEnableAggressiveVblank=1
+EOF
+  fi
+}
+
 msg2 "Building driver version $_driver_version on branch $_driver_branch."
 
 _pkgname_array=()
@@ -2196,6 +2230,9 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
+    # Advanced NVIDIA module parameters (NVreg_*)
+    _install_nvidia_modprobe_nvreg_conf
+
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
     if [[ -e "sandboxutils-filelist.json" ]]; then
       install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
@@ -2275,7 +2312,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
       # Force module to load even on unsupported GPUs
       mkdir -p "$pkgdir"/usr/lib/modprobe.d
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/${pkgname}-gpus.conf
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
 
@@ -2283,7 +2320,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
           echo "skip blacklist nouveau\n"
         else
             echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2316,9 +2353,9 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
           echo "skip blacklist nouveau\n"
         else
             echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
             echo "nvidia-uvm" |
-                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2503,9 +2540,9 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       echo "skip blacklist nouveau\n"
     else
         echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
         echo "nvidia-uvm" |
-            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
   fi
   }
 source /dev/stdin <<EOF
