@@ -276,34 +276,8 @@ fi
 # Install advanced NVIDIA module parameters (NVreg_*)
 _install_nvidia_modprobe_nvreg_conf() {
   if [ "$_modprobe" = "true" ]; then
-    install -dm 755 "${pkgdir}/usr/lib/modprobe.d/"
-    cat > "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf" <<'EOF'
-# NVreg_UsePageAttributeTable=1 (Default 0) - Activating the better memory
-# management method (PAT). The PAT method creates a partition type table at a
-# specific address mapped inside the register and utilizes the memory
-# architecture and instruction set more efficiently and faster. If your system
-# can support this feature, it should improve CPU performance.
-#
-# NVreg_InitializeSystemMemoryAllocations=0 (Default 1) - Disables clearing
-# system memory allocation before using it for the GPU. Potentially improves
-# performance, but at the cost of increased security risks. Write "options
-# nvidia NVreg_InitializeSystemMemoryAllocations=1" in
-# /etc/modprobe.d/nvidia.conf, if you want to return the default value. Note:
-# It is possible to use more memory (?)
-#
-# NVreg_DynamicPowerManagement=0x02 - Enables the use of dynamic power
-# management for Turing generation mobile cards, allowing the dGPU to be
-# powered down during idle time.
-#
-# NVreg_RegistryDwords=RmEnableAggressiveVblank=1
-# Reduce time spent in interrupt top half for low latency display interrupts
-# by deferring the work until later
-#
-options nvidia NVreg_UsePageAttributeTable=1 \
-               NVreg_InitializeSystemMemoryAllocations=0 \
-               NVreg_DynamicPowerManagement=0x02 \
-               NVreg_RegistryDwords=RmEnableAggressiveVblank=1
-EOF
+    echo -e "options nvidia NVreg_UsePageAttributeTable=1 \ \n               NVreg_InitializeSystemMemoryAllocations=0 \ \n               NVreg_DynamicPowerManagement=0x02 \ \n               NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
   fi
 }
 
@@ -2231,7 +2205,9 @@ nvidia-utils-tkg() {
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
     # Advanced NVIDIA module parameters (NVreg_*)
-    _install_nvidia_modprobe_nvreg_conf
+    if (( ${pkgver%%.*} >= 580 )); then
+      _install_nvidia_modprobe_nvreg_conf
+    fi
 
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
     if [[ -e "sandboxutils-filelist.json" ]]; then
