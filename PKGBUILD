@@ -2283,8 +2283,8 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       provides=('NVIDIA-MODULE')
 
       cd ${_srcbase}-${pkgver}
-      #_extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
-      _extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
+      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
+      #_extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
       find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
       find "${pkgdir}" -name '*.ko' -exec xz {} +
