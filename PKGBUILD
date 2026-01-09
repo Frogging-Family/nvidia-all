@@ -273,6 +273,14 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
   fi
 fi
 
+# Install advanced NVIDIA module parameters (NVreg_*)
+_install_nvidia_modprobe_nvreg_conf() {
+  if [ "$_modprobe" = "true" ]; then
+    echo -e "options nvidia NVreg_UsePageAttributeTable=1 \ \n               NVreg_InitializeSystemMemoryAllocations=0 \ \n               NVreg_DynamicPowerManagement=0x02 \ \n               NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+  fi
+}
+
 msg2 "Building driver version $_driver_version on branch $_driver_branch."
 
 _pkgname_array=()
@@ -417,7 +425,9 @@ source=($_source_name
         'limit-vram-usage'
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
-)
+        'kernel-6.19.patch'
+        '0001-Enable-atomic-kernel-modesetting-by-default.diff'
+        '0002-Add-IBT-support.diff')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -486,7 +496,9 @@ md5sums=("$_md5sum"
          '0cdd9458228beb04e34d5128cb43fe46'
          'f52a9eb49a21f7b6fe34cc5399bb61de'
          'f6d0a9b1e503d0e8c026a20b61f889c2'
-)
+         'd0c82c7a74cc7cc5467aebf5a50238ee'
+         '24bd1c8e7b9265020969a8da2962e114'
+         '84ca49afabf4907f19c81e0bb56b5873')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -596,10 +608,60 @@ prepare() {
       patch -Np1 -i "$srcdir"/fix-hdmi-names.diff
     fi
 
-    if (( ${pkgver%%.*} >= 570 )); then
-      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open..."
-      ( cd "$srcdir"/${_srcbase}-${pkgver}/kernel-open && patch -Np2 -i "$srcdir"/Enable-atomic-kernel-modesetting-by-default.diff )
+    #
+    # TODO 570xx patches
+    #
+    if (( ${pkgver%%.*} == 570 )); then
+      msg2 "Applying Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
+      ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/Enable-atomic-kernel-modesetting-by-default.diff" )
     fi
+
+    #
+    # TODO 580xx patches
+    #
+    if (( ${pkgver%%.*} >= 580 )); then
+      msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+
+      msg2 "Applying 0002-Add-IBT-support.diff to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
+    fi
+
+    # 6.19 whitelist definition
+    _open_whitelist619=( 590* )
+    # Add future kernel version whitelists here following the same pattern
+
+    local -a _kernels
+    if [ -n "${_kernel}override" ]; then
+      _kernels="${_kernel}override"
+    else
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+    fi
+
+    for _kernel in "${_kernels[@]}"; do
+      # 6.19
+      if (( $(vercmp "${_kernel}" "6.19") >= 0 )); then
+        _open_kernel619="1"
+      fi
+      # Add future kernel version checks here following the same pattern
+    done
+
+    # 6.19
+    if [ "${_open_kernel619}" = "1" ]; then
+      if (( ${pkgver%%.*} == 590 )); then
+        patchy=0
+        for yup in "${_open_whitelist619[@]}"; do
+          [[ ${pkgver} = ${yup} ]] && patchy=1
+        done
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-6.19.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
+        else
+          msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      fi
+    fi
+    # Add future kernel patch applications here following the same pattern
 
     if [ "$_gcc15" = "true" ]; then
       ( cd kernel-open && patch -Np2 -i "$srcdir"/gcc-15.diff )
@@ -1770,6 +1832,10 @@ nvidia-egl-wayland-tkg() {
   depends=('nvidia-utils-tkg' 'eglexternalplatform')
   provides=("egl-wayland" "nvidia-egl-wayland-tkg")
   conflicts=('egl-wayland')
+  if [ "${_eglgbm}" != "external" ]; then
+    provides+=("egl-gbm")
+    conflicts+=('egl-gbm')
+  fi
   if (( ${pkgver%%.*} >= 590 )); then
     provides+=("egl-wayland2")
     conflicts+=('egl-wayland2')
@@ -1843,7 +1909,7 @@ EOF
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
-  depends=('libglvnd' 'mesa' 'vulkan-icd-loader')
+  depends=('libglvnd' 'mesa' 'vulkan-icd-loader' 'egl-x11')
   if [ "$_eglgbm" = "external" ]; then
     depends+=('egl-gbm')
   fi
@@ -2138,22 +2204,32 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
+    # Advanced NVIDIA module parameters (NVreg_*)
+    if (( ${pkgver%%.*} >= 580 )); then
+      _install_nvidia_modprobe_nvreg_conf
+    fi
+
+    # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
+    if [[ -e "sandboxutils-filelist.json" ]]; then
+      install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
+    fi
+
+    # https://github.com/microsoft/TileIR
+    if [[ -e "libnvidia-tileiras.so.${pkgver}" ]]; then
+      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
+    fi
+
     if (( ${pkgver%%.*} >= 580 )); then
       # Vulkan GTK Renderer Crash fix
-      install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
-
+      #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
       install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
-      # https://github.com/microsoft/TileIR
-      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
-
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
       install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
-
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
       install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
@@ -2204,22 +2280,23 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       provides=('NVIDIA-MODULE')
 
       cd ${_srcbase}-${pkgver}
-      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
+      #_extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
+      _extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
       find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
       find "${pkgdir}" -name '*.ko' -exec xz {} +
 
       # Force module to load even on unsupported GPUs
       mkdir -p "$pkgdir"/usr/lib/modprobe.d
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
+      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/${pkgname}-gpus.conf
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
 
       if [ "$_blacklist_nouveau" = false ]; then
           echo "skip blacklist nouveau\n"
         else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2251,10 +2328,10 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       if [ "$_blacklist_nouveau" = false ]; then
           echo "skip blacklist nouveau\n"
         else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
             echo "nvidia-uvm" |
-                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2372,8 +2449,17 @@ lib32-nvidia-utils-tkg() {
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
     fi
 
-    if (( ${pkgver%%.*} >= 590 )); then
-      # https://github.com/microsoft/TileIR
+    # Optical flow
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/lib32-nvidia-utils/-/blob/main/PKGBUILD?ref_type=heads#L98
+    if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]]; then
+      install -Dm755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opticalflow.so.${pkgver}"
+    else
+      # X wrapped software rendering
+      install -Dm755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-wfb.so.${pkgver}"
+    fi
+
+    # https://github.com/microsoft/TileIR
+    if [[ -e libnvidia-tileiras.so.${pkgver} ]]; then
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
     fi
 
@@ -2429,10 +2515,10 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   if [ "$_blacklist_nouveau" = false ]; then
       echo "skip blacklist nouveau\n"
     else
-        echo -e "blacklist nouveau\nblacklist lbm-nouveau" |
-            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
         echo "nvidia-uvm" |
-            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}.conf"
+            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
   fi
   }
 source /dev/stdin <<EOF
