@@ -492,7 +492,7 @@ md5sums=("$_md5sum"
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         'f67009805c182670cb1c5dec9e02dd7c')
+         'c26fe97dd7bf3b7de0eee1d4cde731ca')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
