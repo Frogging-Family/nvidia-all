@@ -1909,7 +1909,7 @@ EOF
 
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
-  depends=('libglvnd' 'mesa' 'vulkan-icd-loader' 'egl-x11')
+  depends=('libglvnd' 'mesa' 'vulkan-icd-loader')
   if [ "$_eglgbm" = "external" ]; then
     depends+=('egl-gbm')
   fi
