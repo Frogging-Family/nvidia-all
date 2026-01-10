@@ -273,14 +273,6 @@ if [[ "$_only_update_if_newer" == "true" ]]; then
   fi
 fi
 
-# Install advanced NVIDIA module parameters (NVreg_*)
-_install_nvidia_modprobe_nvreg_conf() {
-  if [ "$_modprobe" = "true" ]; then
-    echo -e "options nvidia NVreg_UsePageAttributeTable=1 \ \n               NVreg_InitializeSystemMemoryAllocations=0 \ \n               NVreg_DynamicPowerManagement=0x02 \ \n               NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
-      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
-  fi
-}
-
 msg2 "Building driver version $_driver_version on branch $_driver_branch."
 
 _pkgname_array=()
@@ -427,7 +419,8 @@ source=($_source_name
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
-        '0002-Add-IBT-support.diff')
+        '0002-Add-IBT-support.diff'
+        'nvidia-patch.sh')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -498,7 +491,8 @@ md5sums=("$_md5sum"
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
-         '84ca49afabf4907f19c81e0bb56b5873')
+         '84ca49afabf4907f19c81e0bb56b5873'
+         'c26fe97dd7bf3b7de0eee1d4cde731ca')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -2207,11 +2201,6 @@ nvidia-utils-tkg() {
     # Fixes Wayland Sleep, when restoring the session
     install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
 
-    # Advanced NVIDIA module parameters (NVreg_*)
-    if (( ${pkgver%%.*} >= 580 )); then
-      _install_nvidia_modprobe_nvreg_conf
-    fi
-
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
     if [[ -e "sandboxutils-filelist.json" ]]; then
       install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
@@ -2223,7 +2212,7 @@ nvidia-utils-tkg() {
     fi
 
     if (( ${pkgver%%.*} >= 580 )); then
-      # Vulkan GTK Renderer Crash fix
+      # Vulkan GTK Renderer Crash fix ( NOTE: this looks like no more needed since 580+ but just in case regressions happen I leave it here commented below )
       #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
@@ -2235,6 +2224,58 @@ nvidia-utils-tkg() {
       install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
       install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    fi
+
+    # Install nvidia-modprobe configuration to set advanced module parameters
+    # Default to false if _modprobe is empty
+    _modprobe="${_modprobe:-false}"
+    # Check and apply advanced NVIDIA module parameters (NVreg_*)
+    if [[ "${_modprobe}" == "true" ]]; then
+      if (( ${pkgver%%.*} >= 580 )); then
+        msg2 "Applying advanced NVIDIA module parameters (NVreg_*)..."
+        echo -e "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_DynamicPowerManagement=0x02 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+      else
+        warning "Advanced NVIDIA module parameters require driver version >= 580 (current: ${pkgver})"
+      fi
+    fi
+
+    # Install nvidia-patch from https://github.com/keylase/nvidia-patch
+    # Default to false if _nvidia_patch_enc_fbc is empty
+    _nvidia_patch_enc_fbc="${_nvidia_patch_enc_fbc:-false}"
+    # Check and apply nvidia-patch for NVENC/NVFBC
+    if [[ "${_nvidia_patch_enc_fbc}" == "true" ]]; then
+      # Check for conflicting packages
+      if pacman -Q nvidia-patch &>/dev/null || pacman -Q nvidia-patch-git &>/dev/null; then
+        warning "nvidia-patch or nvidia-patch-git package is installed. Skipping integrated nvidia-patch to avoid conflicts."
+        warning "Please uninstall nvidia-patch/nvidia-patch-git or disable _nvidia_patch_enc_fbc in customization.cfg"
+      else
+        msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
+        # Source the nvidia-patch.sh script to get patch definitions
+        source "${srcdir}/nvidia-patch.sh" 2>/dev/null || true
+        # Apply NVENC patch (libnvidia-encode)
+        if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
+          if [[ -n "${enc_patch_list[$pkgver]}" ]]; then
+            msg2 "  - Version ${pkgver} detected and supported for NVENC patching"
+            # Apply the sed patch directly to the library
+            sed -i "${enc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+            msg2 "  - Patched libnvidia-encode.so.${pkgver} (NVENC session limit removed)"
+          else
+            warning "NVENC patch not available for driver version ${pkgver}"
+          fi
+        fi
+        # Apply NVFBC patch (libnvidia-fbc)
+        if [[ -f "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" ]]; then
+          if [[ -n "${fbc_patch_list[$pkgver]}" ]]; then
+            msg2 "  - Version ${pkgver} detected and supported for NVFBC patching"
+            # Apply the sed patch directly to the library
+            sed -i "${fbc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+            msg2 "  - Patched libnvidia-fbc.so.${pkgver} (NVFBC enabled on consumer cards)"
+          else
+            warning "NVFBC patch not available for driver version ${pkgver}"
+          fi
+        fi
+      fi
     fi
 
     _create_links
