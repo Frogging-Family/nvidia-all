@@ -2236,7 +2236,7 @@ nvidia-utils-tkg() {
       if (( ${pkgver%%.*} >= 580 )); then
         msg2 "Applying advanced NVIDIA module parameters (NVreg_*)..."
         msg2 "These options optimize NVIDIA driver behavior for performance and power management"
-        echo -e "options nvidia NVreg_UsePageAttributeTable=1 \ \n               NVreg_InitializeSystemMemoryAllocations=0 \ \n               NVreg_DynamicPowerManagement=0x02 \ \n               NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+        echo "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_DynamicPowerManagement=0x02 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
           install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
         msg2 "  - Created ${pkgname}-modprobe.conf with optimized parameters"
       else
