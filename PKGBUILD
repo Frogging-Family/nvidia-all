@@ -420,8 +420,7 @@ source=($_source_name
         'kernel-6.19.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
-        'patch.sh::https://raw.githubusercontent.com/keylase/nvidia-patch/master/patch.sh'
-        'patch-fbc.sh::https://raw.githubusercontent.com/keylase/nvidia-patch/master/patch-fbc.sh')
+        'nvidia-patch.sh')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -493,8 +492,7 @@ md5sums=("$_md5sum"
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         'SKIP'
-         'SKIP')
+         'f67009805c182670cb1c5dec9e02dd7c')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -2235,10 +2233,8 @@ nvidia-utils-tkg() {
     if [[ "${_modprobe}" == "true" ]]; then
       if (( ${pkgver%%.*} >= 580 )); then
         msg2 "Applying advanced NVIDIA module parameters (NVreg_*)..."
-        msg2 "These options optimize NVIDIA driver behavior for performance and power management"
-        echo "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_DynamicPowerManagement=0x02 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+        echo -e "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_DynamicPowerManagement=0x02 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
           install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
-        msg2 "  - Created ${pkgname}-modprobe.conf with optimized parameters"
       else
         warning "Advanced NVIDIA module parameters require driver version >= 580 (current: ${pkgver})"
       fi
@@ -2249,48 +2245,37 @@ nvidia-utils-tkg() {
     _nvidia_patch_enc_fbc="${_nvidia_patch_enc_fbc:-false}"
     # Check and apply nvidia-patch for NVENC/NVFBC
     if [[ "${_nvidia_patch_enc_fbc}" == "true" ]]; then
-      msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
-      # Temporarily set PATCH_OUTPUT_DIR to pkgdir
-      export PATCH_OUTPUT_DIR="${pkgdir}/usr/lib"
-      # Apply NVENC patch using official nvidia-patch script
-      if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
-        cd "${srcdir}"
-        # Check if version is supported
-        if bash patch.sh -c "${pkgver}" &>/dev/null; then
-          msg2 "  - Version ${pkgver} detected and supported for NVENC patching"
-          # Backup the library
-          cp "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" "${srcdir}/libnvidia-encode.so.${pkgver}.backup"
-          msg2 "  - Backup created: ${srcdir}/libnvidia-encode.so.${pkgver}.backup"
-          # Apply patch by modifying the script's target
-          bash patch.sh -d "${pkgver}" -s || warning "NVENC patch failed for version ${pkgver}"
-          # If patch was successful, copy to pkgdir
-          if [[ -f "${PATCH_OUTPUT_DIR}/libnvidia-encode.so.${pkgver}" ]]; then
+      # Check for conflicting packages
+      if pacman -Q nvidia-patch &>/dev/null || pacman -Q nvidia-patch-git &>/dev/null; then
+        warning "nvidia-patch or nvidia-patch-git package is installed. Skipping integrated nvidia-patch to avoid conflicts."
+        warning "Please uninstall nvidia-patch/nvidia-patch-git or disable _nvidia_patch_enc_fbc in customization.cfg"
+      else
+        msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
+        # Source the nvidia-patch.sh script to get patch definitions
+        source "${srcdir}/nvidia-patch.sh" 2>/dev/null || true
+        # Apply NVENC patch (libnvidia-encode)
+        if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
+          if [[ -n "${enc_patch_list[$pkgver]}" ]]; then
+            msg2 "  - Version ${pkgver} detected and supported for NVENC patching"
+            # Apply the sed patch directly to the library
+            sed -i "${enc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
             msg2 "  - Patched libnvidia-encode.so.${pkgver} (NVENC session limit removed)"
+          else
+            warning "NVENC patch not available for driver version ${pkgver}"
           fi
-        else
-          warning "NVENC patch not available for driver version ${pkgver}"
         fi
-      fi
-      # Apply NVFBC patch using official nvidia-patch script
-      if [[ -f "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" ]]; then
-        cd "${srcdir}"
-        # Check if version is supported
-        if bash patch-fbc.sh -c "${pkgver}" &>/dev/null; then
-          msg2 "  - Version ${pkgver} detected and supported for NVFBC patching"
-          # Backup the library
-          cp "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" "${srcdir}/libnvidia-fbc.so.${pkgver}.backup"
-          msg2 "  - Backup created: ${srcdir}/libnvidia-fbc.so.${pkgver}.backup"
-          # Apply patch
-          bash patch-fbc.sh -d "${pkgver}" -s || warning "NVFBC patch failed for version ${pkgver}"
-          # If patch was successful, copy to pkgdir
-          if [[ -f "${PATCH_OUTPUT_DIR}/libnvidia-fbc.so.${pkgver}" ]]; then
+        # Apply NVFBC patch (libnvidia-fbc)
+        if [[ -f "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" ]]; then
+          if [[ -n "${fbc_patch_list[$pkgver]}" ]]; then
+            msg2 "  - Version ${pkgver} detected and supported for NVFBC patching"
+            # Apply the sed patch directly to the library
+            sed -i "${fbc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
             msg2 "  - Patched libnvidia-fbc.so.${pkgver} (NVFBC enabled on consumer cards)"
+          else
+            warning "NVFBC patch not available for driver version ${pkgver}"
           fi
-        else
-          warning "NVFBC patch not available for driver version ${pkgver}"
         fi
       fi
-      unset PATCH_OUTPUT_DIR
     fi
 
     _create_links
