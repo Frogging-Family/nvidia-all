@@ -1,5 +1,7 @@
 #!/bin/env bash
 
+# Migrated from https://github.com/keylase/nvidia-patch
+
 declare -A enc_patch_list=(
     ["375.39"]='s/\x85\xC0\x89\xC5\x75\x18/\x29\xC0\x89\xC5\x90\x90/g'
     ["390.77"]='s/\x85\xC0\x89\xC5\x75\x18/\x29\xC0\x89\xC5\x90\x90/g'
