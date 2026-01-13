@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.590 series: 590.48.01\n      3.580 series: 580.119.02\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.13\n      2.590 series: 590.48.01\n      3.580 series: 580.126.09\n      4.570 series: 570.207\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -62,8 +62,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=580.119.02' > options
-      echo '_md5sum=5603f48f2af83d4fb3164ca9ef27ff3a' >> options
+      echo '_driver_version=580.126.09' > options
+      echo '_md5sum=19f6d0af99fc3042ed20fa0639a70f45' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.207' > options
@@ -492,7 +492,7 @@ md5sums=("$_md5sum"
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         'c26fe97dd7bf3b7de0eee1d4cde731ca')
+         '0f9ba989353cda6740bfcca965a41c7d')
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -613,7 +613,7 @@ prepare() {
     #
     # TODO 580xx patches
     #
-    if (( ${pkgver%%.*} >= 580 )); then
+    if (( ${pkgver%%.*} >= 590 )); then
       msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
 
@@ -626,8 +626,8 @@ prepare() {
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
-    if [ -n "${_kernel}override" ]; then
-      _kernels="${_kernel}override"
+    if [ -n "${_kerneloverride}" ]; then
+      _kernels="${_kerneloverride}"
     else
       mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
