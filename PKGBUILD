@@ -74,7 +74,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.575 series: 575.64.05\n      2.565 series: 565.77\n      3.560 series: 560.35.03\n      4.555 series: 555.58.02\n      5.550 series: 550.135\n      6.545 series: 545.29.06\n      7.535 series: 535.183.01\n      8.530 series: 530.41.03\n      9.525 series: 525.147.05\n      10.520 series: 520.56.06\n      11.515 series: 515.86.01\n      12.510 series: 510.85.02\n      13.495 series: 495.46\n      14.465 series: 465.31\n      15.460 series: 460.91.03\n      16.455 series: 455.45.01\n      17.450 series: 450.119.03\n      18.440 series: 440.100 (kernel 5.8 or lower)\n      19.435 series: 435.21  (kernel 5.6 or lower)\n      20.430 series: 430.64  (kernel 5.5 or lower)\n      21.418 series: 418.113 (kernel 5.5 or lower)\n      22.415 series: 415.27  (kernel 5.4 or lower)\n      23.410 series: 410.104 (kernel 5.5 or lower)\n      24.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-24?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.575 series: 575.64.05\n      2.565 series: 565.77\n      3.560 series: 560.35.03\n      4.555 series: 555.58.02\n      5.550 series: 550.135\n      6.545 series: 545.29.06\n      7.535 series: 535.288.01\n      8.530 series: 530.41.03\n      9.525 series: 525.147.05\n      10.520 series: 520.56.06\n      11.515 series: 515.86.01\n      12.510 series: 510.85.02\n      13.495 series: 495.46\n      14.465 series: 465.31\n      15.460 series: 460.91.03\n      16.455 series: 455.45.01\n      17.450 series: 450.119.03\n      18.440 series: 440.100 (kernel 5.8 or lower)\n      19.435 series: 435.21  (kernel 5.6 or lower)\n      20.430 series: 430.64  (kernel 5.5 or lower)\n      21.418 series: 418.113 (kernel 5.5 or lower)\n      22.415 series: 415.27  (kernel 5.4 or lower)\n      23.410 series: 410.104 (kernel 5.5 or lower)\n      24.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-24?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=565.77' > options
         echo '_md5sum=48d9a5b5999d0f30ec8326c94b34945e' >> options
@@ -96,8 +96,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "7" ]; then
-        echo '_driver_version=535.183.01' > options
-        echo '_md5sum=e9ea27c842436f3af6ccab7ec4727c0b' >> options
+        echo '_driver_version=535.288.01' > options
+        echo '_md5sum=8316bb6a4448981fc925abda85194197' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "8" ]; then
         echo '_driver_version=530.41.03' > options
