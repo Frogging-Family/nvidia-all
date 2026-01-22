@@ -1983,7 +1983,7 @@ nvidia-utils-tkg() {
     elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
       install -D -m755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
     fi
-    if (( ${pkgver%%.*} <= 580 )) && [[ -e 20_nvidia_xlib.json ]]; then
+    if (( ${pkgver%%.*} < 580 )) && [[ -e 20_nvidia_xlib.json ]]; then
       install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
     fi
     if [[ -e libnvidia-egl-xcb.so.1 ]]; then
@@ -1995,7 +1995,7 @@ nvidia-utils-tkg() {
     elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
       install -D -m755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
     fi
-    if (( ${pkgver%%.*} <= 580 )) && [[ -e 20_nvidia_xcb.json ]]; then
+    if (( ${pkgver%%.*} < 580 )) && [[ -e 20_nvidia_xcb.json ]]; then
       install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
     fi
 
