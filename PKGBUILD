@@ -1106,7 +1106,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       fi
 
       # Loop patches (linux-4.15.patch, lol.patch, ...)
-      for _p in $(printf -- '%s\n' ${source[@]} | grep .patch); do  # https://stackoverflow.com/a/21058239/1821548
+      for _p in $(printf -- '%s\n' ${source[@]} | grep '\.patch$'); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
         _patch=$(echo $_p | grep -Po "\d+\.\d+")
 
