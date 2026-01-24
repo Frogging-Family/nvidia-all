@@ -613,7 +613,7 @@ prepare() {
     #
     # TODO 580xx patches
     #
-    if (( ${pkgver%%.*} >= 590 )); then
+    if (( ${pkgver%%.*} >= 580 )); then
       msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
 
