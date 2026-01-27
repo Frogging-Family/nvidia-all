@@ -493,7 +493,7 @@ md5sums=("$_md5sum"
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
+         'c3a3622be834839f3b1c1dc0dfe4c859' # nvidia-patch.sh
 )
 
 if [ "$_open_source_modules" = "true" ]; then
