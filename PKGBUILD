@@ -421,8 +421,6 @@ source=($_source_name
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
-        'limit-vram-usage-tkg'
-        'cuda-no-stable-perf-limit-tkg'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -489,15 +487,13 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46'
-         'f52a9eb49a21f7b6fe34cc5399bb61de'
+         'fe7784b3f9f63e71280b1dc5b8a95344' # limit-vram-usage
+         '53d3e62cb17ccf3fd58b9b88dc76d8c3' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
-         'fa9c478d67d689d15ff656a4dd4815bb' # limit-vram-usage-tkg
-         'bb5ff8c4e121516afd30af3cf330b7b4' # cuda-no-stable-perf-limit-tkg
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -2223,15 +2219,11 @@ nvidia-utils-tkg() {
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
       install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
-      # TKG Custom: Reduced VRAM usage
-      install -Dm644 "${srcdir}/limit-vram-usage-tkg" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage-tkg"
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
       install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
-      # TKG Custom: Allow full perf while streaming/recording
-      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit-tkg" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit-tkg"
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
       install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
