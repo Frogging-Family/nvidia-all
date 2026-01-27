@@ -2243,7 +2243,7 @@ nvidia-utils-tkg() {
     if [[ "${_modprobe}" == "true" ]]; then
       if (( ${pkgver%%.*} >= 580 )); then
         msg2 "Applying advanced NVIDIA module parameters (NVreg_*)..."
-        echo -e "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_DynamicPowerManagement=0x02 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
+        echo -e "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
           install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
       else
         warning "Advanced NVIDIA module parameters require driver version >= 580 (current: ${pkgver})"
