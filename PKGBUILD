@@ -420,7 +420,8 @@ source=($_source_name
         'kernel-6.19.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
-        'nvidia-patch.sh')
+        'nvidia-patch.sh'
+)
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -486,13 +487,14 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46'
-         'f52a9eb49a21f7b6fe34cc5399bb61de'
+         'fe7784b3f9f63e71280b1dc5b8a95344' # limit-vram-usage
+         '53d3e62cb17ccf3fd58b9b88dc76d8c3' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         'c3a3622be834839f3b1c1dc0dfe4c859')
+         'c3a3622be834839f3b1c1dc0dfe4c859' # nvidia-patch.sh
+)
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -2216,14 +2218,14 @@ nvidia-utils-tkg() {
       #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
-      install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
-      install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+      install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     # Install nvidia-modprobe configuration to set advanced module parameters
