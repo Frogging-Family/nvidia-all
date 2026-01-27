@@ -420,7 +420,10 @@ source=($_source_name
         'kernel-6.19.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
-        'nvidia-patch.sh')
+        'nvidia-patch.sh'
+        'limit-vram-usage-tkg'
+        'cuda-no-stable-perf-limit-tkg'
+)
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -492,7 +495,10 @@ md5sums=("$_md5sum"
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         'c3a3622be834839f3b1c1dc0dfe4c859')
+         '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
+         'fa9c478d67d689d15ff656a4dd4815bb' # limit-vram-usage-tkg
+         'bb5ff8c4e121516afd30af3cf330b7b4' # cuda-no-stable-perf-limit-tkg
+)
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -2216,14 +2222,18 @@ nvidia-utils-tkg() {
       #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
-      install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      # TKG Custom: Reduced VRAM usage
+      install -Dm644 "${srcdir}/limit-vram-usage-tkg" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage-tkg"
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+      # TKG Custom: Allow full perf while streaming/recording
+      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit-tkg" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit-tkg"
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
-      install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+      install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     # Install nvidia-modprobe configuration to set advanced module parameters
