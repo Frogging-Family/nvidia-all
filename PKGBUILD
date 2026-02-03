@@ -545,6 +545,11 @@ prepare() {
   # Remove previous builds
   [ -d "$_pkg" ] && rm -rf "$_pkg"
 
+  # Use custom compiler paths if defined
+  if [ -n "${CUSTOM_GCC_PATH}" ]; then
+    PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
+  fi
+
   # Check GCC version compatibility with running kernel
   _system_gcc=$(gcc -dumpversion | cut -d. -f1)
   _kernel_gcc=$(grep -oP 'gcc \(GCC\) \K[0-9]+' /proc/version 2>/dev/null || \
@@ -568,11 +573,6 @@ prepare() {
       error "Aborted by user due to GCC mismatch."
       exit 1
     fi
-  fi
-
-  # Use custom compiler paths if defined
-  if [ -n "${CUSTOM_GCC_PATH}" ]; then
-    PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
   fi
 
   if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
