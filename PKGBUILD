@@ -545,6 +545,31 @@ prepare() {
   # Remove previous builds
   [ -d "$_pkg" ] && rm -rf "$_pkg"
 
+  # Check GCC version compatibility with running kernel
+  _system_gcc=$(gcc -dumpversion | cut -d. -f1)
+  _kernel_gcc=$(grep -oP 'gcc \(GCC\) \K[0-9]+' /proc/version 2>/dev/null || \
+                grep -oP 'gcc version \K[0-9]+' /proc/version 2>/dev/null || \
+                grep -oP 'gcc-\K[0-9]+' /proc/version 2>/dev/null)
+  #_system_gcc="99" # Fake value for testing
+  if [[ -n "$_kernel_gcc" && "$_system_gcc" != "$_kernel_gcc" ]]; then
+    warning "========================================================================"
+    warning "GCC VERSION MISMATCH DETECTED!"
+    warning "Your system GCC: $_system_gcc"
+    warning "Your running kernel was built with GCC: $_kernel_gcc"
+    warning ""
+    warning "NVIDIA modules must be compiled with the same GCC as the kernel."
+    warning "Compilation may fail or cause issues!"
+    warning ""
+    warning "Either install GCC $_kernel_gcc or rebuild your kernel with GCC $_system_gcc"
+    warning "========================================================================"
+    plain ""
+    read -p "    Continue anyway? [y/N] " _continue
+    if [[ ! "$_continue" =~ [yY] ]]; then
+      error "Aborted by user due to GCC mismatch."
+      exit 1
+    fi
+  fi
+
   # Use custom compiler paths if defined
   if [ -n "${CUSTOM_GCC_PATH}" ]; then
     PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
