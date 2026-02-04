@@ -555,7 +555,6 @@ prepare() {
   _kernel_gcc=$(grep -oP 'gcc \(GCC\) \K[0-9]+' /proc/version 2>/dev/null || \
                 grep -oP 'gcc version \K[0-9]+' /proc/version 2>/dev/null || \
                 grep -oP 'gcc-\K[0-9]+' /proc/version 2>/dev/null)
-  #_system_gcc="99" # Fake value for testing
   if [[ -n "$_kernel_gcc" && "$_system_gcc" != "$_kernel_gcc" ]]; then
     warning "========================================================================"
     warning "GCC VERSION MISMATCH DETECTED!"
