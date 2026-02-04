@@ -19,20 +19,10 @@
                     { "feature": "procname", "matches": "alacritty" },
                     { "feature": "procname", "matches": "konsole" },
                     { "feature": "procname", "matches": "niri" },
-                    { "feature": "procname", "matches": "google-chrome" },
-                    { "feature": "procname", "matches": "brave-browser" },
-                    { "feature": "procname", "matches": "brave-bin" },
-                    { "feature": "procname", "matches": "firefox-bin" },
-                    { "feature": "procname", "matches": "opera" },
-                    { "feature": "procname", "matches": "vivaldi" },
-                    { "feature": "procname", "matches": "vivaldi-bin" },
-                    { "feature": "procname", "matches": "edge" },
-                    { "feature": "procname", "matches": "microsoft-edge" },
                     { "feature": "procname", "matches": "code" },
-                    { "feature": "procname", "matches": "codium" },
-                    { "feature": "procname", "matches": "vscode" },
-                    { "feature": "procname", "matches": "kitty" },
-                    { "feature": "procname", "matches": "gnome-terminal" }
+                    { "feature": "procname", "matches": "coolercontrol" },
+                    { "feature": "procname", "matches": "electron" },
+                    { "feature": "procname", "matches": "yakuake" }
                 ]
             },
             "profile": "No VidMem Reuse"

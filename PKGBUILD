@@ -487,8 +487,8 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         'fe7784b3f9f63e71280b1dc5b8a95344' # limit-vram-usage
-         '53d3e62cb17ccf3fd58b9b88dc76d8c3' # cuda-no-stable-perf-limit
+         '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
+         'dc4c4bdc9995d54d19a0b291d2fcbb17' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
