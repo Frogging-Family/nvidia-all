@@ -486,8 +486,8 @@ md5sums=("$_md5sum"
          '7143f20dbb3333ea6304540b5318bacb'
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
-         '0cdd9458228beb04e34d5128cb43fe46'
-         'f52a9eb49a21f7b6fe34cc5399bb61de'
+         '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
+         '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
@@ -2240,14 +2240,14 @@ nvidia-utils-tkg() {
       #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
       # Add limit vram usage scripts migrated from CachyOS
       # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
-      install -Dm644 "$srcdir"/limit-vram-usage "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
     fi
 
     if (( ${pkgver%%.*} >= 590 )); then
       # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      install -Dm644 "$srcdir"/cuda-no-stable-perf-limit "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
       # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
-      install -Dm644 "$srcdir"/50-nvidia-cuda-disable-perf-boost.conf "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+      install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
     # Install nvidia-modprobe configuration to set advanced module parameters

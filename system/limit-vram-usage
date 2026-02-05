@@ -18,7 +18,11 @@
                     { "feature": "procname", "matches": "firefox" },
                     { "feature": "procname", "matches": "alacritty" },
                     { "feature": "procname", "matches": "konsole" },
-                    { "feature": "procname", "matches": "niri" }
+                    { "feature": "procname", "matches": "niri" },
+                    { "feature": "procname", "matches": "code" },
+                    { "feature": "procname", "matches": "coolercontrol" },
+                    { "feature": "procname", "matches": "electron" },
+                    { "feature": "procname", "matches": "yakuake" }
                 ]
             },
             "profile": "No VidMem Reuse"

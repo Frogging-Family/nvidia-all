@@ -18,7 +18,11 @@
                     { "feature": "procname", "matches": "simplescreenrecorder" },
                     { "feature": "procname", "matches": "gpu-screen-recorder" },
                     { "feature": "procname", "matches": "spectacle" },
-                    { "feature": "procname", "matches": "webcord" }
+                    { "feature": "procname", "matches": "webcord" },
+                    { "feature": "procname", "matches": "brave" },
+                    { "feature": "procname", "matches": "chrome" },
+                    { "feature": "procname", "matches": "chromium" },
+                    { "feature": "procname", "matches": "firefox" }
                 ]
             },
             "profile": "CudaNoStablePerfLimit"
