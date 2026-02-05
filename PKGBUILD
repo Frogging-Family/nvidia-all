@@ -420,8 +420,7 @@ source=($_source_name
         'kernel-6.19.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
-        'nvidia-patch.sh'
-)
+        'nvidia-patch.sh')
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -488,7 +487,7 @@ md5sums=("$_md5sum"
          '6c26d0df1e30c8bedf6abfe99e842944'
          'c39df46bb99047ca7d09f9122a7370a8'
          '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
-         'dc4c4bdc9995d54d19a0b291d2fcbb17' # cuda-no-stable-perf-limit
+         '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          'd0c82c7a74cc7cc5467aebf5a50238ee'
          '24bd1c8e7b9265020969a8da2962e114'
