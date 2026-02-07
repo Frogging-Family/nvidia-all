@@ -554,7 +554,8 @@ prepare() {
   _system_gcc=$(gcc -dumpversion | cut -d. -f1)
   _kernel_gcc=$(grep -oP 'gcc \(GCC\) \K[0-9]+' /proc/version 2>/dev/null || \
                 grep -oP 'gcc version \K[0-9]+' /proc/version 2>/dev/null || \
-                grep -oP 'gcc-\K[0-9]+' /proc/version 2>/dev/null)
+                grep -oP 'gcc-\K[0-9]+' /proc/version 2>/dev/null || \
+                true)
   if [[ -n "$_kernel_gcc" && "$_system_gcc" != "$_kernel_gcc" ]]; then
     warning "========================================================================"
     warning "GCC VERSION MISMATCH DETECTED!"
@@ -1760,6 +1761,7 @@ build() {
     done
     warning "Using linux src from: ${_linuxsrc} (last one listed)"
     CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="${_linuxsrc}"
+    #CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) LD=ld.lld SYSSRC="${_linuxsrc}"
   fi
 }
 
