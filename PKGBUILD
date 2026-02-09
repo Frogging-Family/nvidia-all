@@ -423,8 +423,8 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-blacklist.conf'
         'nvidia-uvm.conf'
-        '71-nvidia-modprobe.conf'
-        '71-nvidia-modprobe-mobile.conf'
+        'nvidia-modprobe.conf'
+        'nvidia-modprobe-mobile.conf'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
