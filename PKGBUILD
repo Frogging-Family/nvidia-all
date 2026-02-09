@@ -2423,7 +2423,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       if [ "$_blacklist_nouveau" = false ]; then
           echo "skip blacklist nouveau\n"
         else
-            install -Dm644 "${srcdir}/71-nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/71-${pkgname}-blacklist.conf"
+            install -Dm644 "${srcdir}/nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
             install -Dm644 "${srcdir}/nvidia-uvm.conf" "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
       fi
 
@@ -2608,7 +2608,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   if [ "$_blacklist_nouveau" = false ]; then
       echo "skip blacklist nouveau\n"
     else
-        install -Dm644 "${srcdir}/71-nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/71-${pkgname}-blacklist.conf"
+        install -Dm644 "${srcdir}/nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
         install -Dm644 "${srcdir}/nvidia-uvm.conf" "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
   fi
   }
