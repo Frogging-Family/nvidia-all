@@ -489,7 +489,7 @@ md5sums=("$_md5sum"
          '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
          '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
-         'd0c82c7a74cc7cc5467aebf5a50238ee'
+         '0c0b692368eef7a511f22adddc23d8a2'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          '5fd6eac00d4ab2ead6faa909482a6485')
