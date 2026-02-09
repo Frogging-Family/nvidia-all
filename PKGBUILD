@@ -421,8 +421,6 @@ source=($_source_name
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
-        'nvidia-blacklist.conf'
-        'nvidia-uvm.conf'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
 )
@@ -498,8 +496,6 @@ md5sums=("$_md5sum"
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
-         'f4a3259b0bc3707682358628dbb2a55b' # nvidia-blacklist.conf
-         'febb6c00c469a12c2300d3acdc884615' # nvidia-uvm.conf
          '78e9142b9597dfb95221df6573237b67' # nvidia-modprobe.conf
          '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
 )
@@ -2391,7 +2387,8 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       if [ "$_blacklist_nouveau" = false ]; then
           echo "skip blacklist nouveau\n"
         else
-            install -Dm644 "${srcdir}/nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2421,10 +2418,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       done
 
       if [ "$_blacklist_nouveau" = false ]; then
-          echo "skip blacklist nouveau\n"
-        else
-            install -Dm644 "${srcdir}/nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
-            install -Dm644 "${srcdir}/nvidia-uvm.conf" "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
+        echo "skip blacklist nouveau\n"
+      else
+        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+        echo "nvidia-uvm" |
+            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2608,8 +2607,10 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   if [ "$_blacklist_nouveau" = false ]; then
       echo "skip blacklist nouveau\n"
     else
-        install -Dm644 "${srcdir}/nvidia-blacklist.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
-        install -Dm644 "${srcdir}/nvidia-uvm.conf" "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
+        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+        echo "nvidia-uvm" |
+            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
   fi
   }
 source /dev/stdin <<EOF
