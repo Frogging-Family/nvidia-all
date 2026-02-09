@@ -500,8 +500,8 @@ md5sums=("$_md5sum"
          '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
          'f4a3259b0bc3707682358628dbb2a55b' # nvidia-blacklist.conf
          'febb6c00c469a12c2300d3acdc884615' # nvidia-uvm.conf
-         '78e9142b9597dfb95221df6573237b67' # 71-nvidia-modprobe.conf
-         '47d55754a2ccb7e4b5cdbbc943a0a17b' # 71-nvidia-modprobe-mobile.conf
+         '78e9142b9597dfb95221df6573237b67' # nvidia-modprobe.conf
+         '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -2279,12 +2279,12 @@ nvidia-utils-tkg() {
     if (( ${pkgver%%.*} >= 590 )); then
       if [[ "${_modprobe}" == "true" ]]; then
         msg2 "Applying advanced NVIDIA module parameters..."
-        install -Dm644 "${srcdir}/71-nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/71-${pkgname}-modprobe.conf"
+        install -Dm644 "${srcdir}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
       fi
       
       if [[ "${_modprobe_mobile}" == "true" ]]; then
         msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-        install -Dm644 "${srcdir}/71-nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/71-${pkgname}-modprobe.conf"
+        install -Dm644 "${srcdir}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
       fi
     else
       if [[ "${_modprobe}" == "true" ]] || [[ "${_modprobe_mobile}" == "true" ]]; then
