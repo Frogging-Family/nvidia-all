@@ -1,0 +1,28 @@
+From 82f3c2441c636c59550201b9f2ee3c4cbecbb886 Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Mon, 9 Feb 2026 17:10:25 +0100
+Subject: [PATCH] nvidia-uvm: Add fix for 6.19 Kernel
+
+Signed-off-by: Peter Jung <admin@ptr1337.dev>
+---
+ kernel-open/nvidia-uvm/uvm_hmm.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
+index 2ddf64b7..9f045ccf 100644
+--- a/kernel-open/nvidia-uvm/uvm_hmm.c
++++ b/kernel-open/nvidia-uvm/uvm_hmm.c
+@@ -78,7 +78,9 @@ module_param(uvm_disable_hmm, bool, 0444);
+ // Pass 0 as the order, when actual large order support is added this
+ // function will need to be revisited
+ //
+-#if defined(NV_ZONE_DEVICE_PAGE_INIT_HAS_ORDER_ARG)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0)
++#define ZONE_DEVICE_PAGE_INIT(page)   zone_device_page_init(page, page_pgmap(page), 0)
++#elif defined(NV_ZONE_DEVICE_PAGE_INIT_HAS_ORDER_ARG)
+ #define ZONE_DEVICE_PAGE_INIT(page)   zone_device_page_init(page, 0)
+ #else
+ #define ZONE_DEVICE_PAGE_INIT(page)   zone_device_page_init(page)
+-- 
+2.53.0
+

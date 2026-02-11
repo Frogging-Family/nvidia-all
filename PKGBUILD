@@ -418,6 +418,7 @@ source=($_source_name
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
+        'kernel-6.19-580.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
@@ -493,6 +494,7 @@ md5sums=("$_md5sum"
          '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          '0c0b692368eef7a511f22adddc23d8a2'
+         '871d01b7cc2d7a1b31fc5f6e9b57cce2'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          '5fd6eac00d4ab2ead6faa909482a6485' # nvidia-patch.sh
@@ -654,6 +656,7 @@ prepare() {
 
     # 6.19 whitelist definition
     _open_whitelist619=( 590* )
+    _open_whitelist619_580=( 580* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -683,6 +686,17 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
         else
           msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      elif (( ${pkgver%%.*} == 580 )); then
+        patchy=0
+        for yup in "${_open_whitelist619_580[@]}"; do
+          [[ ${pkgver} = ${yup} ]] && patchy=1
+        done
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-6.19-580.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19-580.patch" )
+        else
+          msg2 "Skipping kernel-6.19-580.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
