@@ -2271,7 +2271,6 @@ nvidia-utils-tkg() {
     # - vram: only apply VRAM usage limit
     # - cuda: only apply CUDA performance optimization
     _perf_optimizations="${_perf_optimizations:-false}"
-    
     # Check and apply performance tweaks
     if [[ "${_perf_optimizations}" != "false" ]]; then
       if (( ${pkgver%%.*} >= 580 )); then
