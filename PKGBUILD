@@ -418,9 +418,13 @@ source=($_source_name
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
+        'kernel-6.19-580.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
-        'nvidia-patch.sh')
+        'nvidia-patch.sh'
+        'nvidia-modprobe.conf'
+        'nvidia-modprobe-mobile.conf'
+)
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
@@ -490,9 +494,13 @@ md5sums=("$_md5sum"
          '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          '0c0b692368eef7a511f22adddc23d8a2'
+         '871d01b7cc2d7a1b31fc5f6e9b57cce2'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
-         '5fd6eac00d4ab2ead6faa909482a6485')
+         'a060f29a12cb0aa1ce1cad0bedcaa4b3' # nvidia-patch.sh
+         '78e9142b9597dfb95221df6573237b67' # nvidia-modprobe.conf
+         '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
+)
 
 if [ "$_open_source_modules" = "true" ]; then
   if [[ "$_srcbase" == "NVIDIA-kernel-module-source" ]]; then
@@ -648,6 +656,7 @@ prepare() {
 
     # 6.19 whitelist definition
     _open_whitelist619=( 590* )
+    _open_whitelist619_580=( 580* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -677,6 +686,17 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
         else
           msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      elif (( ${pkgver%%.*} == 580 )); then
+        patchy=0
+        for yup in "${_open_whitelist619_580[@]}"; do
+          [[ ${pkgver} = ${yup} ]] && patchy=1
+        done
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-6.19-580.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19-580.patch" )
+        else
+          msg2 "Skipping kernel-6.19-580.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
@@ -2238,31 +2258,59 @@ nvidia-utils-tkg() {
     fi
 
     if (( ${pkgver%%.*} >= 580 )); then
-      # Vulkan GTK Renderer Crash fix ( NOTE: this looks like no more needed since 580+ but just in case regressions happen I leave it here commented below )
-      #install -Dm644 "$srcdir"/gsk-renderer.sh "$pkgdir"/etc/profile.d/gsk-renderer.sh
-      # Add limit vram usage scripts migrated from CachyOS
-      # https://github.com/CachyOS/CachyOS-PKGBUILDS/blob/master/nvidia/nvidia-utils/limit-vram-usage
-      install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+      # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
+      # https://www.nvidia.com/en-us/drivers/details/257493/
+      install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
 
-    if (( ${pkgver%%.*} >= 590 )); then
-      # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
-      install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
-      # Reduce idle power usage caused by CUDA contexts (NVDEC/NVENC, etc.)
-      install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    # Install performance optimizations
+    # Default to false if _perf_optimizations is empty
+    # Options: false, true, cuda, vram
+    # - false: no optimizations (default)
+    # - true: apply both CUDA and VRAM optimizations
+    # - vram: only apply VRAM usage limit
+    # - cuda: only apply CUDA performance optimization
+    _perf_optimizations="${_perf_optimizations:-false}"
+    # Check and apply performance tweaks
+    if [[ "${_perf_optimizations}" != "false" ]]; then
+      if (( ${pkgver%%.*} >= 580 )); then
+        # Apply VRAM limit if requested
+        if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "vram" ]]; then
+          msg2 "Applying VRAM usage limit optimization..."
+          # Limit vram usage
+          # https://github.com/Frogging-Family/nvidia-all/blob/master/system/limit-vram-usage
+          install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+        fi
+        # Apply CUDA performance optimization if requested
+        if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "cuda" ]]; then
+          msg2 "Applying CUDA performance optimization..."
+          # Allow full perf while streaming/recording (see: NVIDIA/open-gpu-kernel-modules#333)
+          install -Dm644 "${srcdir}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+        fi
+      else
+        warning "Performance optimizations require driver version >= 580 (current: ${pkgver})"
+      fi
     fi
 
     # Install nvidia-modprobe configuration to set advanced module parameters
     # Default to false if _modprobe is empty
     _modprobe="${_modprobe:-false}"
-    # Check and apply advanced NVIDIA module parameters (NVreg_*)
-    if [[ "${_modprobe}" == "true" ]]; then
-      if (( ${pkgver%%.*} >= 580 )); then
-        msg2 "Applying advanced NVIDIA module parameters (NVreg_*)..."
-        echo -e "options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0 NVreg_RegistryDwords=RmEnableAggressiveVblank=1" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
-      else
-        warning "Advanced NVIDIA module parameters require driver version >= 580 (current: ${pkgver})"
+    # Default to false if _modprobe_mobile is empty
+    _modprobe_mobile="${_modprobe_mobile:-false}"
+    # Check driver version and apply advanced NVIDIA module parameters (NVreg_*)
+    if (( ${pkgver%%.*} >= 580 )); then
+      if [[ "${_modprobe}" == "true" ]]; then
+        msg2 "Applying advanced NVIDIA module parameters..."
+        install -Dm644 "${srcdir}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+      fi
+      
+      if [[ "${_modprobe_mobile}" == "true" ]]; then
+        msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
+        install -Dm644 "${srcdir}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+      fi
+    else
+      if [[ "${_modprobe}" == "true" ]] || [[ "${_modprobe_mobile}" == "true" ]]; then
+        warning "Advanced NVIDIA module parameters require driver version >= 590 (current: ${pkgver})"
       fi
     fi
 
@@ -2396,12 +2444,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       done
 
       if [ "$_blacklist_nouveau" = false ]; then
-          echo "skip blacklist nouveau\n"
-        else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
-            echo "nvidia-uvm" |
-                install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
+        echo "skip blacklist nouveau\n"
+      else
+        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+        echo "nvidia-uvm" |
+            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
