@@ -431,7 +431,7 @@ msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If 
 md5sums=("$_md5sum"
          'cb27b0f4a78af78aa96c5aacae23256c'
          'ddd9f92c121ff64846b27bcee2513cb4'
-         '552087b81ab385edf016adac0b33db7a'
+         '962ee3ed2bf8f31fded7944629758e89'
          '596f7cbf2db48d4f5b1c38967bb93cea'
          'b4266d215fb224488eeca12359c563f8'
          '9b1543768ea75320fd0d2315de66d1c8'
