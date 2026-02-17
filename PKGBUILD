@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.17\n      2.590 series: 590.48.01\n      3.580 series: 580.126.09\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.17\n      2.590 series: 590.48.01\n      3.580 series: 580.126.18\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -62,8 +62,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=580.126.09' > options
-      echo '_md5sum=19f6d0af99fc3042ed20fa0639a70f45' >> options
+      echo '_driver_version=580.126.18' > options
+      echo '_md5sum=85082dfe0d0dedbb4c514a9409e7a4c2' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.211.01' > options
@@ -418,7 +418,7 @@ source=($_source_name
         'cuda-no-stable-perf-limit'
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
-        'kernel-6.19-580.patch'
+        'kernel-6.19-470.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
@@ -494,7 +494,7 @@ md5sums=("$_md5sum"
          '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          '0c0b692368eef7a511f22adddc23d8a2'
-         '871d01b7cc2d7a1b31fc5f6e9b57cce2'
+         '33d4a80f467ce96cd98b1d79aad720a5'
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          'a060f29a12cb0aa1ce1cad0bedcaa4b3' # nvidia-patch.sh
@@ -686,17 +686,6 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
         else
           msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
-        fi
-      elif (( ${pkgver%%.*} == 580 )); then
-        patchy=0
-        for yup in "${_open_whitelist619_580[@]}"; do
-          [[ ${pkgver} = ${yup} ]] && patchy=1
-        done
-        if [ "${patchy}" = "1" ]; then
-          msg2 "Applying kernel-6.19-580.patch to kernel-open..."
-          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19-580.patch" )
-        else
-          msg2 "Skipping kernel-6.19-580.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
@@ -1130,6 +1119,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "6.12") >= 0 )); then
         _kernel612="1"
         _whitelist612=( 565.57* )
+      fi
+
+      # 6.19
+      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
+        if [[ $pkgver = 470* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-6.19-470.patch for $_kernel..."
+          patch -Np1 -i "$srcdir"/kernel-6.19-470.patch
+        fi
       fi
 
       if [ "$_gcc14" = "true" ]; then
@@ -1723,6 +1721,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "$srcdir"/kernel-6.12.patch
         else
           msg2 "Skipping kernel-6.12.patch as it doesn't apply to this driver version..."
+        fi
+      fi
+
+      # 6.19
+      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
+        if [[ $pkgver = 470* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-dkms
+          msg2 "Applying kernel-6.19-470.patch for $_kernel..."
+          patch -Np1 -i "$srcdir"/kernel-6.19-470.patch
         fi
       fi
 
