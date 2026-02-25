@@ -325,6 +325,10 @@ if [ "$_eglwayland" = "true" ]; then
   _pkgname_array+=("$_branchname-egl-wayland-tkg")
 fi
 
+if [ "$_eglx11" = "true" ]; then
+  _pkgname_array+=("$_branchname-egl-x11-tkg")
+fi
+
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
 pkgrel=264
@@ -796,7 +800,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
     local -a _kernels
     if [ -n "$_kerneloverride" ]; then
-      _kernels="$_kerneloverride"
+      _kernels="($_kerneloverride)"
     else
       mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
@@ -1954,6 +1958,49 @@ package_$_branchname-egl-wayland-tkg() {
 }
 EOF
 
+nvidia-egl-x11-tkg() {
+  pkgdesc="NVIDIA EGL X11 libraries (egl-xlib + egl-xcb) for 'nvidia-utils-tkg'"
+  depends=('nvidia-utils-tkg')
+  provides=("egl-x11")
+  conflicts=('egl-x11')
+  cd $_pkg
+
+    # egl-xlib
+    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
+    fi
+    if [[ -e 20_nvidia_xlib.json ]]; then
+      install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
+    fi
+
+    # egl-xcb
+    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
+    fi
+    if [[ -e 20_nvidia_xcb.json ]]; then
+      install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
+    fi
+}
+if [ "$_eglx11" = "true" ]; then
+source /dev/stdin <<EOF
+package_$_branchname-egl-x11-tkg() {
+  nvidia-egl-x11-tkg
+}
+EOF
+fi
+
 nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg'"
   depends=('libglvnd' 'mesa' 'vulkan-icd-loader')
@@ -1966,8 +2013,11 @@ nvidia-utils-tkg() {
       depends+=('egl-wayland2')
     fi
   fi
-  if (( ${pkgver%%.*} >= 580 )); then
+  _eglx11="${_eglx11:-external}"
+  if [ "$_eglx11" = "external" ]; then
     depends+=('egl-x11')
+  elif [ "$_eglx11" = "true" ]; then
+    depends+=("${_branchname}-egl-x11-tkg")
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
@@ -2025,32 +2075,6 @@ nvidia-utils-tkg() {
     install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
     install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
     install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
-
-    # egl-xlib/xcb
-    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
-    fi
-    if (( ${pkgver%%.*} < 580 )) && [[ -e 20_nvidia_xlib.json ]]; then
-      install -D -m644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
-    fi
-    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
-    fi
-    if (( ${pkgver%%.*} < 580 )) && [[ -e 20_nvidia_xcb.json ]]; then
-      install -D -m644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
-    fi
 
     if [[ -e libnvidia-api.so.1 ]]; then
       install -D -m755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
@@ -2540,15 +2564,17 @@ lib32-nvidia-utils-tkg() {
     install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
 
     # egl-xlib/xcb
-    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
-    fi
-    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
+    if [ "${_eglx11:-external}" != "false" ]; then
+      if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+        install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
+      elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+        install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
+      fi
+      if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+        install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
+      elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+        install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
+      fi
     fi
 
     # VDPAU
