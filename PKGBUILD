@@ -800,7 +800,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
     local -a _kernels
     if [ -n "$_kerneloverride" ]; then
-      _kernels="($_kerneloverride)"
+      _kernels=("$_kerneloverride")
     else
       mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
@@ -2017,7 +2017,7 @@ nvidia-utils-tkg() {
   if [ "$_eglx11" = "external" ]; then
     depends+=('egl-x11')
   elif [ "$_eglx11" = "true" ]; then
-    depends+=("${_branchname}-egl-x11-tkg")
+    depends+=("$_branchname-egl-x11-tkg")
   fi
   optdepends=('gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
