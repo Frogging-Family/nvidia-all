@@ -331,7 +331,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=264
+pkgrel=265
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -423,6 +423,7 @@ source=($_source_name
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
         'kernel-6.19-470.patch'
+        'kernel-7.0.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
@@ -499,6 +500,7 @@ md5sums=("$_md5sum"
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          '0c0b692368eef7a511f22adddc23d8a2'
          '33d4a80f467ce96cd98b1d79aad720a5'
+         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          'a060f29a12cb0aa1ce1cad0bedcaa4b3' # nvidia-patch.sh
@@ -660,7 +662,8 @@ prepare() {
 
     # 6.19 whitelist definition
     _open_whitelist619=( 590* )
-    _open_whitelist619_580=( 580* )
+    # 7.0 whitelist definition
+    _open_whitelist70=( 590* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -674,6 +677,10 @@ prepare() {
       # 6.19
       if (( $(vercmp "${_kernel}" "6.19") >= 0 )); then
         _open_kernel619="1"
+      fi
+      # 7.0
+      if (( $(vercmp "${_kernel}" "7.0") >= 0 )); then
+        _open_kernel70="1"
       fi
       # Add future kernel version checks here following the same pattern
     done
@@ -690,6 +697,21 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-6.19.patch" )
         else
           msg2 "Skipping kernel-6.19.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      fi
+    fi
+    # 7.0
+    if [ "${_open_kernel70}" = "1" ]; then
+      if (( ${pkgver%%.*} >= 590 )); then
+        patchy=0
+        for yup in "${_open_whitelist70[@]}"; do
+          [[ ${pkgver} = ${yup} ]] && patchy=1
+        done
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-7.0.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
+        else
+          msg2 "Skipping kernel-7.0.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
@@ -2334,7 +2356,7 @@ nvidia-utils-tkg() {
         msg2 "Applying advanced NVIDIA module parameters..."
         install -Dm644 "${srcdir}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
       fi
-      
+
       if [[ "${_modprobe_mobile}" == "true" ]]; then
         msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
         install -Dm644 "${srcdir}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
