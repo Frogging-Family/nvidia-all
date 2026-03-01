@@ -34,6 +34,30 @@ if [ -e "$_EXT_CONFIG_PATH" ]; then
   source "$_EXT_CONFIG_PATH" && msg2 "External configuration file '$_EXT_CONFIG_PATH' will be used to override customization.cfg values." && plain ""
 fi
 
+# Resolve _target_kernel (package name, e.g. "linux-rc-tkg") to kernel version string for non-DKMS builds
+# Only effective when _dkms is "false" or "full"
+if [ -n "$_target_kernel" ] && { [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; }; then
+  _resolved_kernel=""
+  for _mod_dir in /usr/lib/modules/*/; do
+    _pkgbase_file="${_mod_dir}pkgbase"
+    if [ -f "$_pkgbase_file" ] && [ "$(cat "$_pkgbase_file")" = "$_target_kernel" ]; then
+      _ver_file="${_mod_dir}build/version"
+      [ -f "$_ver_file" ] || _ver_file="${_mod_dir}extramodules/version"
+      if [ -f "$_ver_file" ]; then
+        _resolved_kernel="$(cat "$_ver_file")"
+        break
+      fi
+    fi
+  done
+  if [ -n "$_resolved_kernel" ]; then
+    _kerneloverride="$_resolved_kernel"
+    msg2 "_target_kernel '$_target_kernel' resolved to kernel version: $_kerneloverride"
+  else
+    error "_target_kernel: Could not find installed kernel for package '$_target_kernel'. Is it installed with its headers?"
+    exit 1
+  fi
+fi
+
 # Auto-add kernel userpatches to source
 _autoaddpatch="false"
 
@@ -1790,31 +1814,93 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   fi
 }
 
+# Strip and sign kernel modules in one pass.
+# Uses llvm-strip for Clang-built kernels, GNU strip otherwise.
+# Signs kernel modules using the key configured in the kernel's .config (CONFIG_MODULE_SIG_KEY).
+# Skips signing with a warning if sign-file or the configured key is missing/not readable.
+_sign_modules() {
+  local _modulesdir="$1"
+  local _kern="$2"
+  local _kbuild="/usr/lib/modules/${_kern}/build"
+  local _sign_file="${_kbuild}/scripts/sign-file"
+
+  if [ ! -x "$_sign_file" ]; then
+    warning "sign-file not found for kernel ${_kern}, skipping module signing"
+    return
+  fi
+
+  local _sign_key
+  _sign_key="$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_kbuild}/.config" 2>/dev/null)"
+  [[ "$_sign_key" =~ ^/ ]] || _sign_key="${_kbuild}/${_sign_key}"
+  local _sign_cert="${_kbuild}/certs/signing_key.x509"
+
+  if [ ! -f "$_sign_key" ] || [ ! -r "$_sign_key" ]; then
+    warning "Module signing key not found or not readable for kernel ${_kern}, skipping module signing"
+    return
+  fi
+
+  local _hash_algo
+  _hash_algo="$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_kbuild}/.config" 2>/dev/null || echo sha512)"
+
+  local _strip_bin="strip"
+  grep -q "CONFIG_CC_IS_CLANG=y" "${_kbuild}/.config" 2>/dev/null && _strip_bin="llvm-strip"
+
+  msg2 "Signing modules in ${_modulesdir} (strip: ${_strip_bin}, algo: ${_hash_algo})..."
+
+  find "$_modulesdir" -type f -name '*.ko' -print \
+    -exec "${_strip_bin}" --strip-debug '{}' \; \
+    -exec "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}" '{}' \;
+}
+
 build() {
   if [ "$_open_source_modules" != "true" ]; then
     if [ "$_dkms" != "true" ]; then
-      # Build for all kernels
+      # Build for all kernels if no override specified, otherwise just the overrided one
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_kerneloverride" ]; then
+        _kernels=("$_kerneloverride")
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         cd "$srcdir"/$_pkg/kernel-$_kernel
 
+        # Detect compiler used to build the kernel and match it
+        if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+          _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+        else
+          _cc="gcc"; _ld="ld"; _llvm=""
+        fi
         # Build module
-        msg2 "Building Nvidia module for $_kernel..."
-        make SYSSRC=/usr/lib/modules/$_kernel/build modules
+        msg2 "Building Nvidia module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
+        make CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
       done
     fi
   else
     cd ${_srcbase}-${pkgver}
-    for _linuxsrc in /usr/src/*/vmlinux; do
-      _linuxsrc="${_linuxsrc//\/vmlinux}"
-      warning "Found linux src in: ${_linuxsrc}"
-    done
-    warning "Using linux src from: ${_linuxsrc} (last one listed)"
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="${_linuxsrc}"
-    #CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) LD=ld.lld SYSSRC="${_linuxsrc}"
+    if [ -n "$_target_kernel" ] && [ -d "/usr/src/${_target_kernel}" ]; then
+      _linuxsrc="/usr/src/${_target_kernel}"
+      msg2 "Using linux src for _target_kernel '${_target_kernel}': ${_linuxsrc}"
+    else
+      for _linuxsrc in /usr/src/*/vmlinux; do
+        _linuxsrc="${_linuxsrc//\/vmlinux}"
+        warning "Found linux src in: ${_linuxsrc}"
+      done
+      warning "Using linux src from: ${_linuxsrc} (last one listed)"
+    fi
+    # Detect compiler used to build the target kernel and match it
+    _kernel_build_dir="$(realpath "${_linuxsrc}")"
+    _cfg_file="${_kernel_build_dir}/.config"
+    [[ ! -f "$_cfg_file" ]] && _cfg_file="${_kernel_build_dir}/include/config/auto.conf"
+    if grep -q "CONFIG_CC_IS_CLANG=y" "$_cfg_file" 2>/dev/null; then
+      msg2 "Target kernel was built with clang - using clang/lld (LLVM=1 LLVM_IAS=1)"
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 IGNORE_CC_MISMATCH=yes SYSSRC="${_linuxsrc}"
+    else
+      msg2 "Target kernel was built with gcc - using gcc"
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) IGNORE_CC_MISMATCH=yes SYSSRC="${_linuxsrc}"
+    fi
   fi
 }
 
@@ -2446,15 +2532,32 @@ EOF
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
   nvidia-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
+      pkgdesc="Open NVIDIA kernel modules for all installed kernels"
       depends+=('linux')
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       cd ${_srcbase}-${pkgver}
-      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
-      #_extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
+      # Detect installed kernel version
+      local _kern_ver
+      if [ -n "$_kerneloverride" ]; then
+        _kern_ver="$_kerneloverride"
+      elif [ -f /usr/src/linux/version ]; then
+        _kern_ver="$(</usr/src/linux/version)"
+      else
+        _kern_ver="$(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null | head -1)"
+        [ -z "$_kern_ver" ] && _kern_ver="$(find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null | head -1)"
+        [ -z "$_kern_ver" ] && _kern_ver="$(uname -r)"
+      fi
+      msg2 "Installing open NVIDIA modules for kernel: ${_kern_ver}"
+      _extradir="/usr/lib/modules/${_kern_ver}/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
-      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
+      # Strip and sign modules (llvm-strip used automatically for Clang-built kernels)
+      if [ "${_module_signing:-false}" = "true" ]; then
+        _sign_modules "${pkgdir}${_extradir}" "${_kern_ver}"
+      fi
+
       find "${pkgdir}" -name '*.ko' -exec xz {} +
 
       # Force module to load even on unsupported GPUs
@@ -2482,10 +2585,23 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
       install=nvidia-tkg.install
 
-      # Install for all kernels
+      # Install for all kernels (or only for _target_kernel if set)
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_target_kernel" ]; then
+        mapfile -t _kernels < <(
+          for _mod_dir in /usr/lib/modules/*/; do
+            _pkgbase_file="${_mod_dir}pkgbase"
+            if [ -f "$_pkgbase_file" ] && [ "$(cat "$_pkgbase_file")" = "$_target_kernel" ]; then
+              _ver_file="${_mod_dir}build/version"
+              [ -f "$_ver_file" ] || _ver_file="${_mod_dir}extramodules/version"
+              [ -f "$_ver_file" ] && cat "$_ver_file"
+            fi
+          done
+        )
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -2654,6 +2770,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       depends+=('dkms')
       conflicts=('nvidia-open' 'NVIDIA-MODULE')
       provides=('nvidia-open' 'NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       install -dm 755 "${pkgdir}"/usr/src
       # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
