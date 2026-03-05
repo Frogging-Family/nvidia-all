@@ -54,12 +54,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.18\n      2.590 series: 590.48.01\n      3.580 series: 580.126.18\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.18\n      2.590 series: 595.45.04\n      3.580 series: 580.126.18\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=590.48.01' > options
-      echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
+      echo '_driver_version=595.45.04' > options
+      echo '_md5sum=58e486dc6113d16e04789afe614d5c94' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=580.126.18' > options
@@ -652,10 +652,12 @@ prepare() {
     #
     # TODO 580xx patches
     #
-    if (( ${pkgver%%.*} >= 580 )); then
+    if (( ${pkgver%%.*} >= 580 )) && (( ${pkgver%%.*} < 595 )); then
       msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+    fi
 
+    if (( ${pkgver%%.*} >= 580 )); then
       msg2 "Applying 0002-Add-IBT-support.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
@@ -2616,6 +2618,11 @@ lib32-nvidia-utils-tkg() {
 
     # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
     install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
+
+    # NVVM Compiler library loaded by the CUDA driver to do JIT link-time-optimization
+    if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
+      install -D -m644 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-nvvm.so.${pkgver}"
+    fi
 
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
