@@ -500,7 +500,7 @@ md5sums=("$_md5sum"
          'f6d0a9b1e503d0e8c026a20b61f889c2'
          '0c0b692368eef7a511f22adddc23d8a2'
          '33d4a80f467ce96cd98b1d79aad720a5'
-         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
+         'ac553fb499bb83afef3a573a13bb0d09' # kernel-7.0.patch
          '24bd1c8e7b9265020969a8da2962e114'
          '84ca49afabf4907f19c81e0bb56b5873'
          'a060f29a12cb0aa1ce1cad0bedcaa4b3' # nvidia-patch.sh
@@ -2458,9 +2458,11 @@ EOF
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
   nvidia-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
+      pkgdesc="Open NVIDIA kernel modules for all installed kernels"
       depends+=('linux')
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       cd ${_srcbase}-${pkgver}
       _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
@@ -2671,6 +2673,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       depends+=('dkms')
       conflicts=('nvidia-open' 'NVIDIA-MODULE')
       provides=('nvidia-open' 'NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       install -dm 755 "${pkgdir}"/usr/src
       # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
