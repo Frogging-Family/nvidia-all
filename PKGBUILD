@@ -2342,6 +2342,7 @@ nvidia-utils-tkg() {
         if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "vram" ]]; then
           msg2 "Applying VRAM usage limit optimization..."
           # Limit vram usage
+          # Patch stolen from NextWork123 - https://github.com/CachyOS/CachyOS-PKGBUILDS/pull/873
           # https://github.com/Frogging-Family/nvidia-all/blob/master/system/limit-vram-usage
           install -Dm644 "${srcdir}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
         fi
