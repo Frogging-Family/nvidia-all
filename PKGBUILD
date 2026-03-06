@@ -2356,6 +2356,9 @@ nvidia-utils-tkg() {
       install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
       install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
       install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
+      if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
+        install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
+      fi
       install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
       # nvidia-powerd
@@ -2384,9 +2387,15 @@ nvidia-utils-tkg() {
 
     install -Dm644 "$srcdir"/60-nvidia.rules "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
 
-    # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
-    # Fixes Wayland Sleep, when restoring the session
-    install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    if (( ${pkgver%%.*} >= 595 )); then
+      # 595+ open modules use kernel suspend notifiers for video memory preservation
+      echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1' | \
+        install -Dm644 /dev/stdin "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    else
+      # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
+      # Fixes Wayland Sleep, when restoring the session
+      install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    fi
 
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
     if [[ -e "sandboxutils-filelist.json" ]]; then
