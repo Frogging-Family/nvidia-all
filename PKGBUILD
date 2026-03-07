@@ -528,7 +528,7 @@ md5sums=("$_md5sum"
         'f6d0a9b1e503d0e8c026a20b61f889c2'
         '0c0b692368eef7a511f22adddc23d8a2'
         '33d4a80f467ce96cd98b1d79aad720a5'
-        '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
+        '49bc972c8655054d79abf806cb26a505' # kernel-7.0.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
         '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
