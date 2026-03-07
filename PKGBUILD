@@ -54,12 +54,12 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.18\n      2.590 series: 590.48.01\n      3.580 series: 580.126.18\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 580.94.18\n      2.595 series: 595.45.04\n      3.580 series: 580.126.18\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=590.48.01' > options
-      echo '_md5sum=7644d59c537041a5bbaa2212ac6619df' >> options
+      echo '_driver_version=595.45.04' > options
+      echo '_md5sum=58e486dc6113d16e04789afe614d5c94' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
       echo '_driver_version=580.126.18' > options
@@ -357,6 +357,8 @@ else
 fi
 
 source=($_source_name
+        'systemd-homed-override.conf'
+        'systemd-suspend-override.conf'
         '10-nvidia-drm-outputclass.conf'
         'nvidia-utils-tkg.sysusers'
         '60-nvidia.rules'
@@ -434,78 +436,80 @@ source=($_source_name
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
 
 md5sums=("$_md5sum"
-         'cb27b0f4a78af78aa96c5aacae23256c'
-         'ddd9f92c121ff64846b27bcee2513cb4'
-         '552087b81ab385edf016adac0b33db7a'
-         '596f7cbf2db48d4f5b1c38967bb93cea'
-         'b4266d215fb224488eeca12359c563f8'
-         '9b1543768ea75320fd0d2315de66d1c8'
-         'afb98b1dab0c61df526d4c0ee4d18abf'
-         'e5d1574892eb68de9af1b79a6bfb5e7b'
-         '7a825f41ada7e106c8c0b713a49b3bfa'
-         'd961d1dce403c15743eecfe3201e4b6a'
-         '14460615a9d4e247c8d9bcae8776ed48'
-         '401859ea7bb4a9864af24ecd67abf34c'
-         'adb83cede754daf5adb001f077b1ff67'
-         '58d058367934813d29d38328bc3b4dcd'
-         '6cff80c311debfdb6b543e575a81820a'
-         'a3ce8ebab6506f556f4b222e2372ce87'
-         '98b67a671ece0a796f9767793c209c93'
-         '6f9a62ef76ac86f299b0174f44488987'
-         '8bf41d705afdf9aad7d934be06a7b12b'
-         '0d9aa49647cc73a4522246cc22ae15e1'
-         'e6270c2d19afd982efc92bdecd9f48f0'
-         '1c1966d6ee6f3cd381ebcc92f1488c68'
-         'c44e43638e1ab708fbdd6d7aa76afcf2'
-         '84dc2d2eff2846b2f961388b153e2a89'
-         '1f11f5c765e42c471b202e630e3cd407'
-         'd911a0531c6f270926cacabd1dd80f02'
-         '589dfc0c801605018b7ccd690f06141a'
-         'd67bf0a9aa5c19f07edbaf6bd157d661'
-         '888d12b9aea711e6a025835b8ad063e2'
-         '0758046ed7c50463fd0ec378e9e34f95'
-         'bcdd512edad1bad8331a8872259d2581'
-         'fd0d6e14e675a61f32279558678cfc36'
-         '8764cc714e61363cc8f818315957ad17'
-         '08bec554de265ce5fdcfdbd55fb608fc'
-         '3980770412a1d4d7bd3a16c9042200df'
-         'f5fd091893f513d2371654e83049f099'
-         'd684ca11fdc9894c14ead69cb35a5946'
-         '0f987607c98eb6faeb7d691213de6a70'
-         'a70bc9cbbc7e8563b48985864a11de71'
-         '31128900574dec9ebdb753db50ef4f16'
-         '0b9b855d9be313153a5903e46e774a30'
-         '5d573b1aa0712b9bd2000c9fefdf84c2'
-         'a6acbba08173769399658914eb86a212'
-         'f0173a8bce0124b2d62a54f2e22d1552'
-         '4f855bb0e0b84e8e5d072c687256767a'
-         '50d3eac54d14d44d70df92770a3a9abf'
-         'b81cac7573842ebd7af30fdf851c63f9'
-         'd11cb3bd76ab61a0f086aea9a0c53087'
-         'f7f95287eb18be63bfad0427f13b6d43'
-         '7481cb7f52b76c426d579b115e4c84b6'
-         'c06a9359969ba331bc9fac91fe0eeff2'
-         'c691df97015eee42d51b34b147dd5236'
-         'adfcf56ea4a4a420d9ef07b9d4b451dc'
-         '2b5b62c1265b3b6b18022a0a716e5fcd'
-         '676d7039ff5b5e2bdd03db08fd1cba4e'
-         '0e54e7d932e520c403181e3348d4d42b'
-         '6904323d3a4ad04a708c927e930efc34'
-         '42a482aa44953061cbbf9a495fcad926'
-         '7143f20dbb3333ea6304540b5318bacb'
-         '6c26d0df1e30c8bedf6abfe99e842944'
-         'c39df46bb99047ca7d09f9122a7370a8'
-         '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
-         '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
-         'f6d0a9b1e503d0e8c026a20b61f889c2'
-         '0c0b692368eef7a511f22adddc23d8a2'
-         '33d4a80f467ce96cd98b1d79aad720a5'
-         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
-         '24bd1c8e7b9265020969a8da2962e114'
-         '84ca49afabf4907f19c81e0bb56b5873'
-         'a060f29a12cb0aa1ce1cad0bedcaa4b3' # nvidia-patch.sh
-         '78e9142b9597dfb95221df6573237b67' # nvidia-modprobe.conf
-         '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
+        'aff0d6eed7b21d5ce61d57231b3b8e6e'
+        'fa85b6c0011dfc99c98a56355602c78f'
+        'cb27b0f4a78af78aa96c5aacae23256c'
+        'ddd9f92c121ff64846b27bcee2513cb4'
+        '552087b81ab385edf016adac0b33db7a'
+        '596f7cbf2db48d4f5b1c38967bb93cea'
+        'b4266d215fb224488eeca12359c563f8'
+        '9b1543768ea75320fd0d2315de66d1c8'
+        'afb98b1dab0c61df526d4c0ee4d18abf'
+        'e5d1574892eb68de9af1b79a6bfb5e7b'
+        '7a825f41ada7e106c8c0b713a49b3bfa'
+        'd961d1dce403c15743eecfe3201e4b6a'
+        '14460615a9d4e247c8d9bcae8776ed48'
+        '401859ea7bb4a9864af24ecd67abf34c'
+        'adb83cede754daf5adb001f077b1ff67'
+        '58d058367934813d29d38328bc3b4dcd'
+        '6cff80c311debfdb6b543e575a81820a'
+        'a3ce8ebab6506f556f4b222e2372ce87'
+        '98b67a671ece0a796f9767793c209c93'
+        '6f9a62ef76ac86f299b0174f44488987'
+        '8bf41d705afdf9aad7d934be06a7b12b'
+        '0d9aa49647cc73a4522246cc22ae15e1'
+        'e6270c2d19afd982efc92bdecd9f48f0'
+        '1c1966d6ee6f3cd381ebcc92f1488c68'
+        'c44e43638e1ab708fbdd6d7aa76afcf2'
+        '84dc2d2eff2846b2f961388b153e2a89'
+        '1f11f5c765e42c471b202e630e3cd407'
+        'd911a0531c6f270926cacabd1dd80f02'
+        '589dfc0c801605018b7ccd690f06141a'
+        'd67bf0a9aa5c19f07edbaf6bd157d661'
+        '888d12b9aea711e6a025835b8ad063e2'
+        '0758046ed7c50463fd0ec378e9e34f95'
+        'bcdd512edad1bad8331a8872259d2581'
+        'fd0d6e14e675a61f32279558678cfc36'
+        '8764cc714e61363cc8f818315957ad17'
+        '08bec554de265ce5fdcfdbd55fb608fc'
+        '3980770412a1d4d7bd3a16c9042200df'
+        'f5fd091893f513d2371654e83049f099'
+        'd684ca11fdc9894c14ead69cb35a5946'
+        '0f987607c98eb6faeb7d691213de6a70'
+        'a70bc9cbbc7e8563b48985864a11de71'
+        '31128900574dec9ebdb753db50ef4f16'
+        '0b9b855d9be313153a5903e46e774a30'
+        '5d573b1aa0712b9bd2000c9fefdf84c2'
+        'a6acbba08173769399658914eb86a212'
+        'f0173a8bce0124b2d62a54f2e22d1552'
+        '4f855bb0e0b84e8e5d072c687256767a'
+        '50d3eac54d14d44d70df92770a3a9abf'
+        'b81cac7573842ebd7af30fdf851c63f9'
+        'd11cb3bd76ab61a0f086aea9a0c53087'
+        'f7f95287eb18be63bfad0427f13b6d43'
+        '7481cb7f52b76c426d579b115e4c84b6'
+        'c06a9359969ba331bc9fac91fe0eeff2'
+        'c691df97015eee42d51b34b147dd5236'
+        'adfcf56ea4a4a420d9ef07b9d4b451dc'
+        '2b5b62c1265b3b6b18022a0a716e5fcd'
+        '676d7039ff5b5e2bdd03db08fd1cba4e'
+        '0e54e7d932e520c403181e3348d4d42b'
+        '6904323d3a4ad04a708c927e930efc34'
+        '42a482aa44953061cbbf9a495fcad926'
+        '7143f20dbb3333ea6304540b5318bacb'
+        '6c26d0df1e30c8bedf6abfe99e842944'
+        'c39df46bb99047ca7d09f9122a7370a8'
+        '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
+        '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
+        'f6d0a9b1e503d0e8c026a20b61f889c2'
+        '0c0b692368eef7a511f22adddc23d8a2'
+        '33d4a80f467ce96cd98b1d79aad720a5'
+        '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
+        '24bd1c8e7b9265020969a8da2962e114'
+        '84ca49afabf4907f19c81e0bb56b5873'
+        '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
+        '78e9142b9597dfb95221df6573237b67' # nvidia-modprobe.conf
+        '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -650,12 +654,14 @@ prepare() {
     fi
 
     #
-    # TODO 580xx patches
+    # TODO 580+ patches
     #
-    if (( ${pkgver%%.*} >= 580 )); then
+    if (( ${pkgver%%.*} >= 580 )) && (( ${pkgver%%.*} < 595 )); then
       msg2 "Applying 0001-Enable-atomic-kernel-modesetting-by-default.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0001-Enable-atomic-kernel-modesetting-by-default.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+    fi
 
+    if (( ${pkgver%%.*} >= 580 )); then
       msg2 "Applying 0002-Add-IBT-support.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
@@ -2268,6 +2274,9 @@ nvidia-utils-tkg() {
       install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
       install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
       install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
+      if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
+        install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
+      fi
       install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
       # nvidia-powerd
@@ -2275,6 +2284,15 @@ nvidia-utils-tkg() {
         install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
         install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
         install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+      fi
+      # Disable freezing user sessions during suspend/hibernate to avoid
+      # conflicts with the NVIDIA driver's own video memory preservation mechanism.
+      if (( ${pkgver%%.*} >= 580 )); then
+        install -Dm644 "${srcdir}/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
+        install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
+        install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+        install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+        install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/10-nvidia-no-freeze-session.conf"
       fi
     fi
 
@@ -2296,9 +2314,15 @@ nvidia-utils-tkg() {
 
     install -Dm644 "$srcdir"/60-nvidia.rules "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
 
-    # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
-    # Fixes Wayland Sleep, when restoring the session
-    install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    if (( ${pkgver%%.*} >= 595 )); then
+      # 595+ open modules use kernel suspend notifiers for video memory preservation
+      echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | \
+        install -Dm644 /dev/stdin "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    else
+      # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
+      # Fixes Wayland Sleep, when restoring the session
+      install -Dm644 "$srcdir"/nvidia-sleep.conf "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    fi
 
     # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
     if [[ -e "sandboxutils-filelist.json" ]]; then
@@ -2447,9 +2471,11 @@ EOF
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
   nvidia-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
+      pkgdesc="Open NVIDIA kernel modules for all installed kernels"
       depends+=('linux')
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       cd ${_srcbase}-${pkgver}
       _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
@@ -2618,6 +2644,11 @@ lib32-nvidia-utils-tkg() {
     # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
     install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
 
+    # NVVM Compiler library loaded by the CUDA driver to do JIT link-time-optimization
+    if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
+      install -D -m644 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-nvvm.so.${pkgver}"
+    fi
+
     # Fat (multiarchitecture) binary loader
     if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
       install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
@@ -2655,6 +2686,7 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       depends+=('dkms')
       conflicts=('nvidia-open' 'NVIDIA-MODULE')
       provides=('nvidia-open' 'NVIDIA-MODULE')
+      license=('MIT AND GPL-2.0-only')
 
       install -dm 755 "${pkgdir}"/usr/src
       # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
