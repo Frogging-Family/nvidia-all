@@ -1,53 +1,50 @@
-_suspend_services_cutoff="595.45.04-1"
-_suspend_services_enable_since="560.35.03-16"
-
-_toggle_suspend_services() {
-  local action="$1"
-  local service
-
+post_install() {
+  # Enable NVIDIA Services at first installation
+  # The services are mandatory, see under systemd configuration
+  # https://download.nvidia.com/XFree86/Linux-x86_64/560.35.03/README/powermanagement.html#SystemdConfigur74e29
+  # This is also an requirement to have sleep working together with PreserveAllocations
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/commit/55644f78820fd382fbdf283b1fd7f08e6b7c22d7
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/merge_requests/16
   for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
-    if [ "$action" = "enable" ]; then
-      if systemctl is-enabled --quiet "$service" 2>/dev/null; then
-        continue
-      fi
-      if [ -f "/usr/lib/systemd/system/$service.service" ]; then
-        systemctl enable "$service"
-      fi
-    elif systemctl is-enabled --quiet "$service" 2>/dev/null; then
-      systemctl disable "$service"
+    if systemctl is-enabled --quiet $service 2>/dev/null; then
+      continue
+    fi
+    # Only enable if the service unit file exists (595+ no longer ships these)
+    if [ -f "/usr/lib/systemd/system/$service.service" ]; then
+      systemctl enable $service
     fi
   done
 }
 
-post_install() {
-  # Enable NVIDIA Services at first installation for driver versions older than 595.
-  # The services are mandatory, see under systemd configuration.
-  # https://download.nvidia.com/XFree86/Linux-x86_64/560.35.03/README/powermanagement.html#SystemdConfigur74e29
-  # This is also a requirement to have sleep working together with PreserveAllocations.
-  # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/commit/55644f78820fd382fbdf283b1fd7f08e6b7c22d7
-  # https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/merge_requests/16
-  # 595+ should never enable these services even if stale unit files are still present.
-  if [ -n "$1" ] && (( $(vercmp "$1" "$_suspend_services_cutoff") < 0 )); then
-    _toggle_suspend_services enable
-  fi
-}
-
 post_upgrade() {
-  # Enable the services once for upgrades from versions older than 560.35.03-16.
-  if (( $(vercmp "$1" "$_suspend_services_cutoff") < 0 )) && (( $(vercmp "$2" "$_suspend_services_enable_since") < 0 )); then
-    _toggle_suspend_services enable
+  # Only enable the services for the 560.35.03-16 version
+  # This avoids, that the services are automatically enabled in every upgrade
+  if (( $(vercmp $2 560.35.03-16) < 0)); then
+    for service in nvidia-resume nvidia-hibernate nvidia-suspend; do
+        if ! systemctl is-enabled --quiet $service; then
+            echo "Enabling $service..."
+            systemctl enable $service
+        fi
+    done
   fi
 
   # With 595+ open kernel modules, video memory preservation is handled by
   # kernel suspend notifiers, making the nvidia suspend/hibernate services unnecessary.
-  if (( $(vercmp "$1" "$_suspend_services_cutoff") >= 0 )) && (( $(vercmp "$2" "$_suspend_services_cutoff") < 0 )); then
-    echo "Disabling NVIDIA suspend services (no longer needed with open kernel modules)..."
-    _toggle_suspend_services disable
-  elif (( $(vercmp "$1" "$_suspend_services_cutoff") < 0 )) && (( $(vercmp "$2" "$_suspend_services_cutoff") >= 0 )); then
-    _toggle_suspend_services enable
+  # Disable them for users upgrading from older versions to 595+.
+  if (( $(vercmp $1 595.45.04-1) >= 0)) && (( $(vercmp $2 595.45.04-1) < 0)); then
+    for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
+      if systemctl is-enabled --quiet $service 2>/dev/null; then
+        echo "Disabling $service (no longer needed with open kernel modules)..."
+        systemctl disable $service
+      fi
+    done
   fi
 }
 
 pre_remove() {
-  _toggle_suspend_services disable
+  for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
+    if systemctl is-enabled --quiet $service 2>/dev/null; then
+      systemctl disable $service
+    fi
+  done
 }
