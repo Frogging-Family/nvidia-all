@@ -31,7 +31,7 @@ post_upgrade() {
   # With 595+ open kernel modules, video memory preservation is handled by
   # kernel suspend notifiers, making the nvidia suspend/hibernate services unnecessary.
   # Disable them for users upgrading from older versions to 595+.
-  if (( $(vercmp $1 595.45.04-1) >= 0)) && (( $(vercmp $2 595.45.04-1) < 0)); then
+  if (( $(vercmp $1 595.44.02-1) >= 0)) && (( $(vercmp $2 595.44.02-1) < 0)); then
     for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
       if systemctl is-enabled --quiet $service 2>/dev/null; then
         echo "Disabling $service (no longer needed with open kernel modules)..."
