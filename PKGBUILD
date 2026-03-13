@@ -395,6 +395,7 @@ source=($_source_name
         'nvidia-utils-tkg.sysusers'
         '60-nvidia.rules'
         'nvidia-tkg.hook'
+        'nvidia-tkg-sign.hook'
         'gsk-renderer.sh'
         'nvidia-open-gcc-ibt-sls.diff'
         'gcc-14-470.diff'
@@ -463,6 +464,7 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
+        'nvidia-sign-modules.sh'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -472,8 +474,9 @@ md5sums=("$_md5sum"
         'fa85b6c0011dfc99c98a56355602c78f'
         'cb27b0f4a78af78aa96c5aacae23256c'
         'ddd9f92c121ff64846b27bcee2513cb4'
-        '552087b81ab385edf016adac0b33db7a'
+        '962ee3ed2bf8f31fded7944629758e89'
         '596f7cbf2db48d4f5b1c38967bb93cea'
+        '96a6070e5c71a88226d645125534b743'
         'b4266d215fb224488eeca12359c563f8'
         '9b1543768ea75320fd0d2315de66d1c8'
         'afb98b1dab0c61df526d4c0ee4d18abf'
@@ -542,6 +545,7 @@ md5sums=("$_md5sum"
         '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
         '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
+        'e0a4ee073164b82e34046d6ae527dc7f' # nvidia-sign-modules.sh
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -1828,44 +1832,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   fi
 }
 
-# Strip and sign kernel modules in one pass.
-# Uses llvm-strip for Clang-built kernels, GNU strip otherwise.
-# Signs kernel modules using the key configured in the kernel's .config (CONFIG_MODULE_SIG_KEY).
-# Skips signing with a warning if sign-file or the configured key is missing/not readable.
-_sign_modules() {
-  local _modulesdir="$1"
-  local _kern="$2"
-  local _kbuild="/usr/lib/modules/${_kern}/build"
-  local _sign_file="${_kbuild}/scripts/sign-file"
-
-  if [ ! -x "$_sign_file" ]; then
-    warning "sign-file not found for kernel ${_kern}, skipping module signing"
-    return
-  fi
-
-  local _sign_key
-  _sign_key="$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_kbuild}/.config" 2>/dev/null)"
-  [[ "$_sign_key" =~ ^/ ]] || _sign_key="${_kbuild}/${_sign_key}"
-  local _sign_cert="${_kbuild}/certs/signing_key.x509"
-
-  if [ ! -f "$_sign_key" ] || [ ! -r "$_sign_key" ]; then
-    warning "Module signing key not found or not readable for kernel ${_kern}, skipping module signing"
-    return
-  fi
-
-  local _hash_algo
-  _hash_algo="$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_kbuild}/.config" 2>/dev/null || echo sha512)"
-
-  local _strip_bin="strip"
-  grep -q "CONFIG_CC_IS_CLANG=y" "${_kbuild}/.config" 2>/dev/null && _strip_bin="llvm-strip"
-
-  msg2 "Signing modules in ${_modulesdir} (strip: ${_strip_bin}, algo: ${_hash_algo})..."
-
-  find "$_modulesdir" -type f -name '*.ko' -print \
-    -exec "${_strip_bin}" --strip-debug '{}' \; \
-    -exec "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}" '{}' \;
-}
-
 build() {
   if [ "$_open_source_modules" != "true" ]; then
     if [ "$_dkms" != "true" ]; then
@@ -2586,10 +2552,6 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       msg2 "Installing open NVIDIA modules for kernel: ${_kern_ver}"
       _extradir="/usr/lib/modules/${_kern_ver}/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
-      # Strip and sign modules (llvm-strip used automatically for Clang-built kernels)
-      if [ "${_module_signing:-false}" = "true" ]; then
-        _sign_modules "${pkgdir}${_extradir}" "${_kern_ver}"
-      fi
 
       find "${pkgdir}" -name '*.ko' -exec xz {} +
 
@@ -2607,7 +2569,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi 
@@ -2655,7 +2622,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi  
@@ -2832,7 +2804,12 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi 
