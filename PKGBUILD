@@ -599,6 +599,33 @@ prepare() {
     fi
   fi
 
+  # BSB DSC fix user acknowledgement
+  if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
+    warning "========================================================================"
+    warning "BSB DSC FIX PATCH ENABLED"
+    warning ""
+    warning "You have enabled an UNOFFICIAL, THIRD-PARTY community patch:"
+    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
+    warning ""
+    warning "This patch fixes DSC 'rainbow static' artifacts for the"
+    warning "Bigscreen Beyond VR headset (open GPU kernel modules only, >= 580)."
+    warning ""
+    warning "!! NO WARRANTY - Use at your own risk !!"
+    warning "!! Ensure you have a recovery method (TTY, live USB) in case of"
+    warning "!! boot failure before continuing."
+    warning ""
+    warning "Please confirm you have read the full patch details at:"
+    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
+    warning "========================================================================"
+    plain ""
+    read -p "    I have read the patch details and accept the risks. Continue? [y/N] " _bsb_ack
+    if [[ ! "$_bsb_ack" =~ [yY] ]]; then
+      error "Aborted by user. Set _bsb_dsc_fix=\"false\" in customization.cfg to disable this prompt."
+      exit 1
+    fi
+    plain ""
+  fi
+
   if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
     _gcc14="true"
     msg2 "GCC 14 detected"
