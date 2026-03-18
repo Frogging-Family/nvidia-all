@@ -323,13 +323,15 @@ else
   __branchname="$_branchname"
 fi
 
-if [ "$_dkms" = "full" ]; then
-  _pkgname_array+=("$__branchname-dkms-tkg")
-  _pkgname_array+=("$__branchname-tkg")
-elif [ "$_dkms" = "true" ]; then
-  _pkgname_array+=("$__branchname-dkms-tkg")
-else
-  _pkgname_array+=("$__branchname-tkg")
+if [ "${_utils_only:-false}" != "true" ]; then
+  if [ "$_dkms" = "full" ]; then
+    _pkgname_array+=("$__branchname-dkms-tkg")
+    _pkgname_array+=("$__branchname-tkg")
+  elif [ "$_dkms" = "true" ]; then
+    _pkgname_array+=("$__branchname-dkms-tkg")
+  else
+    _pkgname_array+=("$__branchname-tkg")
+  fi
 fi
 
 _pkgname_array+=("$_branchname-utils-tkg")
@@ -2789,7 +2791,6 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
 
       install -Dm644 ${_srcbase}-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
   else
-
       pkgdesc="NVIDIA kernel module sources (DKMS)"
       depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
       provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
