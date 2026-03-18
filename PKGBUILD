@@ -323,7 +323,7 @@ else
   __branchname="$_branchname"
 fi
 
-if [ "${_utils_only:-false}" != "true" ]; then
+if [ "${_build_utils_package_only:-false}" != "true" ]; then
   if [ "$_dkms" = "full" ]; then
     _pkgname_array+=("$__branchname-dkms-tkg")
     _pkgname_array+=("$__branchname-tkg")
@@ -361,7 +361,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=265
+pkgrel=8086
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
