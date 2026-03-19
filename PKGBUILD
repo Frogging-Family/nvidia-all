@@ -34,6 +34,30 @@ if [ -e "$_EXT_CONFIG_PATH" ]; then
   source "$_EXT_CONFIG_PATH" && msg2 "External configuration file '$_EXT_CONFIG_PATH' will be used to override customization.cfg values." && plain ""
 fi
 
+# Resolve _target_kernel (package name, e.g. "linux-rc-tkg") to kernel version string for non-DKMS builds
+# Only effective when _dkms is "false" or "full"
+if [ -n "$_target_kernel" ] && { [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; }; then
+  _resolved_kernel=""
+  for _mod_dir in /usr/lib/modules/*/; do
+    _pkgbase_file="${_mod_dir}pkgbase"
+    if [ -f "$_pkgbase_file" ] && [ "$(cat "$_pkgbase_file")" = "$_target_kernel" ]; then
+      _ver_file="${_mod_dir}build/version"
+      [ -f "$_ver_file" ] || _ver_file="${_mod_dir}extramodules/version"
+      if [ -f "$_ver_file" ]; then
+        _resolved_kernel="$(cat "$_ver_file")"
+        break
+      fi
+    fi
+  done
+  if [ -n "$_resolved_kernel" ]; then
+    _kerneloverride="$_resolved_kernel"
+    msg2 "_target_kernel '$_target_kernel' resolved to kernel version: $_kerneloverride"
+  else
+    error "_target_kernel: Could not find installed kernel for package '$_target_kernel'. Is it installed with its headers?"
+    exit 1
+  fi
+fi
+
 # Auto-add kernel userpatches to source
 _autoaddpatch="false"
 
@@ -299,13 +323,15 @@ else
   __branchname="$_branchname"
 fi
 
-if [ "$_dkms" = "full" ]; then
-  _pkgname_array+=("$__branchname-dkms-tkg")
-  _pkgname_array+=("$__branchname-tkg")
-elif [ "$_dkms" = "true" ]; then
-  _pkgname_array+=("$__branchname-dkms-tkg")
-else
-  _pkgname_array+=("$__branchname-tkg")
+if [ "${_build_utils_package_only:-false}" != "true" ]; then
+  if [ "$_dkms" = "full" ]; then
+    _pkgname_array+=("$__branchname-dkms-tkg")
+    _pkgname_array+=("$__branchname-tkg")
+  elif [ "$_dkms" = "true" ]; then
+    _pkgname_array+=("$__branchname-dkms-tkg")
+  else
+    _pkgname_array+=("$__branchname-tkg")
+  fi
 fi
 
 _pkgname_array+=("$_branchname-utils-tkg")
@@ -335,7 +361,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=265
+pkgrel=8086
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -367,6 +393,7 @@ source=($_source_name
         'nvidia-utils-tkg.sysusers'
         '60-nvidia.rules'
         'nvidia-tkg.hook'
+        'nvidia-tkg-sign.hook'
         'gsk-renderer.sh'
         'nvidia-open-gcc-ibt-sls.diff'
         'gcc-14-470.diff'
@@ -435,6 +462,7 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
+        'nvidia-sign-modules.sh'
         'nvidia-bsb-dsc-fix.patch'
 )
 
@@ -445,8 +473,9 @@ md5sums=("$_md5sum"
         'fa85b6c0011dfc99c98a56355602c78f'
         'cb27b0f4a78af78aa96c5aacae23256c'
         'ddd9f92c121ff64846b27bcee2513cb4'
-        '552087b81ab385edf016adac0b33db7a'
+        '962ee3ed2bf8f31fded7944629758e89'
         '596f7cbf2db48d4f5b1c38967bb93cea'
+        '3519f62586b5db880416c2c09a68a391'
         'b4266d215fb224488eeca12359c563f8'
         '9b1543768ea75320fd0d2315de66d1c8'
         'afb98b1dab0c61df526d4c0ee4d18abf'
@@ -515,6 +544,7 @@ md5sums=("$_md5sum"
         '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
         '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
+        'e0a4ee073164b82e34046d6ae527dc7f' # nvidia-sign-modules.sh
         'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
 )
 
@@ -1843,28 +1873,52 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 build() {
   if [ "$_open_source_modules" != "true" ]; then
     if [ "$_dkms" != "true" ]; then
-      # Build for all kernels
+      # Build for all kernels if no override specified, otherwise just the overrided one
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_kerneloverride" ]; then
+        _kernels=("$_kerneloverride")
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         cd "$srcdir"/$_pkg/kernel-$_kernel
 
+        # Detect compiler used to build the kernel and match it
+        if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+          _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+        else
+          _cc="gcc"; _ld="ld"; _llvm=""
+        fi
         # Build module
-        msg2 "Building Nvidia module for $_kernel..."
-        make SYSSRC=/usr/lib/modules/$_kernel/build modules
+        msg2 "Building Nvidia module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
+        make CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
       done
     fi
   else
     cd ${_srcbase}-${pkgver}
-    for _linuxsrc in /usr/src/*/vmlinux; do
-      _linuxsrc="${_linuxsrc//\/vmlinux}"
-      warning "Found linux src in: ${_linuxsrc}"
-    done
-    warning "Using linux src from: ${_linuxsrc} (last one listed)"
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="${_linuxsrc}"
-    #CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) LD=ld.lld SYSSRC="${_linuxsrc}"
+    if [ -n "$_target_kernel" ] && [ -d "/usr/src/${_target_kernel}" ]; then
+      _linuxsrc="/usr/src/${_target_kernel}"
+      msg2 "Using linux src for _target_kernel '${_target_kernel}': ${_linuxsrc}"
+    else
+      for _linuxsrc in /usr/src/*/vmlinux; do
+        _linuxsrc="${_linuxsrc//\/vmlinux}"
+        warning "Found linux src in: ${_linuxsrc}"
+      done
+      warning "Using linux src from: ${_linuxsrc} (last one listed)"
+    fi
+    # Detect compiler used to build the target kernel and match it
+    _kernel_build_dir="$(realpath "${_linuxsrc}")"
+    _cfg_file="${_kernel_build_dir}/.config"
+    [[ ! -f "$_cfg_file" ]] && _cfg_file="${_kernel_build_dir}/include/config/auto.conf"
+    if grep -q "CONFIG_CC_IS_CLANG=y" "$_cfg_file" 2>/dev/null; then
+      msg2 "Target kernel was built with clang - using clang/lld (LLVM=1 LLVM_IAS=1)"
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 IGNORE_CC_MISMATCH=yes SYSSRC="${_linuxsrc}"
+    else
+      msg2 "Target kernel was built with gcc - using gcc"
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) IGNORE_CC_MISMATCH=yes SYSSRC="${_linuxsrc}"
+    fi
   fi
 }
 
@@ -2522,10 +2576,21 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       license=('MIT AND GPL-2.0-only')
 
       cd ${_srcbase}-${pkgver}
-      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
-      #_extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
+      # Detect installed kernel version
+      local _kern_ver
+      if [ -n "$_kerneloverride" ]; then
+        _kern_ver="$_kerneloverride"
+      elif [ -f /usr/src/linux/version ]; then
+        _kern_ver="$(</usr/src/linux/version)"
+      else
+        _kern_ver="$(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null | head -1)"
+        [ -z "$_kern_ver" ] && _kern_ver="$(find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null | head -1)"
+        [ -z "$_kern_ver" ] && _kern_ver="$(uname -r)"
+      fi
+      msg2 "Installing open NVIDIA modules for kernel: ${_kern_ver}"
+      _extradir="/usr/lib/modules/${_kern_ver}/extramodules"
       install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
-      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
+
       find "${pkgdir}" -name '*.ko' -exec xz {} +
 
       # Force module to load even on unsupported GPUs
@@ -2542,7 +2607,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi 
@@ -2553,10 +2623,23 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
       install=nvidia-tkg.install
 
-      # Install for all kernels
+      # Install for all kernels (or only for _target_kernel if set)
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_target_kernel" ]; then
+        mapfile -t _kernels < <(
+          for _mod_dir in /usr/lib/modules/*/; do
+            _pkgbase_file="${_mod_dir}pkgbase"
+            if [ -f "$_pkgbase_file" ] && [ "$(cat "$_pkgbase_file")" = "$_target_kernel" ]; then
+              _ver_file="${_mod_dir}build/version"
+              [ -f "$_ver_file" ] || _ver_file="${_mod_dir}extramodules/version"
+              [ -f "$_ver_file" ] && cat "$_ver_file"
+            fi
+          done
+        )
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -2577,7 +2660,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi  
@@ -2743,7 +2831,6 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
 
       install -Dm644 ${_srcbase}-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
   else
-
       pkgdesc="NVIDIA kernel module sources (DKMS)"
       depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
       provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
@@ -2754,7 +2841,12 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        if [ "${_module_signing:-false}" = "true" ]; then
+          install -Dm755 "${srcdir}/nvidia-sign-modules.sh" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+          install -Dm644 "${srcdir}/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        fi
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi 
