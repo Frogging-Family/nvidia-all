@@ -435,6 +435,7 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
+        'nvidia-bsb-dsc-fix.patch'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -514,6 +515,7 @@ md5sums=("$_md5sum"
         '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
         '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
+        'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -597,6 +599,33 @@ prepare() {
     fi
   fi
 
+  # BSB DSC fix user acknowledgement
+  if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
+    warning "========================================================================"
+    warning "BSB DSC FIX PATCH ENABLED"
+    warning ""
+    warning "You have enabled an UNOFFICIAL, THIRD-PARTY community patch:"
+    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
+    warning ""
+    warning "This patch fixes DSC 'rainbow static' artifacts for the"
+    warning "Bigscreen Beyond VR headset (open GPU kernel modules only, >= 580)."
+    warning ""
+    warning "!! NO WARRANTY - Use at your own risk !!"
+    warning "!! Ensure you have a recovery method (TTY, live USB) in case of"
+    warning "!! boot failure before continuing."
+    warning ""
+    warning "Please confirm you have read the full patch details at:"
+    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
+    warning "========================================================================"
+    plain ""
+    read -p "    I have read the patch details and accept the risks. Continue? [y/N] " _bsb_ack
+    if [[ ! "$_bsb_ack" =~ [yY] ]]; then
+      error "Aborted by user. Set _bsb_dsc_fix=\"false\" in customization.cfg to disable this prompt."
+      exit 1
+    fi
+    plain ""
+  fi
+
   if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
     _gcc14="true"
     msg2 "GCC 14 detected"
@@ -668,6 +697,17 @@ prepare() {
     if (( ${pkgver%%.*} >= 580 )); then
       msg2 "Applying 0002-Add-IBT-support.diff to kernel-open ${pkgver}..."
       patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
+    fi
+
+    # BSB DSC fix - fixes Display Stream Compression "rainbow static" artifacts on the Bigscreen Beyond VR headset
+    # https://github.com/triple-groove/nvidia-bsb-dsc-fix
+    if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
+      if (( ${pkgver%%.*} >= 580 )); then
+        msg2 "Applying nvidia-bsb-dsc-fix.patch to kernel-open ${pkgver}..."
+        patch -Np1 -i "${srcdir}/nvidia-bsb-dsc-fix.patch" -d "${srcdir}/${_srcbase}-${pkgver}"
+      else
+        warning "BSB DSC fix requires driver version >= 580 (current: ${pkgver}), skipping..."
+      fi
     fi
 
     # 6.19 whitelist definition
