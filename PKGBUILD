@@ -508,7 +508,7 @@ md5sums=("$_md5sum"
         '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
         'f6d0a9b1e503d0e8c026a20b61f889c2'
         '0c0b692368eef7a511f22adddc23d8a2'
-        '80c6e63ce0e1952838bd3713094b00df'
+        '33d4a80f467ce96cd98b1d79aad720a5'
         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
