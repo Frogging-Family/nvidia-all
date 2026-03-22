@@ -599,33 +599,6 @@ prepare() {
     fi
   fi
 
-  # BSB DSC fix user acknowledgement
-  if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
-    warning "========================================================================"
-    warning "BSB DSC FIX PATCH ENABLED"
-    warning ""
-    warning "You have enabled an UNOFFICIAL, THIRD-PARTY community patch:"
-    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
-    warning ""
-    warning "This patch fixes DSC 'rainbow static' artifacts for the"
-    warning "Bigscreen Beyond VR headset (open GPU kernel modules only, >= 580)."
-    warning ""
-    warning "!! NO WARRANTY - Use at your own risk !!"
-    warning "!! Ensure you have a recovery method (TTY, live USB) in case of"
-    warning "!! boot failure before continuing."
-    warning ""
-    warning "Please confirm you have read the full patch details at:"
-    warning "  https://github.com/triple-groove/nvidia-bsb-dsc-fix"
-    warning "========================================================================"
-    plain ""
-    read -p "    I have read the patch details and accept the risks. Continue? [y/N] " _bsb_ack
-    if [[ ! "$_bsb_ack" =~ [yY] ]]; then
-      error "Aborted by user. Set _bsb_dsc_fix=\"false\" in customization.cfg to disable this prompt."
-      exit 1
-    fi
-    plain ""
-  fi
-
   if [ "$_gcc14_fix" = "true" ] && [[ "$(gcc -dumpversion)" = 14* ]]; then
     _gcc14="true"
     msg2 "GCC 14 detected"
@@ -803,7 +776,7 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
-  else
+  else # ! here we start the non-open source module preparation for the regular nvidia driver dkms module build
     cd "$_pkg"
 
     # linux-rt fix for newer drivers. This just passes the same value regardless of kernel type as a bypass. This was stolen from https://gitlab.manjaro.org/packages/community/realtime-kernels/linux416-rt-extramodules/blob/master/nvidia/PKGBUILD - Thanks Muhownage <3
@@ -1197,15 +1170,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist612=( 565.57* )
       fi
 
-      # 6.19
-      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
-        if [[ $pkgver = 470* ]]; then
-          cd "$srcdir"/"$_pkg"/kernel-$_kernel
-          msg2 "Applying kernel-6.19-470.patch for $_kernel..."
-          patch -Np1 -i "$srcdir"/kernel-6.19-470.patch
-        fi
-      fi
-
       if [ "$_gcc14" = "true" ]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying gcc-14 patch..."
@@ -1224,10 +1188,16 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         cd ..
       fi
 
-      # Loop patches (linux-4.15.patch, lol.patch, ...)
-      for _p in $(printf -- '%s\n' ${source[@]} | grep '\.patch$'); do  # https://stackoverflow.com/a/21058239/1821548
+      # Loop patches (kernel-X.Y.patch only, avoid processing feature patches)
+      for _p in $(printf -- '%s\n' ${source[@]} | grep -E 'kernel-[0-9]+\.[0-9]+\.patch$'); do  # https://stackoverflow.com/a/21058239/1821548
         # Patch version (4.15, "", ...)
         _patch=$(echo $_p | grep -Po "\d+\.\d+")
+
+        # Skip patches with no extractable version
+        [[ -z "$_patch" ]] && continue
+
+        # Reset whitelist for this iteration to avoid stale state
+        _whitelist=()
 
         # Cd in place
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
@@ -1309,6 +1279,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.12" ]; then
           _whitelist=(${_whitelist612[@]})
+        fi
+        if [ "$_patch" = "6.19" ]; then
+          _whitelist=(${_whitelist619[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
