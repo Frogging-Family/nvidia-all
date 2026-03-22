@@ -555,10 +555,10 @@ diff --git a/conftest.sh b/conftest.sh
 index 263a404..294d6e5 100755
 --- a/conftest.sh
 +++ b/conftest.sh
-@@ -208,6 +208,11 @@ build_cflags() {
-
-     # Specify the C standard, instead of defaulting to the compiler's
-     CFLAGS="$CFLAGS -std=gnu17"
+@@ -203,6 +203,11 @@ build_cflags() {
+             CFLAGS="$CFLAGS -mfentry -DCC_USING_FENTRY"
+         fi
+     fi
 +
 +    # Rel. commit "Kbuild: enable -fms-extensions" (Rasmus Villemoes, 20 Oct 2025)
 +    # Enable the flags since the Linux headers use those extensions in some structs
