@@ -1,31 +1,67 @@
 {
+    "rules": [
+        {
+            "pattern": "obs",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "Discord",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "discord",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "DiscordCanary",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "vesktop",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "simplescreenrecorder",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "gpu-screen-recorder",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "spectacle",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "webcord",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "brave",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "chrome",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "chromium",
+            "profile": "CudaNoStablePerfLimit"
+        },
+        {
+            "pattern": "firefox",
+            "profile": "CudaNoStablePerfLimit"
+        }
+    ],
     "profiles": [
         {
             "name": "CudaNoStablePerfLimit",
-            "settings": ["0x166c5e", 0]
-        }
-    ],
-    "rules": [
-        {
-            "pattern": {
-                "op": "or",
-                "sub": [
-                    { "feature": "procname", "matches": "obs" },
-                    { "feature": "procname", "matches": "Discord" },
-                    { "feature": "procname", "matches": "discord" },
-                    { "feature": "procname", "matches": "DiscordCanary" },
-                    { "feature": "procname", "matches": "vesktop" },
-                    { "feature": "procname", "matches": "simplescreenrecorder" },
-                    { "feature": "procname", "matches": "gpu-screen-recorder" },
-                    { "feature": "procname", "matches": "spectacle" },
-                    { "feature": "procname", "matches": "webcord" },
-                    { "feature": "procname", "matches": "brave" },
-                    { "feature": "procname", "matches": "chrome" },
-                    { "feature": "procname", "matches": "chromium" },
-                    { "feature": "procname", "matches": "firefox" }
-                ]
-            },
-            "profile": "CudaNoStablePerfLimit"
+            "settings": [
+                {
+                    "key": "0x166c5e",
+                    "value": 0
+                }
+            ]
         }
     ]
 }

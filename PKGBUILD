@@ -325,6 +325,16 @@ if [ "$_nvsettings" = "true" ]; then
   _pkgname_array+=("$_branchname-settings-tkg")
 fi
 
+if [ "$_libxnvctrl" = "true" ]; then
+  if [ "$_driver_branch" = "vulkandev" ]; then
+    warning "libxnvctrl-tkg: vulkandev tag unavailable."
+    warning "Falling back to external 'libxnvctrl'; replacing an installed TKG provider may require manual 'pacman -S libxnvctrl'."
+    _libxnvctrl="external"
+  else
+    _pkgname_array+=("$_branchname-libxnvctrl-tkg")
+  fi
+fi
+
 if [ "$_eglwayland" = "true" ]; then
   _pkgname_array+=("$_branchname-egl-wayland-tkg")
 fi
@@ -335,12 +345,24 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=265
+pkgrel=266
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
-optdepends=('linux-headers' 'linux-lts-headers: Build the module for LTS Arch kernel')
-options=(!strip !lto !buildflags)
+makedepends=('linux-headers' 'patchelf')
+if [ "$_nvsettings" = "true" ]; then
+  makedepends+=('jansson' 'gtk3' 'libxv' 'libvdpau' 'libxext' 'vulkan-headers')
+fi
+optdepends=('linux-headers: Build the module for Arch kernel'
+            'linux-lts-headers: Build the module for LTS Arch kernel'
+            'base-devel: Required to build the package'
+            'clang: Required when kernel was built with Clang'
+            'llvm: Required when kernel was built with Clang (llvm-strip)'
+            'lld: Required when kernel was built with Clang (ld.lld)')
+options=('!strip' '!debug' '!buildflags')
+if (( ${pkgver%%.*} >= 580 )); then
+  options+=('!lto')
+fi
 
 cp "$where"/patches/* "$where" && cp -r "$where"/system/* "$where"
 
@@ -435,7 +457,8 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
-        'nvidia-bsb-dsc-fix.patch'
+        'nvidia-bsb-dsc-fix.diff'
+        'nvidia-settings-libxnvctrl_so.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -505,17 +528,18 @@ md5sums=("$_md5sum"
         '6c26d0df1e30c8bedf6abfe99e842944'
         'c39df46bb99047ca7d09f9122a7370a8'
         '411b490057cdd9e046ca6ea3d39b81bd' # limit-vram-usage
-        '17c48c8ec5c19fd9582dedb9f0ad3ca2' # cuda-no-stable-perf-limit
+        'f7ec305af36bed8054668a7f3b5b82c3' # cuda-no-stable-perf-limit
         'f6d0a9b1e503d0e8c026a20b61f889c2'
         '0c0b692368eef7a511f22adddc23d8a2'
         '33d4a80f467ce96cd98b1d79aad720a5'
         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
-        '451eae2101cd0e64c3a25ca213f57dac' # nvidia-patch.sh
+        '68d5cb25248f1c95200d72010d6ee488' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
-        '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
+        '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
         'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
+        '12ce769d5212fd1bd87d54bf52ad39c7' # nvidia-settings-libxnvctrl_so.diff
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -525,6 +549,11 @@ if [ "$_open_source_modules" = "true" ]; then
     source+=("$pkgname-$pkgver.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${pkgver}.tar.gz")
   fi
   md5sums+=("SKIP")
+fi
+
+if [ "$_libxnvctrl" = "true" ]; then
+  source+=("nvidia-settings-$pkgver.tar.gz::https://github.com/NVIDIA/nvidia-settings/archive/refs/tags/${pkgver}.tar.gz")
+  md5sums+=('SKIP')
 fi
 
 if [ "$_autoaddpatch" = "true" ]; then
@@ -611,6 +640,12 @@ prepare() {
   msg2 "Self-Extracting $_pkg.run..."
   sh "$_pkg".run -x
 
+  if [ "$_libxnvctrl" = "true" ]; then
+    cd "$srcdir/nvidia-settings-$pkgver"
+    patch -Np1 -i "$srcdir/nvidia-settings-libxnvctrl_so.diff"
+    cd "$srcdir"
+  fi
+
   if [ "$_open_source_modules" = "true" ]; then
     cd ${_srcbase}-${pkgver}
 
@@ -676,8 +711,8 @@ prepare() {
     # https://github.com/triple-groove/nvidia-bsb-dsc-fix
     if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
       if (( ${pkgver%%.*} >= 580 )); then
-        msg2 "Applying nvidia-bsb-dsc-fix.patch to kernel-open ${pkgver}..."
-        patch -Np1 -i "${srcdir}/nvidia-bsb-dsc-fix.patch" -d "${srcdir}/${_srcbase}-${pkgver}"
+        msg2 "Applying nvidia-bsb-dsc-fix.diff to kernel-open ${pkgver}..."
+        patch -Np1 -i "${srcdir}/nvidia-bsb-dsc-fix.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
       else
         warning "BSB DSC fix requires driver version >= 580 (current: ${pkgver}), skipping..."
       fi
@@ -686,14 +721,19 @@ prepare() {
     # 6.19 whitelist definition
     _open_whitelist619=( 590* )
     # 7.0 whitelist definition
-    _open_whitelist70=( 590* )
+    _open_whitelist70=( 590* 595* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
     if [ -n "${_kerneloverride}" ]; then
       _kernels="${_kerneloverride}"
     else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+    fi
+
+    if [ ${#_kernels[@]} -eq 0 ]; then
+      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+      return 1
     fi
 
     for _kernel in "${_kernels[@]}"; do
@@ -776,7 +816,9 @@ DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' kernel-open/dkms.conf
 
     cd "$srcdir/$_pkg"
     bsdtar -xf nvidia-persistenced-init.tar.bz2
-  else # ! here we start the non-open source module preparation for the regular nvidia driver dkms module build
+
+  # ! here we start the non-open source module preparation for the regular nvidia driver (dkms) module build
+  else
     cd "$_pkg"
 
     # linux-rt fix for newer drivers. This just passes the same value regardless of kernel type as a bypass. This was stolen from https://gitlab.manjaro.org/packages/community/realtime-kernels/linux416-rt-extramodules/blob/master/nvidia/PKGBUILD - Thanks Muhownage <3
@@ -847,8 +889,14 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if [ -n "$_kerneloverride" ]; then
       _kernels=("$_kerneloverride")
     else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
     fi
+
+    if [ ${#_kernels[@]} -eq 0 ]; then
+      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+      return 1
+    fi
+
     for _kernel in "${_kernels[@]}"; do
       # Use separate source directories
       cp -r kernel kernel-"$_kernel"
@@ -1814,30 +1862,70 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 }
 
 build() {
+  if [ "$_libxnvctrl" = "true" ]; then
+    cd "$srcdir/nvidia-settings-$pkgver"
+    make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so
+    cd "$srcdir"
+  fi
+
   if [ "$_open_source_modules" != "true" ]; then
     if [ "$_dkms" != "true" ]; then
-      # Build for all kernels
+      # Build for all kernels if no override specified
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_kerneloverride" ]; then
+        _kernels=("$_kerneloverride")
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      fi
+
+      if [ ${#_kernels[@]} -eq 0 ]; then
+        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+        return 1
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         cd "$srcdir"/$_pkg/kernel-$_kernel
 
+        # Detect compiler used to build the kernel and match it
+        if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+          _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+        else
+          _cc="gcc"; _ld="ld"; _llvm=""
+        fi
         # Build module
-        msg2 "Building Nvidia module for $_kernel..."
-        make SYSSRC=/usr/lib/modules/$_kernel/build modules
+        msg2 "Building Nvidia module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
+        make CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
       done
     fi
   else
     cd ${_srcbase}-${pkgver}
-    for _linuxsrc in /usr/src/*/vmlinux; do
-      _linuxsrc="${_linuxsrc//\/vmlinux}"
-      warning "Found linux src in: ${_linuxsrc}"
+
+    # Build for all kernels if no override specified
+    local _kernel
+    local -a _kernels
+    if [ -n "$_kerneloverride" ]; then
+      _kernels=("$_kerneloverride")
+    else
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+    fi
+
+    if [ ${#_kernels[@]} -eq 0 ]; then
+      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+      return 1
+    fi
+
+    for _kernel in "${_kernels[@]}"; do
+      # Detect compiler used to build the kernel and match it
+      if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+        _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+      else
+        _cc="gcc"; _ld="ld"; _llvm=""
+      fi
+      # Build module finally
+      msg2 "Building open NVIDIA module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
     done
-    warning "Using linux src from: ${_linuxsrc} (last one listed)"
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) SYSSRC="${_linuxsrc}"
-    #CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) LD=ld.lld SYSSRC="${_linuxsrc}"
   fi
 }
 
@@ -2448,6 +2536,14 @@ nvidia-utils-tkg() {
     fi
 
     _create_links
+
+    # Blacklist nouveau
+    if [[ "$_blacklist_nouveau" != "false" ]]; then
+      echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+    else
+      msg2 "Skipping nouveau blacklist due to user config"
+    fi
 }
 source /dev/stdin <<EOF
 package_$_branchname-utils-tkg() {
@@ -2457,7 +2553,12 @@ EOF
 
 nvidia-settings-tkg() {
     pkgdesc='Tool for configuring the NVIDIA graphics driver'
-    depends=("nvidia-utils-tkg>=${pkgver}" 'gtk3')
+    depends=("nvidia-utils-tkg>=${pkgver}" 'jansson' 'gtk3' 'libxv' 'libvdpau')
+    if [ "$_libxnvctrl" = "true" ]; then
+      depends+=("$_branchname-libxnvctrl-tkg")
+    elif [ "$_libxnvctrl" = "external" ]; then
+      depends+=('libxnvctrl')
+    fi
     provides=("nvidia-settings=${pkgver}" "nvidia-settings-tkg=${pkgver}")
     conflicts=('nvidia-settings')
 
@@ -2467,13 +2568,14 @@ nvidia-settings-tkg() {
     install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
     install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
     install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
-    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' \
+        -e 's/__NVIDIA_SETTINGS_DESKTOP_CATEGORIES__/Settings;HardwareSettings;/' \
+        -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
 
     install -D -m755 "libnvidia-gtk3.so.${pkgver}" -t "${pkgdir}/usr/lib"
 
     if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
       install -Dm755 libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so."${pkgver}"
-      ln -s libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so
     fi
 
     # license
@@ -2485,34 +2587,72 @@ package_$_branchname-settings-tkg() {
 }
 EOF
 
+libxnvctrl-tkg() {
+    pkgdesc='NVIDIA NV-CONTROL X extension'
+    depends=('libxext')
+    provides=('libxnvctrl' 'libXNVCtrl.so')
+    conflicts=('libxnvctrl')
+
+    cd "$srcdir/nvidia-settings-$pkgver"
+
+    install -Dm644 doc/{NV-CONTROL-API.txt,FRAMELOCK.txt} -t "${pkgdir}/usr/share/doc/${pkgname}"
+    install -Dm644 samples/{Makefile,README,*.c,*.h,*.mk} -t "${pkgdir}/usr/share/doc/${pkgname}/samples"
+
+    install -Dm644 src/libXNVCtrl/*.h -t "${pkgdir}/usr/include/NVCtrl"
+    install -d "${pkgdir}/usr/lib"
+    cp -Pr src/out/libXNVCtrl.* -t "${pkgdir}/usr/lib"
+}
+if [ "$_libxnvctrl" = "true" ]; then
+source /dev/stdin <<EOF
+package_$_branchname-libxnvctrl-tkg() {
+  libxnvctrl-tkg
+}
+EOF
+fi
+
 if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
   nvidia-tkg() {
   if [ "$_open_source_modules" = "true" ]; then
       pkgdesc="Open NVIDIA kernel modules for all installed kernels"
-      depends+=('linux')
+      depends=('linux')
       conflicts=('NVIDIA-MODULE')
       provides=('NVIDIA-MODULE')
-      license=('MIT AND GPL-2.0-only')
 
       cd ${_srcbase}-${pkgver}
-      _extradir="/usr/lib/modules/$(</usr/src/linux/version)/extramodules"
-      #_extradir="/usr/lib/modules/$(</proc/sys/kernel/osrelease)/extramodules"
-      install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
-      find "${pkgdir}" -name '*.ko' -exec strip --strip-debug {} +
-      find "${pkgdir}" -name '*.ko' -exec xz {} +
+
+      # Install for all kernels
+      local _kernel
+      local -a _kernels
+      if [ -n "$_kerneloverride" ]; then
+        _kernels=("$_kerneloverride")
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      fi
+
+      if [ ${#_kernels[@]} -eq 0 ]; then
+        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+        return 1
+      fi
+
+      for _kernel in "${_kernels[@]}"; do
+        # Detect the kernel source directory for the current kernel
+        msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
+        local _extradir="/usr/lib/modules/${_kernel}/extramodules"
+        install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
+        # Strip debug symbols and compress the modules
+        if grep -q "CONFIG_CC_IS_CLANG=y" /usr/lib/modules/${_kernel}/build/.config 2>/dev/null; then
+          find "${pkgdir}${_extradir}" -name '*.ko' -exec llvm-strip --strip-debug {} +
+        else
+          find "${pkgdir}${_extradir}" -name '*.ko' -exec strip --strip-debug {} +
+        fi
+        find "${pkgdir}${_extradir}" -name '*.ko' -exec xz {} +
+      done
 
       # Force module to load even on unsupported GPUs
       mkdir -p "$pkgdir"/usr/lib/modprobe.d
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/${pkgname}-gpus.conf
 
       install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
-
-      if [ "$_blacklist_nouveau" = false ]; then
-          echo "skip blacklist nouveau\n"
-        else
-            echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-                install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
-      fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
         install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
@@ -2526,10 +2666,19 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
       install=nvidia-tkg.install
 
-      # Install for all kernels
+      # Install for all kernels if no override specified
       local _kernel
       local -a _kernels
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+      if [ -n "$_kerneloverride" ]; then
+        _kernels=("$_kerneloverride")
+      else
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      fi
+
+      if [ ${#_kernels[@]} -eq 0 ]; then
+        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+        return 1
+      fi
 
       for _kernel in "${_kernels[@]}"; do
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -2540,13 +2689,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
         find "$pkgdir" -name '*.ko' -exec gzip -n {} +
       done
 
-      if [ "$_blacklist_nouveau" = false ]; then
-        echo "skip blacklist nouveau\n"
-      else
-        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+      # Enable nvidia-uvm autoload at boot
+      if [[ "$_blacklist_nouveau" != "false" ]]; then
         echo "nvidia-uvm" |
-            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
+          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
+      else
+        msg2 "Skipping nvidia-uvm autoload due to user config"
       fi
 
       if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
@@ -2699,50 +2847,47 @@ EOF
 
 if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
   nvidia-dkms-tkg() {
-  if [ "$_open_source_modules" = "true" ]; then
-      depends+=('dkms')
-      conflicts=('nvidia-open' 'NVIDIA-MODULE')
-      provides=('nvidia-open' 'NVIDIA-MODULE')
-      license=('MIT AND GPL-2.0-only')
+    if [ "$_open_source_modules" = "true" ]; then
+        depends=('dkms')
+        conflicts=('nvidia-open' 'NVIDIA-MODULE' 'nvidia-dkms')
+        provides=('nvidia-open' 'NVIDIA-MODULE')
 
-      install -dm 755 "${pkgdir}"/usr/src
-      # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
-      cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-$pkgver"
-      mv "${pkgdir}/usr/src/nvidia-$pkgver/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-$pkgver/dkms.conf"
+        install -dm 755 "${pkgdir}"/usr/src
+        # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
+        cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-$pkgver"
+        mv "${pkgdir}/usr/src/nvidia-$pkgver/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-$pkgver/dkms.conf"
 
-      # Force module to load even on unsupported GPUs
-      mkdir -p "$pkgdir"/usr/lib/modprobe.d
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
+        # Force module to load even on unsupported GPUs
+        mkdir -p "$pkgdir"/usr/lib/modprobe.d
+        echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/nvidia-open.conf
 
-      install -Dm644 ${_srcbase}-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
-  else
-
-      pkgdesc="NVIDIA kernel module sources (DKMS)"
-      depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
-      provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
-      conflicts=('nvidia' 'nvidia-dkms')
-
-      cd ${_pkg}
-      install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
-      cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
-
-      if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
-        install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-      else
-        echo "Skipping mkinitcpio hook due to user config"
-      fi 
-
-      install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
-  fi
-
-  if [ "$_blacklist_nouveau" = false ]; then
-      echo "skip blacklist nouveau\n"
+        install -Dm644 ${_srcbase}-${pkgver}/COPYING "$pkgdir"/usr/share/licenses/$pkgname
     else
-        echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-            install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
-        echo "nvidia-uvm" |
-            install -Dm644 /dev/stdin "${pkgdir}/etc/modules-load.d/${pkgname}-uvm.conf"
-  fi
+        pkgdesc="NVIDIA kernel module sources (DKMS)"
+        depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
+        provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
+        conflicts=('nvidia' 'nvidia-dkms')
+
+        cd ${_pkg}
+        install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
+        cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
+
+        if [[ ! "$_disable_libalpm_hook" == "true" ]]; then
+          install -Dm644 "${srcdir}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        else
+          echo "Skipping mkinitcpio hook due to user config"
+        fi 
+
+        install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
+    fi
+
+    # Enable nvidia-uvm autoload at boot
+    if [[ "$_blacklist_nouveau" != "false" ]]; then
+      echo "nvidia-uvm" |
+        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
+    else
+      msg2 "Skipping nvidia-uvm autoload due to user config"
+    fi
   }
 source /dev/stdin <<EOF
   package_$__branchname-dkms-tkg() {
