@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.03\n      2.595 series: 595.58.03\n      3.580 series: 580.142\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.05\n      2.595 series: 595.58.03\n      3.580 series: 580.142\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -190,8 +190,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=595.44.03' > options
-      echo '_md5sum=b10a2d2c0cd5a7bf5fe67ed281b4ef71' >> options
+      echo '_driver_version=595.44.05' > options
+      echo '_md5sum=b4479cedbbbc4a8a5e69d57088cdaa24' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -331,6 +331,11 @@ if [ "$_libxnvctrl" = "true" ]; then
     warning "Falling back to external 'libxnvctrl'; replacing an installed TKG provider may require manual 'pacman -S libxnvctrl'."
     _libxnvctrl="external"
   else
+    if [ "$_nvsettings" != "true" ]; then
+      warning "_libxnvctrl requires _nvsettings=true. Enabling nvidia-settings automatically."
+      _nvsettings="true"
+      _pkgname_array+=("$_branchname-settings-tkg")
+    fi
     _pkgname_array+=("$_branchname-libxnvctrl-tkg")
   fi
 fi
@@ -353,14 +358,12 @@ makedepends=('linux-headers' 'patchelf')
 if [ "$_nvsettings" = "true" ]; then
   makedepends+=('jansson' 'gtk3' 'libxv' 'libvdpau' 'libxext' 'vulkan-headers')
 fi
-optdepends=('linux-headers: Build the module for Arch kernel'
-            'linux-lts-headers: Build the module for LTS Arch kernel'
-            'base-devel: Required to build the package'
+optdepends=('linux-lts-headers: Build the module for LTS Arch kernel'
             'clang: Required when kernel was built with Clang'
             'llvm: Required when kernel was built with Clang (llvm-strip)'
             'lld: Required when kernel was built with Clang (ld.lld)')
-options=('!strip' '!debug' '!buildflags')
-if (( ${pkgver%%.*} >= 580 )); then
+options=('!strip' '!buildflags')
+if (( ${pkgver%%.*} < 580 )); then
   options+=('!lto')
 fi
 
@@ -728,7 +731,7 @@ prepare() {
     if [ -n "${_kerneloverride}" ]; then
       _kernels="${_kerneloverride}"
     else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
 
     if [ ${#_kernels[@]} -eq 0 ]; then
@@ -889,7 +892,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
     if [ -n "$_kerneloverride" ]; then
       _kernels=("$_kerneloverride")
     else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
 
     if [ ${#_kernels[@]} -eq 0 ]; then
@@ -1876,7 +1879,7 @@ build() {
       if [ -n "$_kerneloverride" ]; then
         _kernels=("$_kerneloverride")
       else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
       fi
 
       if [ ${#_kernels[@]} -eq 0 ]; then
@@ -1907,7 +1910,7 @@ build() {
     if [ -n "$_kerneloverride" ]; then
       _kernels=("$_kerneloverride")
     else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
     fi
 
     if [ ${#_kernels[@]} -eq 0 ]; then
@@ -2152,7 +2155,8 @@ nvidia-utils-tkg() {
   elif [ "$_eglx11" = "true" ]; then
     depends+=("$_branchname-egl-x11-tkg")
   fi
-  optdepends=('gtk2: nvidia-settings (GTK+ v2)'
+  optdepends=('nvidia-settings: configuration tool'
+              'gtk2: nvidia-settings (GTK+ v2)'
               'gtk3: nvidia-settings (GTK+ v3)'
               'opencl-nvidia-tkg: OpenCL support'
               'xorg-server' 'xorg-server-devel: nvidia-xconfig'
@@ -2535,6 +2539,7 @@ nvidia-utils-tkg() {
       fi
     fi
 
+    # create missing soname links
     _create_links
 
     # Blacklist nouveau
@@ -2561,6 +2566,7 @@ nvidia-settings-tkg() {
     fi
     provides=("nvidia-settings=${pkgver}" "nvidia-settings-tkg=${pkgver}")
     conflicts=('nvidia-settings')
+    options=('staticlibs')
 
     cd "$_pkg"
 
@@ -2576,6 +2582,7 @@ nvidia-settings-tkg() {
 
     if [[ -e libnvidia-wayland-client.so.${pkgver} ]]; then
       install -Dm755 libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so."${pkgver}"
+      ln -s libnvidia-wayland-client.so."${pkgver}" "${pkgdir}"/usr/lib/libnvidia-wayland-client.so
     fi
 
     # license
@@ -2592,6 +2599,7 @@ libxnvctrl-tkg() {
     depends=('libxext')
     provides=('libxnvctrl' 'libXNVCtrl.so')
     conflicts=('libxnvctrl')
+    replaces=('libxnvctrl')
 
     cd "$srcdir/nvidia-settings-$pkgver"
 
@@ -2620,13 +2628,13 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
       cd ${_srcbase}-${pkgver}
 
-      # Install for all kernels
+      # Install for all kernels if no override specified
       local _kernel
       local -a _kernels
       if [ -n "$_kerneloverride" ]; then
         _kernels=("$_kerneloverride")
       else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
       fi
 
       if [ ${#_kernels[@]} -eq 0 ]; then
@@ -2672,7 +2680,7 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       if [ -n "$_kerneloverride" ]; then
         _kernels=("$_kerneloverride")
       else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null || find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null || cat /usr/src/linux/version 2>/dev/null)
+        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
       fi
 
       if [ ${#_kernels[@]} -eq 0 ]; then
@@ -2833,6 +2841,7 @@ lib32-nvidia-utils-tkg() {
       install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
     fi
 
+    # create missing soname links
     _create_links
 
     rm -rf "${pkgdir}"/usr/{include,share,bin}
