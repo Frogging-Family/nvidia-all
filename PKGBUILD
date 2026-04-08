@@ -1892,13 +1892,13 @@ build() {
 
         # Detect compiler used to build the kernel and match it
         if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
-          _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+          _cc="clang"; _cxx="clang++"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
         else
-          _cc="gcc"; _ld="ld"; _llvm=""
+          _cc="gcc"; _cxx="g++"; _ld="ld"; _llvm=""
         fi
         # Build module
-        msg2 "Building Nvidia module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
-        make CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
+        msg2 "Building Nvidia module for $_kernel (CC=$_cc CXX=$_cxx${_llvm:+ $_llvm})..."
+        make CC="$_cc" CXX="$_cxx" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
       done
     fi
   else
@@ -1921,13 +1921,13 @@ build() {
     for _kernel in "${_kernels[@]}"; do
       # Detect compiler used to build the kernel and match it
       if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
-        _cc="clang"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
+        _cc="clang"; _cxx="clang++"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
       else
-        _cc="gcc"; _ld="ld"; _llvm=""
+        _cc="gcc"; _cxx="g++"; _ld="ld"; _llvm=""
       fi
       # Build module finally
-      msg2 "Building open NVIDIA module for $_kernel (CC=$_cc${_llvm:+ $_llvm})..."
-      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC="$_cc" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
+      msg2 "Building open NVIDIA module for $_kernel (CC=$_cc CXX=$_cxx${_llvm:+ $_llvm})..."
+      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC="$_cc" CXX="$_cxx" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
     done
   fi
 }
