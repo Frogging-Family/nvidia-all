@@ -454,6 +454,7 @@ source=($_source_name
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
         'kernel-6.19-470.patch'
+        'kernel-7.0-580.patch'
         'kernel-7.0.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
@@ -462,6 +463,7 @@ source=($_source_name
         'nvidia-modprobe-mobile.conf'
         'nvidia-bsb-dsc-fix.diff'
         'nvidia-settings-libxnvctrl_so.diff'
+        'fix-hw-cursor-kde.diff'
 )
 
 msg2 "Selected driver integrity check behavior (md5sum or SKIP): $_md5sum" # If the driver is "known", return md5sum. If it isn't, return SKIP
@@ -535,6 +537,7 @@ md5sums=("$_md5sum"
         'f6d0a9b1e503d0e8c026a20b61f889c2'
         '0c0b692368eef7a511f22adddc23d8a2'
         '33d4a80f467ce96cd98b1d79aad720a5'
+        'ff72e6704d61ac2c85254e60780de2fc' # kernel-7.0-580.patch
         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
@@ -543,6 +546,7 @@ md5sums=("$_md5sum"
         '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
         'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
         '12ce769d5212fd1bd87d54bf52ad39c7' # nvidia-settings-libxnvctrl_so.diff
+        'dcf3b66d1064c6c7f4598684a1d2368d' # fix-hw-cursor-kde.diff
 )
 
 if [ "$_open_source_modules" = "true" ]; then
@@ -710,6 +714,11 @@ prepare() {
       patch -Np1 -i "${srcdir}/0002-Add-IBT-support.diff" -d "${srcdir}/${_srcbase}-${pkgver}"
     fi
 
+    if (( ${pkgver%%.*} == 580 )); then
+      msg2 "Applying fix-hw-cursor-kde.diff to kernel-open ${pkgver}..."
+      patch -Np1 -i "${srcdir}/fix-hw-cursor-kde.diff" -d "${srcdir}/${_srcbase}-${pkgver}/kernel-open"
+    fi
+
     # BSB DSC fix - fixes Display Stream Compression "rainbow static" artifacts on the Bigscreen Beyond VR headset
     # https://github.com/triple-groove/nvidia-bsb-dsc-fix
     if [[ "${_bsb_dsc_fix:-false}" == "true" ]]; then
@@ -725,6 +734,8 @@ prepare() {
     _open_whitelist619=( 590* )
     # 7.0 whitelist definition
     _open_whitelist70=( 590* 595* )
+    # 7.0 580-specific whitelist definition
+    _open_whitelist70_580=( 580* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -778,6 +789,21 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
         else
           msg2 "Skipping kernel-7.0.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      fi
+    fi
+    # 7.0 580-specific
+    if [ "${_open_kernel70}" = "1" ]; then
+      if (( ${pkgver%%.*} == 580 )); then
+        patchy=0
+        for yup in "${_open_whitelist70_580[@]}"; do
+          [[ ${pkgver} = ${yup} ]] && patchy=1
+        done
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-7.0-580.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np1 -i "${srcdir}/kernel-7.0-580.patch" )
+        else
+          msg2 "Skipping kernel-7.0-580.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
@@ -1221,6 +1247,22 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         _whitelist612=( 565.57* )
       fi
 
+      # 6.19
+      if (( $(vercmp "$_kernel" "6.19") >= 0 )); then
+        _whitelist619=( 590* )
+      fi
+
+      # 7.0
+      if (( $(vercmp "$_kernel" "7.0") >= 0 )); then
+        _whitelist70=( 590* 595* )
+        if (( ${pkgver%%.*} == 580 )); then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-7.0-580.patch for $_kernel..."
+          patch -Np1 -i "${srcdir}/kernel-7.0-580.patch"
+          cd ..
+        fi
+      fi
+
       if [ "$_gcc14" = "true" ]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying gcc-14 patch..."
@@ -1333,6 +1375,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "6.19" ]; then
           _whitelist=(${_whitelist619[@]})
+        fi
+        if [ "$_patch" = "7.0" ]; then
+          _whitelist=(${_whitelist70[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
@@ -2448,6 +2493,10 @@ nvidia-utils-tkg() {
       # https://www.nvidia.com/en-us/drivers/details/257493/
       install -Dm644 "${srcdir}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
     fi
+
+    #if (( ${pkgver%%.*} >= 580 )); then
+
+    #fi
 
     # Install performance optimizations
     # Default to false if _perf_optimizations is empty
