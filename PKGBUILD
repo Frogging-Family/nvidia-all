@@ -543,7 +543,7 @@ md5sums=("$_md5sum"
         '84ca49afabf4907f19c81e0bb56b5873'
         '68d5cb25248f1c95200d72010d6ee488' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
-        '47d55754a2ccb7e4b5cdbbc943a0a17b' # nvidia-modprobe-mobile.conf
+        '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
         'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
         '12ce769d5212fd1bd87d54bf52ad39c7' # nvidia-settings-libxnvctrl_so.diff
         'dcf3b66d1064c6c7f4598684a1d2368d' # fix-hw-cursor-kde.diff
@@ -1900,6 +1900,31 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   fi
 }
 
+# Detect all target kernel versions
+_detect_kernels() {
+  local -a _result=()
+  if [ -n "$_kerneloverride" ]; then
+    _result=("$_kerneloverride")
+  else
+    mapfile -t _result < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
+  fi
+  if [ ${#_result[@]} -eq 0 ]; then
+    error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
+    return 1
+  fi
+  printf '%s\n' "${_result[@]}"
+}
+
+# Detect compiler from kernel config and populate BUILD_FLAGS array
+_setup_build_flags() {
+  local _kernel="$1"
+  BUILD_FLAGS=() # GCC flags
+
+  if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+    BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
+  fi
+}
+
 build() {
   if [ "$_libxnvctrl" = "true" ]; then
     cd "$srcdir/nvidia-settings-$pkgver"
@@ -1907,65 +1932,37 @@ build() {
     cd "$srcdir"
   fi
 
-  if [ "$_open_source_modules" != "true" ]; then
-    if [ "$_dkms" != "true" ]; then
-      # Build for all kernels if no override specified
-      local _kernel
-      local -a _kernels
-      if [ -n "$_kerneloverride" ]; then
-        _kernels=("$_kerneloverride")
-      else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-      fi
-
-      if [ ${#_kernels[@]} -eq 0 ]; then
-        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-        return 1
-      fi
-
-      for _kernel in "${_kernels[@]}"; do
-        cd "$srcdir"/$_pkg/kernel-$_kernel
-
-        # Detect compiler used to build the kernel and match it
-        if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
-          _cc="clang"; _cxx="clang++"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
-        else
-          _cc="gcc"; _cxx="g++"; _ld="ld"; _llvm=""
-        fi
-        # Build module
-        msg2 "Building Nvidia module for $_kernel (CC=$_cc CXX=$_cxx${_llvm:+ $_llvm})..."
-        make CC="$_cc" CXX="$_cxx" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
-      done
-    fi
-  else
-    cd ${_srcbase}-${pkgver}
-
-    # Build for all kernels if no override specified
-    local _kernel
-    local -a _kernels
-    if [ -n "$_kerneloverride" ]; then
-      _kernels=("$_kerneloverride")
-    else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-    fi
-
-    if [ ${#_kernels[@]} -eq 0 ]; then
-      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-      return 1
-    fi
-
-    for _kernel in "${_kernels[@]}"; do
-      # Detect compiler used to build the kernel and match it
-      if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
-        _cc="clang"; _cxx="clang++"; _ld="ld.lld"; _llvm="LLVM=1 LLVM_IAS=1"
-      else
-        _cc="gcc"; _cxx="g++"; _ld="ld"; _llvm=""
-      fi
-      # Build module finally
-      msg2 "Building open NVIDIA module for $_kernel (CC=$_cc CXX=$_cxx${_llvm:+ $_llvm})..."
-      CFLAGS= CXXFLAGS= LDFLAGS= make -j$(nproc) CC="$_cc" CXX="$_cxx" LD="$_ld" ${_llvm} IGNORE_CC_MISMATCH=yes SYSSRC=/usr/lib/modules/$_kernel/build modules
-    done
+  # Skip non-dkms build for pure-dkms proprietary builds
+  if [ "$_open_source_modules" != "true" ] && [ "$_dkms" = "true" ]; then
+    return 0
   fi
+
+  if [ "$_open_source_modules" = "true" ]; then
+    cd "${_srcbase}-${pkgver}"
+  fi
+
+  local _kernel
+  local -a _kernels
+  mapfile -t _kernels < <(_detect_kernels)
+
+  for _kernel in "${_kernels[@]}"; do
+    _setup_build_flags "$_kernel"
+
+    local MODULE_FLAGS=(
+      IGNORE_CC_MISMATCH=yes
+      SYSSRC="/usr/lib/modules/$_kernel/build"
+    )
+
+    local _label="Nvidia"
+    if [ "$_open_source_modules" = "true" ]; then
+      _label="open NVIDIA"
+    else
+      cd "$srcdir"/$_pkg/kernel-$_kernel
+    fi
+
+    msg2 "Building $_label module for $_kernel..."
+    CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules
+  done
 }
 
 opencl-nvidia-tkg() {
@@ -2664,22 +2661,11 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
 
       cd ${_srcbase}-${pkgver}
 
-      # Install for all kernels if no override specified
       local _kernel
       local -a _kernels
-      if [ -n "$_kerneloverride" ]; then
-        _kernels=("$_kerneloverride")
-      else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-      fi
-
-      if [ ${#_kernels[@]} -eq 0 ]; then
-        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-        return 1
-      fi
+      mapfile -t _kernels < <(_detect_kernels)
 
       for _kernel in "${_kernels[@]}"; do
-        # Detect the kernel source directory for the current kernel
         msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
         local _extradir="/usr/lib/modules/${_kernel}/extramodules"
         install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
@@ -2710,19 +2696,9 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
       install=nvidia-tkg.install
 
-      # Install for all kernels if no override specified
       local _kernel
       local -a _kernels
-      if [ -n "$_kerneloverride" ]; then
-        _kernels=("$_kerneloverride")
-      else
-        mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-      fi
-
-      if [ ${#_kernels[@]} -eq 0 ]; then
-        error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-        return 1
-      fi
+      mapfile -t _kernels < <(_detect_kernels)
 
       for _kernel in "${_kernels[@]}"; do
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
