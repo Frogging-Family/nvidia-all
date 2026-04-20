@@ -1,0 +1,6 @@
+type            = bgprocess
+command         = /usr/bin/nvidia-persistenced
+smooth-recovery = true
+pid-file        = /run/nvidia-persistenced/nvidia-persistenced.pid
+after           = local.target
+before          = login.target
