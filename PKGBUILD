@@ -462,6 +462,7 @@ source=($_source_name
         'nvidia-patch.sh'
         'nvidia-modprobe.conf'
         'nvidia-modprobe-mobile.conf'
+        'nvidia-persistenced.dinit'
         'nvidia-bsb-dsc-fix.diff'
         'nvidia-settings-libxnvctrl_so.diff'
         'fix-hw-cursor-kde.diff'
@@ -546,6 +547,7 @@ md5sums=("$_md5sum"
         '68d5cb25248f1c95200d72010d6ee488' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
         '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
+        '7d0bc0a3656a24b2c17f2362e60b70ae' # nvidia-persistenced.dinit
         'c488acde6cf5bfed42ee969f28b379dc' # nvidia-bsb-dsc-fix.patch
         '12ce769d5212fd1bd87d54bf52ad39c7' # nvidia-settings-libxnvctrl_so.diff
         'dcf3b66d1064c6c7f4598684a1d2368d' # fix-hw-cursor-kde.diff
@@ -2405,12 +2407,26 @@ nvidia-utils-tkg() {
     install -D -m4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
     install -D -m644 nvidia-modprobe.1.gz "${pkgdir}/usr/share/man/man1/nvidia-modprobe.1.gz"
 
+    # Detect init system
+    if [ -d /run/systemd/system ]; then
+      _detected_init="systemd"
+    elif [ -d /run/dinit ] || command -v dinitctl &>/dev/null; then
+      _detected_init="dinit"
+    elif [ -e /usr/lib/elogind ] || command -v elogind &>/dev/null; then
+      _detected_init="elogind"
+    else
+      _detected_init="other"
+    fi
+    msg2 "Detected init system: ${_detected_init}"
+
     # nvidia-persistenced
     install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
     install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
-    if [ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]; then
+    if [ "${_detected_init}" = "systemd" ] && [ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]; then
       install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
       sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+    elif [ "${_detected_init}" = "dinit" ]; then
+      install -D -m644 "${srcdir}/nvidia-persistenced.dinit" "${pkgdir}/etc/dinit.d/nvidia-persistenced"
     fi
 
     # application profiles
@@ -2430,23 +2446,31 @@ nvidia-utils-tkg() {
         _path_addon3="systemd/"
       fi
       # new power management support
-      install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
-      install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
-      install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
-      if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
-        install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
+      if [ "${_detected_init}" = "systemd" ]; then
+        # systemd
+        install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
+        install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
+        install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
+        if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
+          install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
+        fi
+        # systemd sleep hook
+        install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
+      elif [ "${_detected_init}" = "elogind" ]; then
+        install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/elogind/system-sleep/nvidia"
       fi
-      install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
+      # nvidia-sleep.sh
       install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
       # nvidia-powerd
-      if [ -e nvidia-powerd ]; then
+      if [ -e nvidia-powerd ] && [ "${_detected_init}" != "other" ]; then
         install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
         install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
-        install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+        if [ "${_detected_init}" = "systemd" ]; then
+          install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
+        fi
       fi
-      # Disable freezing user sessions during suspend/hibernate to avoid
-      # conflicts with the NVIDIA driver's own video memory preservation mechanism.
-      if (( ${pkgver%%.*} >= 580 )); then
+      # systemd-homed override
+      if [ "${_detected_init}" = "systemd" ] && (( ${pkgver%%.*} >= 580 )); then
         install -Dm644 "${srcdir}/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
         install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
         install -Dm644 "${srcdir}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
@@ -2944,6 +2968,7 @@ function exit_cleanup {
   rm -f "${where}"/*.hook
   rm -f "${where}"/*.sh
   rm -f "${where}"/*.rules
+  rm -f "${where}"/*.dinit
   rm -f "${where}"/nvidia-utils-tkg.sysusers
   rm -f "${where}"/limit-vram-usage
   rm -f "${where}"/cuda-no-stable-perf-limit
