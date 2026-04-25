@@ -454,6 +454,7 @@ source=($_source_name
         '50-nvidia-cuda-disable-perf-boost.conf'
         'kernel-6.19.patch'
         'kernel-6.19-470.patch'
+        'kernel-7.0-470.patch'
         'kernel-7.0-580.patch'
         'kernel-7.0.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
@@ -537,6 +538,7 @@ md5sums=("$_md5sum"
         'f6d0a9b1e503d0e8c026a20b61f889c2'
         '0c0b692368eef7a511f22adddc23d8a2'
         '33d4a80f467ce96cd98b1d79aad720a5'
+        '40586f44fbf940c6b3dbcb1cfc25edae' # kernel-7.0-470.patch
         'ff72e6704d61ac2c85254e60780de2fc' # kernel-7.0-580.patch
         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
         '24bd1c8e7b9265020969a8da2962e114'
@@ -1246,6 +1248,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 7.0
       if (( $(vercmp "$_kernel" "7.0") >= 0 )); then
         _whitelist70=( 590* 595* )
+        if [[ $pkgver = 470* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-$_kernel
+          msg2 "Applying kernel-7.0-470.patch for $_kernel..."
+          patch -Np1 -i "${srcdir}/kernel-7.0-470.patch"
+          cd ..
+        fi
         if (( ${pkgver%%.*} == 580 )); then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying kernel-7.0-580.patch for $_kernel..."
@@ -1866,6 +1874,15 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           cd "$srcdir"/"$_pkg"/kernel-dkms
           msg2 "Applying kernel-6.19-470.patch for $_kernel..."
           patch -Np1 -i "$srcdir"/kernel-6.19-470.patch
+        fi
+      fi
+
+      # 7.0
+      if (( $(vercmp "$_kernel" "7.0") >= 0 )); then
+        if [[ $pkgver = 470* ]]; then
+          cd "$srcdir"/"$_pkg"/kernel-dkms
+          msg2 "Applying kernel-7.0-470.patch for $_kernel..."
+          patch -Np1 -i "$srcdir"/kernel-7.0-470.patch
         fi
       fi
 
