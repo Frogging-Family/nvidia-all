@@ -1951,8 +1951,10 @@ build() {
     cd "$srcdir"
   fi
 
-  # Skip non-dkms build for pure-dkms proprietary builds
-  if [ "$_open_source_modules" != "true" ] && [ "$_dkms" = "true" ]; then
+  # Skip kernel module build for pure DKMS packages.
+  # DKMS builds modules from /usr/src at install/update time.
+  if [ "$_dkms" = "true" ]; then
+    msg2 "_dkms=true - skipping kernel module build steps (handled by DKMS)."
     return 0
   fi
 
