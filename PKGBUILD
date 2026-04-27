@@ -605,6 +605,69 @@ _create_links() {
   cd "${where}"
 }
 
+# Detect all target kernel versions
+_detect_kernels() {
+  local _path _kver
+  local -a _candidates=()
+  local -a _result=()
+  local -A _seen=()
+
+  if [ -n "$_kerneloverride" ]; then
+    _candidates=("$_kerneloverride")
+  else
+    # Read ALPM hook file list from stdin when available.
+    if [ ! -t 0 ]; then
+      while IFS= read -r _path; do
+        case "$_path" in
+          usr/lib/modules/*/vmlinuz | usr/lib/modules/*/extramodules/*)
+            _kver="${_path#usr/lib/modules/}"
+            _kver="${_kver%%/*}"
+            _candidates+=("$_kver")
+            ;;
+        esac
+      done
+    fi
+
+    while IFS= read -r _kver; do
+      [ -n "$_kver" ] && _candidates+=("$_kver")
+    done < <(
+      find /usr/lib/modules/*/build/version -exec cat {} + 2>/dev/null
+      find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null
+    )
+  fi
+
+  for _kver in "${_candidates[@]}"; do
+    [ -n "$_kver" ] || continue
+    if [ -n "${_seen[$_kver]:-}" ]; then
+      continue
+    fi
+    _seen["$_kver"]=1
+
+    if [ -d "/usr/lib/modules/$_kver/build" ]; then
+      _result+=("$_kver")
+    else
+      warning "Skipping $_kver: missing /usr/lib/modules/$_kver/build"
+    fi
+  done
+
+  if [ ${#_result[@]} -eq 0 ]; then
+    error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg."
+    return 1
+  fi
+
+  printf '%s\n' "${_result[@]}"
+}
+
+# Detect compiler from kernel config and populate BUILD_FLAGS array
+_build_flags() {
+  local _kernel="$1"
+  BUILD_FLAGS=() # GCC flags
+
+  if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
+    BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
+  fi
+}
+
 prepare() {
   # Remove previous builds
   [ -d "$_pkg" ] && rm -rf "$_pkg"
@@ -741,16 +804,7 @@ prepare() {
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
-    if [ -n "${_kerneloverride}" ]; then
-      _kernels="${_kerneloverride}"
-    else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-    fi
-
-    if [ ${#_kernels[@]} -eq 0 ]; then
-      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-      return 1
-    fi
+    mapfile -t _kernels < <(_detect_kernels)
 
     for _kernel in "${_kernels[@]}"; do
       # 6.19
@@ -910,16 +964,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
 
     # Loop kernels (4.15.0-1-ARCH, 4.14.5-1-ck, ...)
     local -a _kernels
-    if [ -n "$_kerneloverride" ]; then
-      _kernels=("$_kerneloverride")
-    else
-      mapfile -t _kernels < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-    fi
-
-    if [ ${#_kernels[@]} -eq 0 ]; then
-      error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-      return 1
-    fi
+    mapfile -t _kernels < <(_detect_kernels)
 
     for _kernel in "${_kernels[@]}"; do
       # Use separate source directories
@@ -1919,31 +1964,6 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
   fi
 }
 
-# Detect all target kernel versions
-_detect_kernels() {
-  local -a _result=()
-  if [ -n "$_kerneloverride" ]; then
-    _result=("$_kerneloverride")
-  else
-    mapfile -t _result < <(find /usr/lib/modules/*/build/version -exec cat {} + || find /usr/lib/modules/*/extramodules/version -exec cat {} +)
-  fi
-  if [ ${#_result[@]} -eq 0 ]; then
-    error "Could not detect kernel version. Set _kerneloverride in customization.cfg."
-    return 1
-  fi
-  printf '%s\n' "${_result[@]}"
-}
-
-# Detect compiler from kernel config and populate BUILD_FLAGS array
-_setup_build_flags() {
-  local _kernel="$1"
-  BUILD_FLAGS=() # GCC flags
-
-  if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/$_kernel/build/.config" 2>/dev/null; then
-    BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
-  fi
-}
-
 build() {
   if [ "$_libxnvctrl" = "true" ]; then
     cd "$srcdir/nvidia-settings-$pkgver"
@@ -1960,6 +1980,10 @@ build() {
 
   if [ "$_open_source_modules" = "true" ]; then
     cd "${_srcbase}-${pkgver}"
+
+    # Keep kernel-specific module outputs separate to avoid mixing artifacts.
+    rm -rf "$srcdir/open-kmods"
+    mkdir -p "$srcdir/open-kmods"
   fi
 
   local _kernel
@@ -1967,7 +1991,7 @@ build() {
   mapfile -t _kernels < <(_detect_kernels)
 
   for _kernel in "${_kernels[@]}"; do
-    _setup_build_flags "$_kernel"
+    _build_flags "$_kernel"
 
     local MODULE_FLAGS=(
       IGNORE_CC_MISMATCH=yes
@@ -1983,6 +2007,12 @@ build() {
 
     msg2 "Building $_label module for $_kernel..."
     CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules
+
+    if [ "$_open_source_modules" = "true" ]; then
+      local _open_kmods_dir="$srcdir/open-kmods/$_kernel"
+      mkdir -p "$_open_kmods_dir"
+      install -m644 -t "$_open_kmods_dir" kernel-open/*.ko
+    fi
   done
 }
 
@@ -2711,7 +2741,12 @@ if [ "$_dkms" = "false" ] || [ "$_dkms" = "full" ]; then
       for _kernel in "${_kernels[@]}"; do
         msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
         local _extradir="/usr/lib/modules/${_kernel}/extramodules"
-        install -Dt "${pkgdir}${_extradir}" -m644 kernel-open/*.ko
+        local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
+        if [ ! -d "$_open_kmods_dir" ]; then
+          error "Missing staged open kernel modules for ${_kernel} in ${_open_kmods_dir}"
+          return 1
+        fi
+        install -Dt "${pkgdir}${_extradir}" -m644 "${_open_kmods_dir}"/*.ko
         # Strip debug symbols and compress the modules
         if grep -q "CONFIG_CC_IS_CLANG=y" /usr/lib/modules/${_kernel}/build/.config 2>/dev/null; then
           find "${pkgdir}${_extradir}" -name '*.ko' -exec llvm-strip --strip-debug {} +
