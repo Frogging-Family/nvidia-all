@@ -457,6 +457,7 @@ source=($_source_name
         'kernel-7.0-470.patch'
         'kernel-7.0-580.patch'
         'kernel-7.0.patch'
+        'kernel-7.1.patch'
         '0001-Enable-atomic-kernel-modesetting-by-default.diff'
         '0002-Add-IBT-support.diff'
         'nvidia-patch.sh'
@@ -542,6 +543,7 @@ md5sums=("$_md5sum"
         '40586f44fbf940c6b3dbcb1cfc25edae' # kernel-7.0-470.patch
         'ff72e6704d61ac2c85254e60780de2fc' # kernel-7.0-580.patch
         '5f3f509f22e574393baf424aefa5ad83' # kernel-7.0.patch
+        '7615a55125516891610125e890cd6d91' # kernel-7.1.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
         '68d5cb25248f1c95200d72010d6ee488' # nvidia-patch.sh
@@ -801,6 +803,8 @@ prepare() {
     _open_whitelist619=( 590* )
     # 7.0 whitelist definition
     _open_whitelist70=( 580* 590* 595* )
+    # 7.1 whitelist definition
+    _open_whitelist71=( 595* )
     # Add future kernel version whitelists here following the same pattern
 
     local -a _kernels
@@ -814,6 +818,11 @@ prepare() {
       # 7.0
       if (( $(vercmp "${_kernel}" "7.0") >= 0 )); then
         _open_kernel70="1"
+      fi
+      # 7.1
+      if (( $(vercmp "${_kernel}" "7.1") >= 0 )); then
+        _open_kernel70=""  # kernel-7.1.patch takes over
+        _open_kernel71="1"
       fi
       # Add future kernel version checks here following the same pattern
     done
@@ -853,6 +862,21 @@ prepare() {
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np1 -i "${srcdir}/kernel-7.0-580.patch" )
         else
           msg2 "Skipping kernel-7.0-580.patch as it doesn't apply to driver version ${pkgver}..."
+        fi
+      fi
+    fi
+    # 7.1
+    if [ "${_open_kernel71}" = "1" ]; then
+      patchy=0
+      for yup in "${_open_whitelist71[@]}"; do
+        [[ ${pkgver} = ${yup} ]] && patchy=1
+      done
+      if (( ${pkgver%%.*} == 595 )); then
+        if [ "${patchy}" = "1" ]; then
+          msg2 "Applying kernel-7.1.patch to kernel-open..."
+          ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.1.patch" )
+        else
+          msg2 "Skipping kernel-7.1.patch as it doesn't apply to driver version ${pkgver}..."
         fi
       fi
     fi
@@ -1309,6 +1333,12 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
       fi
 
+      # 7.1
+      if (( $(vercmp "$_kernel" "7.1") >= 0 )); then
+        _whitelist70=()
+        _whitelist71=( 590* 595* )
+      fi
+
       if [ "$_gcc14" = "true" ]; then
         cd "$srcdir"/"$_pkg"/kernel-$_kernel
         msg2 "Applying gcc-14 patch..."
@@ -1424,6 +1454,9 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
         fi
         if [ "$_patch" = "7.0" ]; then
           _whitelist=(${_whitelist70[@]})
+        fi
+        if [ "$_patch" = "7.1" ]; then
+          _whitelist=(${_whitelist71[@]})
         fi
         patchy=0
         if (( $(vercmp "$_kernel" "$_patch") >= 0 )); then
