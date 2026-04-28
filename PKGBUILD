@@ -54,16 +54,16 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.05\n      2.595 series: 595.58.03\n      3.580 series: 580.142\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.05\n      2.595 series: 595.71.05\n      3.580 series: 580.159.03\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
-      echo '_driver_version=595.58.03' > options
-      echo '_md5sum=8d98a183bf994af0ff19980e0ef430f2' >> options
+      echo '_driver_version=595.71.05' > options
+      echo '_md5sum=56662e512d860e10493a2df2b7509c74' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=580.142' > options
-      echo '_md5sum=30a8bebe011ab3d9ff5d42a1279d4f61' >> options
+      echo '_driver_version=580.159.03' > options
+      echo '_md5sum=b14e337547b6203862dfe34e49c22375' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.211.01' > options
@@ -74,7 +74,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=57f54d5f6ddef5417215645aabbf9b9c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "6" ]; then
-      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.590 series: 590.48.01\n      2.575 series: 575.64.05\n      3.565 series: 565.77\n      4.560 series: 560.35.03\n      5.555 series: 555.58.02\n      6.550 series: 550.135\n      7.545 series: 545.29.06\n      8.535 series: 535.288.01\n      9.530 series: 530.41.03\n      10.525 series: 525.147.05\n      11.520 series: 520.56.06\n      12.515 series: 515.86.01\n      13.510 series: 510.85.02\n      14.495 series: 495.46\n      15.465 series: 465.31\n      16.460 series: 460.91.03\n      17.455 series: 455.45.01\n      18.450 series: 450.119.03\n      19.440 series: 440.100 (kernel 5.8 or lower)\n      20.435 series: 435.21  (kernel 5.6 or lower)\n      21.430 series: 430.64  (kernel 5.5 or lower)\n      22.418 series: 418.113 (kernel 5.5 or lower)\n      23.415 series: 415.27  (kernel 5.4 or lower)\n      24.410 series: 410.104 (kernel 5.5 or lower)\n      25.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-25?]: '`" CONDITION;
+      read -p "    Which legacy driver version do you want?`echo $'\n    > 1.590 series: 590.48.01\n      2.575 series: 575.64.05\n      3.565 series: 565.77\n      4.560 series: 560.35.03\n      5.555 series: 555.58.02\n      6.550 series: 550.135\n      7.545 series: 545.29.06\n      8.535 series: 535.309.01\n      9.530 series: 530.41.03\n      10.525 series: 525.147.05\n      11.520 series: 520.56.06\n      12.515 series: 515.86.01\n      13.510 series: 510.85.02\n      14.495 series: 495.46\n      15.465 series: 465.31\n      16.460 series: 460.91.03\n      17.455 series: 455.45.01\n      18.450 series: 450.119.03\n      19.440 series: 440.100 (kernel 5.8 or lower)\n      20.435 series: 435.21  (kernel 5.6 or lower)\n      21.430 series: 430.64  (kernel 5.5 or lower)\n      22.418 series: 418.113 (kernel 5.5 or lower)\n      23.415 series: 415.27  (kernel 5.4 or lower)\n      24.410 series: 410.104 (kernel 5.5 or lower)\n      25.396 series: 396.54  (kernel 5.3 or lower, 5.1 or lower recommended)\n    choice[1-25?]: '`" CONDITION;
       if [ "$CONDITION" = "2" ]; then
         echo '_driver_version=575.64.05' > options
         echo '_md5sum=5232a442e7696c73f2a7f527481084aa' >> options
@@ -100,8 +100,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
         echo '_md5sum=406f748abf16db5d599b652c508b99fd' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "8" ]; then
-        echo '_driver_version=535.288.01' > options
-        echo '_md5sum=8316bb6a4448981fc925abda85194197' >> options
+        echo '_driver_version=535.309.01' > options
+        echo '_md5sum=1bd545e7531e2f74b7aa039192c72919' >> options
         echo '_driver_branch=regular' >> options
       elif [ "$CONDITION" = "9" ]; then
         echo '_driver_version=530.41.03' > options
@@ -350,7 +350,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver=$_driver_version
-pkgrel=266
+pkgrel=267
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -849,7 +849,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} >= 590 )); then
-        if [ "${patchy}" = "1" ]; then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )); then
           msg2 "Applying kernel-7.0.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
         else
@@ -857,7 +857,7 @@ prepare() {
         fi
       fi
       if (( ${pkgver%%.*} == 580 )); then
-        if [ "${patchy}" = "1" ]; then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "580.142") <= 0 )); then
           msg2 "Applying kernel-7.0-580.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np1 -i "${srcdir}/kernel-7.0-580.patch" )
         else
@@ -872,7 +872,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} == 595 )); then
-        if [ "${patchy}" = "1" ]; then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )); then
           msg2 "Applying kernel-7.1.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.1.patch" )
         else
@@ -1325,7 +1325,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
           patch -Np1 -i "${srcdir}/kernel-7.0-470.patch"
           cd ..
         fi
-        if (( ${pkgver%%.*} == 580 )); then
+        if (( ${pkgver%%.*} == 580 )) && (( $(vercmp "${pkgver}" "580.142") <= 0 )); then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying kernel-7.0-580.patch for $_kernel..."
           patch -Np1 -i "${srcdir}/kernel-7.0-580.patch"
@@ -1336,7 +1336,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 7.1
       if (( $(vercmp "$_kernel" "7.1") >= 0 )); then
         _whitelist70=()
-        _whitelist71=( 590* 595* )
+        _whitelist71=( 595* )
       fi
 
       if [ "$_gcc14" = "true" ]; then
