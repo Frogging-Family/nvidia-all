@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.05\n      2.595 series: 595.71.05\n      3.580 series: 580.159.03\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.06\n      2.595 series: 595.71.05\n      3.580 series: 580.159.03\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -190,8 +190,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=595.44.05' > options
-      echo '_md5sum=b4479cedbbbc4a8a5e69d57088cdaa24' >> options
+      echo '_driver_version=595.44.06' > options
+      echo '_md5sum=41cbac731d0a1d8d597cadb79d340098' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -849,7 +849,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} >= 590 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )); then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && [[ "${pkgver}" != "595.44.06" ]]; then
           msg2 "Applying kernel-7.0.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
         else
@@ -872,7 +872,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} == 595 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )); then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && [[ "${pkgver}" != "595.44.06" ]]; then
           msg2 "Applying kernel-7.1.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.1.patch" )
         else
