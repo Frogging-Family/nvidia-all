@@ -1,0 +1,31 @@
+From 2f4f0219799f77a11b883fd66672da941537fcd7 Mon Sep 17 00:00:00 2001
+From: Vasiliy Stelmachenok <ventureo@cachyos.org>
+Date: Sun, 17 Nov 2024 15:37:46 +0300
+Subject: [PATCH] nvidia-470xx: Enable modeset by default
+
+This is required by the patch to support 6.12, and is also necessary for
+PRIME to work properly.
+
+Signed-off-by: Vasiliy Stelmachenok <ventureo@cachyos.org>
+---
+ kernel/nvidia-drm/nvidia-drm-linux.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/nvidia-drm/nvidia-drm-linux.c b/kernel/nvidia-drm/nvidia-drm-linux.c
+index 94e463e..6377ab0 100644
+--- a/kernel/nvidia-drm/nvidia-drm-linux.c
++++ b/kernel/nvidia-drm/nvidia-drm-linux.c
+@@ -41,8 +41,8 @@
+ 
+ MODULE_PARM_DESC(
+     modeset,
+-    "Enable atomic kernel modesetting (1 = enable, 0 = disable (default))");
+-bool nv_drm_modeset_module_param = false;
++    "Enable atomic kernel modesetting (1 = enable (default), 0 = disable)");
++bool nv_drm_modeset_module_param = true;
+ module_param_named(modeset, nv_drm_modeset_module_param, bool, 0400);
+ 
+ void *nv_drm_calloc(size_t nmemb, size_t size)
+-- 
+2.47.0
+

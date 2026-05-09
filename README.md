@@ -1,68 +1,172 @@
-# Nvidia driver latest to 396 series AIO installer
+# nvidia-all
 
-LIBGLVND compatible, with 32 bit libs and DKMS enabled out of the box (you will still be asked if you want to use the regular package). Installs for all currently installed kernels. Comes with custom patches to enhance kernel compatibility, dynamically applied when you're requesting a driver that's not compatible OOTB with your currently installed kernel(s).
-Unwanted packages can be disabled with switches in the PKGBUILD. Defaults to complete installation.
+All-in-one NVIDIA Linux driver PKGBUILD with dynamic branch selection,
+kernel compatibility patching, and optional component split packages.
 
-Huge thanks to Isaak I. Aleksandrov who has been much faster at offering compat patches than myself for a good while now! https://gitlab.com/EULA
+## Contents
 
-You may need/want to add a pacman hook for nvidia depending on your setup : https://wiki.archlinux.org/index.php/NVIDIA#DRM_kernel_mode_setting
+- [nvidia-all](#nvidia-all)
+  - [Contents](#contents)
+  - [What nvidia-all adds](#what-nvidia-all-adds)
+  - [Hardware notes](#hardware-notes)
+  - [Install](#install)
+  - [Update](#update)
+  - [Uninstall and revert](#uninstall-and-revert)
+    - [1) Remove installed nvidia-all packages](#1-remove-installed-nvidia-all-packages)
+    - [2) Reinstall distro packages](#2-reinstall-distro-packages)
+  - [DKMS or regular modules](#dkms-or-regular-modules)
+  - [Important customization.cfg options](#important-customizationcfg-options)
+  - [Custom driver versions](#custom-driver-versions)
+  - [Troubleshooting](#troubleshooting)
+    - [DKMS build stopped working after a kernel update](#dkms-build-stopped-working-after-a-kernel-update)
+    - [GCC mismatch warning](#gcc-mismatch-warning)
+    - [Optimus/hybrid laptops](#optimushybrid-laptops)
 
-Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
+## What nvidia-all adds
 
-Regular drivers : https://www.nvidia.com/object/unix.html
+- Builds current and legacy NVIDIA Linux drivers.
+- Supports proprietary kernel modules and NVIDIA open kernel modules.
+- Detects installed kernels and applies compatibility patches where needed.
+- Offers DKMS and regular package variants.
+- Supports optional split packages.
+- Exposes many build/runtime toggles through customization.cfg.
+  
+    Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
 
-## Note regarding 470 series
+    Regular drivers : https://www.nvidia.com/object/unix.html
 
-**Nvidia's support for Kepler GPUs ended on September 2024 ( see https://nvidia.custhelp.com/app/answers/detail/a_id/5202 ), so 470 series is unlikely to be updated going forward. As a result using a LTS kernel is recommended/needed to prevent issues (<=6.6.y).**
+- Legacy selection path includes additional older series down to 396.
+- Custom version input is supported for 396 and newer.
 
-## How to run the installer
-```
+Notes:
+
+- 390 and older series are not supported.
+- 470 is treated as a legacy branch and may require extra caution on newer kernels.
+
+## Hardware notes
+
+- For 595 NVIDIA open kernel modules are intended for Turing and newer GPUs.
+- For 470 users (Kepler legacy context): NVIDIA ended Kepler support updates
+	in September 2024, so an LTS kernel is generally recommended.
+
+## Install
+
+```bash
 git clone https://github.com/Frogging-Family/nvidia-all.git
 cd nvidia-all
 makepkg -si
 ```
+
 Then follow the prompts.
 
-### To update the installer
-```
+If your setup needs it, consider a pacman hook for DRM mode setting:
+https://wiki.archlinux.org/title/NVIDIA#DRM_kernel_mode_setting
+
+## Update
+
+```bash
 cd nvidia-all
 git pull
 makepkg -si
 ```
+
 Then follow the prompts as before.
 
-## How to uninstall and revert to distro provided packages
-For arch and its derivatives you can uninstall using:
-```
-sudo pacman -Rdd lib32-nvidia-utils-tkg lib32-opencl-nvidia-tkg nvidia-dkms-tkg nvidia-egl-wayland-tkg nvidia-settings-tkg nvidia-utils-tkg opencl-nvidia-tkg
-```
-And install the distro dkms packages:
+## Uninstall and revert
 
+### 1) Remove installed nvidia-all packages
+
+The exact package names can vary by branch and options (for example open/dev,
+series suffixes, dkms vs regular, lib32, split components).
+
+List installed nvidia-all packages first:
+
+```bash
+pacman -Qq \
+  | grep -E \
+    '^(lib32-)?(opencl-)?nvidia([0-9]+xx)?(-dev)?(-open)?(-dkms|-utils|-settings|-egl-wayland|-egl-x11|-libxnvctrl)?-tkg$'
 ```
-sudo pacman -S nvidia-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+
+If the list looks correct, remove the matched packages:
+
+```bash
+pacman -Qq \
+  | grep -E \
+    '^(lib32-)?(opencl-)?nvidia([0-9]+xx)?(-dev)?(-open)?(-dkms|-utils|-settings|-egl-wayland|-egl-x11|-libxnvctrl)?-tkg$' \
+  | xargs -r sudo pacman -Rdd
 ```
-Alternatively install the dkms open kernel modules (Turing or newer hardware only!!!) with:
+
+### 2) Reinstall distro packages
+
+For proprietary DKMS path:
+
+```bash
+sudo pacman -S \
+  nvidia-dkms \
+  egl-wayland \
+  lib32-nvidia-utils \
+  lib32-opencl-nvidia \
+  nvidia-settings \
+  opencl-nvidia \
+  nvidia-utils
 ```
-sudo pacman -S nvidia-open-dkms egl-wayland lib32-nvidia-utils lib32-opencl-nvidia nvidia-settings opencl-nvidia nvidia-utils
+
+For open DKMS path (Turing or newer only):
+
+```bash
+sudo pacman -S \
+  nvidia-open-dkms \
+  egl-wayland \
+  lib32-nvidia-utils \
+  lib32-opencl-nvidia \
+  nvidia-settings \
+  opencl-nvidia \
+  nvidia-utils
 ```
+
 After installing the drivers provided by your distro everything should function as normal after a reboot.
-# DKMS or regular?
-DKMS is recommended as it allows for automatic module rebuilding on kernel updates. As long as you're on the same major version (5.8.x for example), you won't need to regenerate the packages on updates, which is a huge QoL feature. Regular modules can also be problematic on Manjaro due to differences in kernel hooking mechanisms compared to Arch. So if in doubt, go DKMS.
 
+## DKMS or regular modules
 
-## My DKMS driver installed with kernel X.1 doesn't work/build anymore after I upgraded to kernel X.2! Help!
-- Simply rebuild the packages so the script can detect your currently installed kernel(s) and patch your driver accordingly to fix compatibility issues.
+DKMS is usually recommended because it rebuilds modules automatically when
+kernels update.
 
-# How to generate a package for a driver that isn't listed (390 and lower branches are not supported) :
-- When you are prompted for driver version, select "custom" (choice 6).
-- You'll then be asked the branch group. Select either "Vulkan dev" (choice 2) for Vulkan dev drivers or "stable or regular beta" (choice 1) for every other driver.
-- Now you have to enter the version number of the desired driver. Vulkan dev drivers version is usually formatted as `mainbranch.version.subversion` (i.e.: 415.22.01) while the stable or regular beta drivers version is usually (but not always) `mainbranch.version` (i.e.: 415.25)
-- To finish, you'll be asked if you want dkms(recommended) or regular modules, similarly to the usual drivers versions.
+Choose regular packages only if you specifically want prebuilt non-DKMS modules
+for your workflow.
 
-# Optimus users :
-- A great tool exists for you and works with these nvidia-all packages: https://github.com/Askannz/optimus-manager
-- 435.17 beta has introduced PRIME render offload support. You can learn more about the needed setup here: http://us.download.nvidia.com/XFree86/Linux-x86_64/435.17/README/primerenderoffload.html
+## Important customization.cfg options
 
-# Mostlyportable-gcc users :
-- For non-dkms nvidia-all packages, setting your `CUSTOM_GCC_PATH` in .cfg is enough.
-- For dkms nvidia-all packages, you'll need to make DKMS aware of your mostlyportable-gcc build. See: https://github.com/Tk-Glitch/PKGBUILDS/issues/334#issuecomment-537197636
+The main user-facing configuration lives in customization.cfg (external options can be placed at ~/.config/frogminer/nvidia-all.cfg).
+
+Build logs and environment snapshots are written under logs/.
+
+## Custom driver versions
+
+When prompted for driver version:
+
+1. Select custom version entry(6).
+2. Select branch group (stable/regular beta or Vulkan dev).
+3. Enter desired version number.
+4. Select DKMS or regular modules.
+
+Version format examples:
+
+- Vulkan dev style: 415.22.01
+- Regular style: 415.25
+
+## Troubleshooting
+
+### DKMS build stopped working after a kernel update
+
+Rebuild so the script re-detects currently installed kernels and reapplies
+relevant compatibility logic.
+
+### GCC mismatch warning
+
+NVIDIA modules should be built with the same major GCC version used for the
+kernel. Align your toolchain or rebuild kernel/modules consistently.
+
+### Optimus/hybrid laptops
+
+Hardware and OEM implementations vary. If needed, use dedicated hybrid tooling
+and consult NVIDIA PRIME render offload documentation.

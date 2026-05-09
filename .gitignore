@@ -1,6 +1,8 @@
 .*
 !.github
 !.gitignore
+!PKGBUILD
+!prepare
 *~
 *.orig
 *.log
@@ -16,3 +18,7 @@
 *.files
 src/
 pkg/
+logs/
+*log.txt
+*.part
+BIG_UGLY_FROGMINER

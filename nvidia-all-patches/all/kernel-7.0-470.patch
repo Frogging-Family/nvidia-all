@@ -1,0 +1,36 @@
+From 19a95a61ba1c3f1f2c7d9f47d8fd6206c7c8f4af Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Sun, 19 Apr 2026 20:48:00 +0200
+Subject: [PATCH] Fix NVIDIA 470.256.02 for Linux 7.0 dma_fence_signal()
+
+Linux 7.0 changed dma_fence_signal() to return void. The legacy 470.xx
+driver still wraps that helper as int, which fails to compile when
+nvidia-drm is built against 7.0 headers.
+
+The wrapper's only caller ignores the return value, so make the helper
+void and discard the old return value on earlier kernels too.
+---
+ nvidia-drm/nvidia-dma-fence-helper.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/nvidia-drm/nvidia-dma-fence-helper.h b/nvidia-drm/nvidia-dma-fence-helper.h
+index 35bcf83..6fefd5d 100644
+--- a/nvidia-drm/nvidia-dma-fence-helper.h
++++ b/nvidia-drm/nvidia-dma-fence-helper.h
+@@ -89,11 +89,11 @@ nv_dma_fence_default_wait(nv_dma_fence_t *fence,
+ #endif
+ }
+ 
+-static inline int nv_dma_fence_signal(nv_dma_fence_t *fence) {
++static inline void nv_dma_fence_signal(nv_dma_fence_t *fence) {
+ #if defined(NV_LINUX_FENCE_H_PRESENT)
+-    return fence_signal(fence);
++    fence_signal(fence);
+ #else
+-    return dma_fence_signal(fence);
++    dma_fence_signal(fence);
+ #endif
+ }
+ 
+-- 
+2.52.0
