@@ -89,8 +89,8 @@ open   595/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch    - 
 
 open   all/kernel-6.19.patch                                                  6.19   -      590          590.99       2    kernel-open
 open   all/kernel-7.0-580.patch                                               7.0    -      580          580.142      1    kernel-open
-open   all/kernel-7.0.patch                                                   7.0    -      590          595.58.03    2    kernel-open  -  595.44.06
-open   all/kernel-7.1.patch                                                   7.1    -      595          595.58.03    2    kernel-open  -  595.44.06
+open   all/kernel-7.0.patch                                                   7.0    -      590          595.58.03    2    kernel-open  -  595.44.06:595.44.07:595.44.08
+open   all/kernel-7.1.patch                                                   7.1    -      595          595.58.03    2    kernel-open  -  595.44.06:595.44.07:595.44.08
 
 # ── dkms static ─────────────────────────────────────────────────────────────
 # target=.          patch has kernel-dkms/ prefix  (applied from driver root)

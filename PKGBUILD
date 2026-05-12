@@ -401,396 +401,396 @@ nvidia-utils-tkg() {
   install=nvidia-utils-tkg.install
   cd $_pkg
 
-    # X driver
-    install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
+  # X driver
+  install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
 
-    if [[ $pkgver = 396* ]]; then
-      # GLX extension module for X
-      install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
-      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
-      ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"	# X doesn't find glx otherwise
-    else
-      # GLX extension module for X
-      install -D -m755 "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.${pkgver}"
-      # Ensure that X finds glx
-      ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.1"
-      ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so"
+  if [[ $pkgver = 396* ]]; then
+    # GLX extension module for X
+    install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"	# X doesn't find glx otherwise
+  else
+    # GLX extension module for X
+    install -D -m755 "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.${pkgver}"
+    # Ensure that X finds glx
+    ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so.1"
+    ln -s "libglxserver_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglxserver_nvidia.so"
+  fi
+
+  if [[ $pkgver != 396* ]] && [[ $pkgver != 410* ]] && [[ $pkgver != 415* ]]; then
+    # optical flow
+    install -D -m755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opticalflow.so.${pkgver}"
+  else
+    # X wrapped software rendering
+    install -D -m755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wfb.so.${pkgver}"
+  fi
+
+  install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLX_nvidia.so.${pkgver}"
+
+  # OpenGL libraries
+  install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libEGL_nvidia.so.${pkgver}"
+  install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv1_CM_nvidia.so.${pkgver}"
+  install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv2_nvidia.so.${pkgver}"
+  install -D -m644 "10_nvidia.json" "${pkgdir}/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
+
+  # OpenGL core library
+  install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
+  install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
+  install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
+
+  # misc
+  if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
+  fi
+  install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+  install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+  install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
+  install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
+  install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
+
+  if [[ -e libnvidia-api.so.1 ]]; then
+    install -D -m755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
+  fi
+
+  # Allocator library
+  if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
+    mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
+  fi
+
+  # GPU shader compilation helper
+  if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
+  fi
+
+  if [[ $pkgver != 396* ]]; then
+    # Ray tracing
+    install -D -m755 "libnvoptix.so.${pkgver}" "${pkgdir}/usr/lib/libnvoptix.so.${pkgver}"
+    if [ -e "nvoptix.bin" ]; then
+      install -D -m644 "nvoptix.bin" "${pkgdir}/usr/share/nvidia/nvoptix.bin"
     fi
-
-    if [[ $pkgver != 396* ]] && [[ $pkgver != 410* ]] && [[ $pkgver != 415* ]]; then
-      # optical flow
-      install -D -m755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opticalflow.so.${pkgver}"
-    else
-      # X wrapped software rendering
-      install -D -m755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-wfb.so.${pkgver}"
+    install -D -m755 "libnvidia-rtcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-rtcore.so.${pkgver}"
+    if [ -e "libnvidia-cbl.so.${pkgver}" ]; then
+      install -D -m755 "libnvidia-cbl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cbl.so.${pkgver}"
     fi
+  fi
 
-    install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLX_nvidia.so.${pkgver}"
+  # Vulkan ICD
+  if [[ $pkgver != 396* ]] && [[ $pkgver != 410* ]] && [[ $pkgver != 415* ]] && [[ $pkgver != 418* ]] && [[ $pkgver != 430* ]]; then
+    install -D -m644 "nvidia_icd.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
+  else
+    install -D -m644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
+  fi
+  if [ -e nvidia_layers.json ]; then
+    install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
+  fi
+  if [[ -e libnvidia-vulkan-producer.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
+    ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.1"
+    ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so"
+  fi
 
-    # OpenGL libraries
-    install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libEGL_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv1_CM_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/libGLESv2_nvidia.so.${pkgver}"
-    install -D -m644 "10_nvidia.json" "${pkgdir}/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
+  # VKSC
+  if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
+    ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
+    install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
+  fi
+  if [[ -e nvidia-pcc ]]; then
+    install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
+  fi
 
-    # OpenGL core library
-    install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
-    install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
-    install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
+  # VDPAU
+  install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
 
-    # misc
-    if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
+  # nvidia-tls library
+  install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
+
+  if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
+    install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/tls/libnvidia-tls.so.${pkgver}"
+  fi
+
+  # CUDA
+  install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
+  install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
+  if [ -e "libcudadebugger.so.${pkgver}" ]; then
+    install -D -m755 "libcudadebugger.so.${pkgver}" "${pkgdir}/usr/lib/libcudadebugger.so.${pkgver}"
+  fi
+  if [ -e "libnvidia-sandboxutils.so.${pkgver}" ]; then
+    install -D -m755 "libnvidia-sandboxutils.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-sandboxutils.so.${pkgver}"
+  fi
+
+  # pkcs11
+  if (( ${pkgver%%.*} >= 535 )); then
+    install -D -m755 "libnvidia-pkcs11-openssl3.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11-openssl3.so.${pkgver}"
+    install -D -m755 "libnvidia-pkcs11.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11.so.${pkgver}"
+  fi
+
+  # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
+  install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ptxjitcompiler.so.${pkgver}"
+
+  # nvvm
+  if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
+    ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4"
+    ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
+  elif [[ -e libnvidia-nvvm.so.4.0.0 ]]; then
+    install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
+    ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
+    ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
+  fi
+  if [[ -e libnvidia-nvvm70.so.4 ]]; then
+    install -D -m755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
+  fi
+
+  if [[ -e libnvidia-present.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
+  fi
+
+  # Fat (multiarchitecture) binary loader
+  if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
+    install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
+  else
+    install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
+
+    # wine nvngx lib
+    if (( ${pkgver%%.*} >= 470 )); then
+      install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
+      install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
     fi
-    install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
-    install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
-    install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
-    install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
-    install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
-
-    if [[ -e libnvidia-api.so.1 ]]; then
-      install -D -m755 "libnvidia-api.so.1" "${pkgdir}/usr/lib/libnvidia-api.so.1"
+    if (( ${pkgver%%.*} >= 570 )); then
+      install -D -m755 "nvngx_dlssg.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
     fi
+  fi
+  if (( ${pkgver%%.*} >= 455 )); then
+    install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
+  fi
 
-    # Allocator library
-    if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}"
-      mkdir -p "${pkgdir}/usr/lib/gbm" && ln -sr "${pkgdir}/usr/lib/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib/gbm/nvidia-drm_gbm.so"
+  # DEBUG
+  install -D -m755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
+
+  # nvidia-xconfig
+  install -D -m755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
+  install -D -m644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
+
+  # nvidia-bug-report
+  install -D -m755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
+
+  # nvidia-smi
+  install -D -m755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
+  install -D -m644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
+
+  # nvidia-cuda-mps
+  install -D -m755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
+  install -D -m755 nvidia-cuda-mps-control "${pkgdir}/usr/bin/nvidia-cuda-mps-control"
+  install -D -m644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
+
+  # nvidia-modprobe
+  # This should be removed if nvidia fixed their uvm module!
+  install -D -m4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
+  install -D -m644 nvidia-modprobe.1.gz "${pkgdir}/usr/share/man/man1/nvidia-modprobe.1.gz"
+
+  # Detect init system
+  if [ -d /run/systemd/system ]; then
+    _detected_init="systemd"
+  elif [ -d /run/dinit ] || command -v dinitctl &>/dev/null; then
+    _detected_init="dinit"
+  elif [ -e /usr/lib/elogind ] || command -v elogind &>/dev/null; then
+    _detected_init="elogind"
+  else
+    _detected_init="other"
+  fi
+  msg2 "Detected init system: ${_detected_init}"
+
+  # nvidia-persistenced
+  install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
+  install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
+  if [ "${_detected_init}" = "systemd" ] && [ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]; then
+    install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+    sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
+  elif [ "${_detected_init}" = "dinit" ]; then
+    install -D -m644 "${_where}/nvidia-persistenced.dinit" "${pkgdir}/etc/dinit.d/nvidia-persistenced"
+  fi
+
+  # application profiles
+  install -D -m644 nvidia-application-profiles-${pkgver}-rc "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
+  install -D -m644 nvidia-application-profiles-${pkgver}-key-documentation "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
+
+  install -D -m644 LICENSE "${pkgdir}/usr/share/licenses/nvidia-utils/LICENSE"
+  install -D -m644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
+  install -D -m644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
+  cp -r html "${pkgdir}/usr/share/doc/nvidia/"
+  ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
+
+  if [[ $pkgver != 396* ]] && [[ $pkgver != 415* ]] && [[ $pkgver != 418* ]]; then
+    if (( ${pkgver%%.*} >= 465 )); then
+      _path_addon1="systemd/system/"
+      _path_addon2="systemd/system-sleep/"
+      _path_addon3="systemd/"
     fi
-
-    # GPU shader compilation helper
-    if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-gpucomp.so.${pkgver}"
-    fi
-
-    if [[ $pkgver != 396* ]]; then
-      # Ray tracing
-      install -D -m755 "libnvoptix.so.${pkgver}" "${pkgdir}/usr/lib/libnvoptix.so.${pkgver}"
-      if [ -e "nvoptix.bin" ]; then
-        install -D -m644 "nvoptix.bin" "${pkgdir}/usr/share/nvidia/nvoptix.bin"
+    # new power management support
+    if [ "${_detected_init}" = "systemd" ]; then
+      # systemd
+      install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
+      install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
+      install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
+      if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
+        install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
       fi
-      install -D -m755 "libnvidia-rtcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-rtcore.so.${pkgver}"
-      if [ -e "libnvidia-cbl.so.${pkgver}" ]; then
-        install -D -m755 "libnvidia-cbl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cbl.so.${pkgver}"
-      fi
+      # systemd sleep hook
+      install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
+    elif [ "${_detected_init}" = "elogind" ]; then
+      install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/elogind/system-sleep/nvidia"
     fi
-
-    # Vulkan ICD
-    if [[ $pkgver != 396* ]] && [[ $pkgver != 410* ]] && [[ $pkgver != 415* ]] && [[ $pkgver != 418* ]] && [[ $pkgver != 430* ]]; then
-      install -D -m644 "nvidia_icd.json" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
-    else
-      install -D -m644 "nvidia_icd.json.template" "${pkgdir}/usr/share/vulkan/icd.d/nvidia_icd.json"
-    fi
-    if [ -e nvidia_layers.json ]; then
-      install -D -m644 "nvidia_layers.json" "${pkgdir}/usr/share/vulkan/implicit_layer.d/nvidia_layers.json"
-    fi
-    if [[ -e libnvidia-vulkan-producer.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.${pkgver}"
-      ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so.1"
-      ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vulkan-producer.so"
-    fi
-
-    # VKSC
-    if [[ -e libnvidia-vksc-core.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.${pkgver}"
-      ln -s "libnvidia-vksc-core.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-vksc-core.so.1"
-      install -D -m644 "nvidia_icd_vksc.json" "${pkgdir}/usr/share/vulkansc/icd.d/nvidia_icd_vksc.json"
-    fi
-    if [[ -e nvidia-pcc ]]; then
-      install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
-    fi
-
-    # VDPAU
-    install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
-
-    # nvidia-tls library
-    install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
-
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
-      install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/tls/libnvidia-tls.so.${pkgver}"
-    fi
-
-    # CUDA
-    install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
-    install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
-    if [ -e "libcudadebugger.so.${pkgver}" ]; then
-      install -D -m755 "libcudadebugger.so.${pkgver}" "${pkgdir}/usr/lib/libcudadebugger.so.${pkgver}"
-    fi
-    if [ -e "libnvidia-sandboxutils.so.${pkgver}" ]; then
-      install -D -m755 "libnvidia-sandboxutils.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-sandboxutils.so.${pkgver}"
-    fi
-
-    # pkcs11
-    if (( ${pkgver%%.*} >= 535 )); then
-      install -D -m755 "libnvidia-pkcs11-openssl3.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11-openssl3.so.${pkgver}"
-      install -D -m755 "libnvidia-pkcs11.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-pkcs11.so.${pkgver}"
-    fi
-
-    # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
-    install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ptxjitcompiler.so.${pkgver}"
-
-    # nvvm
-    if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
-      ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4"
-      ln -s "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
-    elif [[ -e libnvidia-nvvm.so.4.0.0 ]]; then
-      install -D -m755 "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.4.0.0"
-      ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so.${pkgver}"
-      ln -s "libnvidia-nvvm.so.4.0.0" "${pkgdir}/usr/lib/libnvidia-nvvm.so"
-    fi
-    if [[ -e libnvidia-nvvm70.so.4 ]]; then
-      install -D -m755 "libnvidia-nvvm70.so.4" "${pkgdir}/usr/lib/libnvidia-nvvm70.so.4"
-    fi
-
-    if [[ -e libnvidia-present.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-present.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-present.so.${pkgver}"
-    fi
-
-    # Fat (multiarchitecture) binary loader
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
-      install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fatbinaryloader.so.${pkgver}"
-    else
-      install -D -m755 "libnvidia-ngx.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ngx.so.${pkgver}"
-
-      # wine nvngx lib
-      if (( ${pkgver%%.*} >= 470 )); then
-        install -D -m755 "nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx.dll"
-        install -D -m755 "_nvngx.dll" "${pkgdir}/usr/lib/nvidia/wine/_nvngx.dll"
-      fi
-      if (( ${pkgver%%.*} >= 570 )); then
-        install -D -m755 "nvngx_dlssg.dll" "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssg.dll"
-      fi
-    fi
-    if (( ${pkgver%%.*} >= 455 )); then
-      install -D -m755 nvidia-ngx-updater "${pkgdir}/usr/bin/nvidia-ngx-updater"
-    fi
-
-    # DEBUG
-    install -D -m755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
-
-    # nvidia-xconfig
-    install -D -m755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
-    install -D -m644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
-
-    # nvidia-bug-report
-    install -D -m755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
-
-    # nvidia-smi
-    install -D -m755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
-    install -D -m644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
-
-    # nvidia-cuda-mps
-    install -D -m755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
-    install -D -m755 nvidia-cuda-mps-control "${pkgdir}/usr/bin/nvidia-cuda-mps-control"
-    install -D -m644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
-
-    # nvidia-modprobe
-    # This should be removed if nvidia fixed their uvm module!
-    install -D -m4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
-    install -D -m644 nvidia-modprobe.1.gz "${pkgdir}/usr/share/man/man1/nvidia-modprobe.1.gz"
-
-    # Detect init system
-    if [ -d /run/systemd/system ]; then
-      _detected_init="systemd"
-    elif [ -d /run/dinit ] || command -v dinitctl &>/dev/null; then
-      _detected_init="dinit"
-    elif [ -e /usr/lib/elogind ] || command -v elogind &>/dev/null; then
-      _detected_init="elogind"
-    else
-      _detected_init="other"
-    fi
-    msg2 "Detected init system: ${_detected_init}"
-
-    # nvidia-persistenced
-    install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
-    install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
-    if [ "${_detected_init}" = "systemd" ] && [ -e nvidia-persistenced-init/systemd/nvidia-persistenced.service.template ]; then
-      install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
-      sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
-    elif [ "${_detected_init}" = "dinit" ]; then
-      install -D -m644 "${_where}/nvidia-persistenced.dinit" "${pkgdir}/etc/dinit.d/nvidia-persistenced"
-    fi
-
-    # application profiles
-    install -D -m644 nvidia-application-profiles-${pkgver}-rc "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
-    install -D -m644 nvidia-application-profiles-${pkgver}-key-documentation "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
-
-    install -D -m644 LICENSE "${pkgdir}/usr/share/licenses/nvidia-utils/LICENSE"
-    install -D -m644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
-    install -D -m644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
-    cp -r html "${pkgdir}/usr/share/doc/nvidia/"
-    ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
-
-    if [[ $pkgver != 396* ]] && [[ $pkgver != 415* ]] && [[ $pkgver != 418* ]]; then
-      if (( ${pkgver%%.*} >= 465 )); then
-        _path_addon1="systemd/system/"
-        _path_addon2="systemd/system-sleep/"
-        _path_addon3="systemd/"
-      fi
-      # new power management support
+    # nvidia-sleep.sh
+    install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
+    # nvidia-powerd
+    if [ -e nvidia-powerd ] && [ "${_detected_init}" != "other" ]; then
+      install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+      install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
       if [ "${_detected_init}" = "systemd" ]; then
-        # systemd
-        install -D -m644 ${_path_addon1}nvidia-suspend.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend.service"
-        install -D -m644 ${_path_addon1}nvidia-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-hibernate.service"
-        install -D -m644 ${_path_addon1}nvidia-resume.service "${pkgdir}/usr/lib/systemd/system/nvidia-resume.service"
-        if [ -e ${_path_addon1}nvidia-suspend-then-hibernate.service ]; then
-          install -D -m644 ${_path_addon1}nvidia-suspend-then-hibernate.service "${pkgdir}/usr/lib/systemd/system/nvidia-suspend-then-hibernate.service"
-        fi
-        # systemd sleep hook
-        install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/systemd/system-sleep/nvidia"
-      elif [ "${_detected_init}" = "elogind" ]; then
-        install -D -m755 ${_path_addon2}nvidia "${pkgdir}/usr/lib/elogind/system-sleep/nvidia"
-      fi
-      # nvidia-sleep.sh
-      install -D -m755 ${_path_addon3}nvidia-sleep.sh "${pkgdir}/usr/bin/nvidia-sleep.sh"
-      # nvidia-powerd
-      if [ -e nvidia-powerd ] && [ "${_detected_init}" != "other" ]; then
-        install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
-        install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
-        if [ "${_detected_init}" = "systemd" ]; then
-          install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
-        fi
-      fi
-      # systemd-homed override
-      if [ "${_detected_init}" = "systemd" ] && (( ${pkgver%%.*} >= 580 )); then
-        install -Dm644 "${_where}/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
-        install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
-        install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
-        install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hibernate.service.d/10-nvidia-no-freeze-session.conf"
-        install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/10-nvidia-no-freeze-session.conf"
+        install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
       fi
     fi
-
-    # gsp firmware
-    if (( ${pkgver%%.*} >= 530 )); then
-      install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-    elif (( ${pkgver%%.*} >= 525 )); then
-      install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
-      install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-    elif (( ${pkgver%%.*} >= 465 )); then
-      install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+    # systemd-homed override
+    if [ "${_detected_init}" = "systemd" ] && (( ${pkgver%%.*} >= 580 )); then
+      install -Dm644 "${_where}/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/10-nvidia-no-freeze-session.conf"
     fi
+  fi
 
-    # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
-    install -Dm644 "${_where}/10-nvidia-drm-outputclass.conf" "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
+  # gsp firmware
+  if (( ${pkgver%%.*} >= 530 )); then
+    install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
+    install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+  elif (( ${pkgver%%.*} >= 525 )); then
+    install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
+    install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
+  elif (( ${pkgver%%.*} >= 465 )); then
+    install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+  fi
 
-    install -Dm644 "${_where}/nvidia-utils-tkg.sysusers" "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
+  # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
+  install -Dm644 "${_where}/10-nvidia-drm-outputclass.conf" "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
 
-    install -Dm644 "${_where}/60-nvidia.rules" "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
+  install -Dm644 "${_where}/nvidia-utils-tkg.sysusers" "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
 
-    if (( ${pkgver%%.*} >= 595 )); then
-      # 595+ open modules use kernel suspend notifiers for video memory preservation
-      echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | \
-        install -Dm644 /dev/stdin "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
-    else
-      # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
-      # Fixes Wayland Sleep, when restoring the session
-      install -Dm644 "${_where}/nvidia-sleep.conf" "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
-    fi
+  install -Dm644 "${_where}/60-nvidia.rules" "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
 
-    # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
-    if [[ -e "sandboxutils-filelist.json" ]]; then
-      install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
-    fi
+  if (( ${pkgver%%.*} >= 595 )); then
+    # 595+ open modules use kernel suspend notifiers for video memory preservation
+    echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | \
+      install -Dm644 /dev/stdin "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+  else
+    # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
+    # Fixes Wayland Sleep, when restoring the session
+    install -Dm644 "${_where}/nvidia-sleep.conf" "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+  fi
 
-    # https://github.com/microsoft/TileIR
-    if [[ -e "libnvidia-tileiras.so.${pkgver}" ]]; then
-      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
-    fi
+  # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
+  if [[ -e "sandboxutils-filelist.json" ]]; then
+    install -Dm644 sandboxutils-filelist.json "${pkgdir}/usr/share/nvidia/files.d/sandboxutils-filelist.json"
+  fi
 
+  # https://github.com/microsoft/TileIR
+  if [[ -e "libnvidia-tileiras.so.${pkgver}" ]]; then
+    install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tileiras.so.${pkgver}"
+  fi
+
+  if (( ${pkgver%%.*} >= 580 )); then
+    # reduce idle power (CUDA contexts)
+    install -Dm644 "${_where}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+  fi
+
+  # perf optimizations (false/true/cuda/vram)
+  _perf_optimizations="${_perf_optimizations:-false}"
+  if [[ "${_perf_optimizations}" != "false" ]]; then
     if (( ${pkgver%%.*} >= 580 )); then
-      # reduce idle power (CUDA contexts)
-      install -Dm644 "${_where}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
-    fi
-
-    # perf optimizations (false/true/cuda/vram)
-    _perf_optimizations="${_perf_optimizations:-false}"
-    if [[ "${_perf_optimizations}" != "false" ]]; then
-      if (( ${pkgver%%.*} >= 580 )); then
-        if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "vram" ]]; then
-          msg2 "Applying VRAM usage limit optimization..."
-          # limit-vram-usage (stolen from NextWork123/CachyOS)
-          install -Dm644 "${_where}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
-        fi
-        if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "cuda" ]]; then
-          msg2 "Applying CUDA performance optimization..."
-          install -Dm644 "${_where}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
-        fi
-      else
-        warning "Performance optimizations require driver version >= 580 (current: ${pkgver})"
+      if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "vram" ]]; then
+        msg2 "Applying VRAM usage limit optimization..."
+        # limit-vram-usage (stolen from NextWork123/CachyOS)
+        install -Dm644 "${_where}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
       fi
-    fi
-
-    # nvidia-modprobe config
-    _modprobe="${_modprobe:-false}"
-    _modprobe_mobile="${_modprobe_mobile:-false}"
-    # Check driver version and apply advanced NVIDIA module parameters (NVreg_*)
-    if (( ${pkgver%%.*} >= 580 )); then
-      if [[ "${_modprobe}" == "true" ]]; then
-        msg2 "Applying advanced NVIDIA module parameters..."
-        install -Dm644 "${_where}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
-      fi
-
-      if [[ "${_modprobe_mobile}" == "true" ]]; then
-        msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-        install -Dm644 "${_where}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+      if [[ "${_perf_optimizations}" == "true" ]] || [[ "${_perf_optimizations}" == "cuda" ]]; then
+        msg2 "Applying CUDA performance optimization..."
+        install -Dm644 "${_where}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
       fi
     else
-      if [[ "${_modprobe}" == "true" ]] || [[ "${_modprobe_mobile}" == "true" ]]; then
-        warning "Advanced NVIDIA module parameters require driver version >= 590 (current: ${pkgver})"
-      fi
+      warning "Performance optimizations require driver version >= 580 (current: ${pkgver})"
+    fi
+  fi
+
+  # nvidia-modprobe config
+  _modprobe="${_modprobe:-false}"
+  _modprobe_mobile="${_modprobe_mobile:-false}"
+  # Check driver version and apply advanced NVIDIA module parameters (NVreg_*)
+  if (( ${pkgver%%.*} >= 580 )); then
+    if [[ "${_modprobe}" == "true" ]]; then
+      msg2 "Applying advanced NVIDIA module parameters..."
+      install -Dm644 "${_where}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
     fi
 
-    # Install nvidia-patch from https://github.com/keylase/nvidia-patch
-    # Default to false if _nvidia_patch_enc_fbc is empty
-    _nvidia_patch_enc_fbc="${_nvidia_patch_enc_fbc:-false}"
-    # Check and apply nvidia-patch for NVENC/NVFBC
-    if [[ "${_nvidia_patch_enc_fbc}" == "true" ]]; then
-      # Check for conflicting packages
-      if pacman -Q nvidia-patch &>/dev/null || pacman -Q nvidia-patch-git &>/dev/null; then
-        warning "nvidia-patch or nvidia-patch-git package is installed. Skipping integrated nvidia-patch to avoid conflicts."
-        warning "Please uninstall nvidia-patch/nvidia-patch-git or disable _nvidia_patch_enc_fbc in customization.cfg"
-      else
-        msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
-        # Source the nvidia-patch.sh script to get patch definitions
-        source "${_where}/nvidia-patch.sh" 2>/dev/null || true
-        # Apply NVENC patch (libnvidia-encode)
-        if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
-          if [[ -n "${enc_patch_list[$pkgver]}" ]]; then
-            msg2 "  - Version ${pkgver} detected and supported for NVENC patching"
-            # Apply the sed patch directly to the library
-            sed -i "${enc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
-            msg2 "  - Patched libnvidia-encode.so.${pkgver} (NVENC session limit removed)"
-          else
-            warning "NVENC patch not available for driver version ${pkgver}"
-          fi
-        fi
-        # Apply NVFBC patch (libnvidia-fbc)
-        if [[ -f "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" ]]; then
-          if [[ -n "${fbc_patch_list[$pkgver]}" ]]; then
-            msg2 "  - Version ${pkgver} detected and supported for NVFBC patching"
-            # Apply the sed patch directly to the library
-            sed -i "${fbc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
-            msg2 "  - Patched libnvidia-fbc.so.${pkgver} (NVFBC enabled on consumer cards)"
-          else
-            warning "NVFBC patch not available for driver version ${pkgver}"
-          fi
-        fi
-      fi
+    if [[ "${_modprobe_mobile}" == "true" ]]; then
+      msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
+      install -Dm644 "${_where}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
     fi
+  else
+    if [[ "${_modprobe}" == "true" ]] || [[ "${_modprobe_mobile}" == "true" ]]; then
+      warning "Advanced NVIDIA module parameters require driver version >= 590 (current: ${pkgver})"
+    fi
+  fi
 
-    # create missing soname links
-    _create_links
-
-    # Blacklist nouveau
-    if [[ "$_blacklist_nouveau" != "false" ]]; then
-      echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+  # Install nvidia-patch from https://github.com/keylase/nvidia-patch
+  # Default to false if _nvidia_patch_enc_fbc is empty
+  _nvidia_patch_enc_fbc="${_nvidia_patch_enc_fbc:-false}"
+  # Check and apply nvidia-patch for NVENC/NVFBC
+  if [[ "${_nvidia_patch_enc_fbc}" == "true" ]]; then
+    # Check for conflicting packages
+    if pacman -Q nvidia-patch &>/dev/null || pacman -Q nvidia-patch-git &>/dev/null; then
+      warning "nvidia-patch or nvidia-patch-git package is installed. Skipping integrated nvidia-patch to avoid conflicts."
+      warning "Please uninstall nvidia-patch/nvidia-patch-git or disable _nvidia_patch_enc_fbc in customization.cfg"
     else
-      msg2 "Skipping nouveau blacklist due to user config"
+      msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
+      # Source the nvidia-patch.sh script to get patch definitions
+      source "${_where}/nvidia-patch.sh" 2>/dev/null || true
+      # Apply NVENC patch (libnvidia-encode)
+      if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
+        if [[ -n "${enc_patch_list[$pkgver]}" ]]; then
+          msg2 "  - Version ${pkgver} detected and supported for NVENC patching"
+          # Apply the sed patch directly to the library
+          sed -i "${enc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+          msg2 "  - Patched libnvidia-encode.so.${pkgver} (NVENC session limit removed)"
+        else
+          warning "NVENC patch not available for driver version ${pkgver}"
+        fi
+      fi
+      # Apply NVFBC patch (libnvidia-fbc)
+      if [[ -f "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}" ]]; then
+        if [[ -n "${fbc_patch_list[$pkgver]}" ]]; then
+          msg2 "  - Version ${pkgver} detected and supported for NVFBC patching"
+          # Apply the sed patch directly to the library
+          sed -i "${fbc_patch_list[$pkgver]}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+          msg2 "  - Patched libnvidia-fbc.so.${pkgver} (NVFBC enabled on consumer cards)"
+        else
+          warning "NVFBC patch not available for driver version ${pkgver}"
+        fi
+      fi
     fi
+  fi
+
+  # create missing soname links
+  _create_links
+
+  # Blacklist nouveau
+  if [[ "$_blacklist_nouveau" != "false" ]]; then
+    echo -e "blacklist nouveau\nblacklist lbm-nouveau\nblacklist nova_core\nblacklist nova_drm" |
+      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf"
+  else
+    msg2 "Skipping nouveau blacklist due to user config"
+  fi
 }
 source /dev/stdin <<EOF
 package_$_branchname-utils-tkg() {
@@ -812,9 +812,9 @@ nvidia-settings-tkg() {
 
   cd "$_pkg"
 
-  install -D -m755 nvidia-settings         -t "${pkgdir}/usr/bin"
-  install -D -m644 nvidia-settings.1.gz    -t "${pkgdir}/usr/share/man/man1"
-  install -D -m644 nvidia-settings.png     -t "${pkgdir}/usr/share/pixmaps"
+  install -D -m755 nvidia-settings -t "${pkgdir}/usr/bin"
+  install -D -m644 nvidia-settings.1.gz -t "${pkgdir}/usr/share/man/man1"
+  install -D -m644 nvidia-settings.png -t "${pkgdir}/usr/share/pixmaps"
   install -D -m644 nvidia-settings.desktop -t "${pkgdir}/usr/share/applications"
   sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__/nvidia-settings.png:nvidia-settings:' \
       -e 's/__NVIDIA_SETTINGS_DESKTOP_CATEGORIES__/Settings;HardwareSettings;/' \
@@ -991,99 +991,99 @@ lib32-nvidia-utils-tkg() {
   conflicts=('lib32-nvidia-utils' 'lib32-nvidia-libgl')
   cd $_pkg/32
 
-    install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLX_nvidia.so.${pkgver}"
+  install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLX_nvidia.so.${pkgver}"
 
-    # OpenGL libraries
-    install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libEGL_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv1_CM_nvidia.so.${pkgver}"
-    install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv2_nvidia.so.${pkgver}"
+  # OpenGL libraries
+  install -D -m755 "libEGL_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libEGL_nvidia.so.${pkgver}"
+  install -D -m755 "libGLESv1_CM_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv1_CM_nvidia.so.${pkgver}"
+  install -D -m755 "libGLESv2_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLESv2_nvidia.so.${pkgver}"
 
-    # OpenGL core library
-    install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glcore.so.${pkgver}"
-    install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-eglcore.so.${pkgver}"
-    install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glsi.so.${pkgver}"
+  # OpenGL core library
+  install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glcore.so.${pkgver}"
+  install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-eglcore.so.${pkgver}"
+  install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glsi.so.${pkgver}"
 
-    # Allocator library
-    if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
-      mkdir -p "${pkgdir}/usr/lib32/gbm" && ln -sr "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/gbm/nvidia-drm_gbm.so"
+  # Allocator library
+  if [[ -e libnvidia-allocator.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}"
+    mkdir -p "${pkgdir}/usr/lib32/gbm" && ln -sr "${pkgdir}/usr/lib32/libnvidia-allocator.so.${pkgver}" "${pkgdir}/usr/lib32/gbm/nvidia-drm_gbm.so"
+  fi
+
+  # GPU shader compilation helper
+  if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
+  fi
+
+  if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
+  fi
+  install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fbc.so.${pkgver}"
+  install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
+  install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
+  install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
+
+  # egl-xlib/xcb
+  if [ "${_eglx11:-external}" != "false" ]; then
+    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
+    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
     fi
-
-    # GPU shader compilation helper
-    if [[ -e libnvidia-gpucomp.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-gpucomp.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-gpucomp.so.${pkgver}"
+    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
+    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
+      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
     fi
+  fi
 
-    if [[ -e libnvidia-ifr.so.${pkgver} ]]; then
-      install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ifr.so.${pkgver}"
-    fi
-    install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fbc.so.${pkgver}"
-    install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-encode.so.${pkgver}"
-    install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
-    install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
+  # VDPAU
+  install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/vdpau/libvdpau_nvidia.so.${pkgver}"
 
-    # egl-xlib/xcb
-    if [ "${_eglx11:-external}" != "false" ]; then
-      if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-        install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
-      elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-        install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
-      fi
-      if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-        install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
-      elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-        install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
-      fi
-    fi
+  # nvidia-tls library
+  install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tls.so.${pkgver}"
 
-    # VDPAU
-    install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/vdpau/libvdpau_nvidia.so.${pkgver}"
+  if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
+    install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/tls/libnvidia-tls.so.${pkgver}"
+  fi
 
-    # nvidia-tls library
-    install -D -m755 "libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tls.so.${pkgver}"
-
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]]; then
-      install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib32/tls/libnvidia-tls.so.${pkgver}"
-    fi
-
-    # CUDA
-    install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib32/libcuda.so.${pkgver}"
-    install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib32/libnvcuvid.so.${pkgver}"
+  # CUDA
+  install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib32/libcuda.so.${pkgver}"
+  install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib32/libnvcuvid.so.${pkgver}"
 
 
-    # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
-    install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
+  # PTX JIT Compiler (Parallel Thread Execution (PTX) is a pseudo-assembly language for CUDA)
+  install -D -m755 "libnvidia-ptxjitcompiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ptxjitcompiler.so.${pkgver}"
 
-    # NVVM Compiler library loaded by the CUDA driver to do JIT link-time-optimization
-    if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
-      install -D -m644 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-nvvm.so.${pkgver}"
-    fi
+  # NVVM Compiler library loaded by the CUDA driver to do JIT link-time-optimization
+  if [[ -e libnvidia-nvvm.so.${pkgver} ]]; then
+    install -D -m644 "libnvidia-nvvm.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-nvvm.so.${pkgver}"
+  fi
 
-    # Fat (multiarchitecture) binary loader
-    if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
-      install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
-    fi
+  # Fat (multiarchitecture) binary loader
+  if [[ $pkgver = 396* ]] || [[ $pkgver = 41* ]] || [[ $pkgver = 43* ]] || [[ $pkgver = 44* ]]; then
+    install -D -m755 "libnvidia-fatbinaryloader.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-fatbinaryloader.so.${pkgver}"
+  fi
 
-    # Optical flow
-    # https://gitlab.archlinux.org/archlinux/packaging/packages/lib32-nvidia-utils/-/blob/main/PKGBUILD?ref_type=heads#L98
-    if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]]; then
-      install -Dm755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opticalflow.so.${pkgver}"
-    else
-      # X wrapped software rendering
-      install -Dm755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-wfb.so.${pkgver}"
-    fi
+  # Optical flow
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/lib32-nvidia-utils/-/blob/main/PKGBUILD?ref_type=heads#L98
+  if [[ ${pkgver} != 396* ]] && [[ ${pkgver} != 410* ]] && [[ ${pkgver} != 415* ]]; then
+    install -Dm755 "libnvidia-opticalflow.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-opticalflow.so.${pkgver}"
+  else
+    # X wrapped software rendering
+    install -Dm755 "libnvidia-wfb.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-wfb.so.${pkgver}"
+  fi
 
-    # https://github.com/microsoft/TileIR
-    if [[ -e libnvidia-tileiras.so.${pkgver} ]]; then
-      install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
-    fi
+  # https://github.com/microsoft/TileIR
+  if [[ -e libnvidia-tileiras.so.${pkgver} ]]; then
+    install -Dm755 "libnvidia-tileiras.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-tileiras.so.${pkgver}"
+  fi
 
-    # create missing soname links
-    _create_links
+  # create missing soname links
+  _create_links
 
-    rm -rf "${pkgdir}"/usr/{include,share,bin}
-    mkdir -p "${pkgdir}/usr/share/licenses"
-    ln -s nvidia-utils/ "${pkgdir}/usr/share/licenses/${pkgname}"
+  rm -rf "${pkgdir}"/usr/{include,share,bin}
+  mkdir -p "${pkgdir}/usr/share/licenses"
+  ln -s nvidia-utils/ "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 source /dev/stdin <<EOF
 package_lib32-$_branchname-utils-tkg() {
@@ -1099,7 +1099,6 @@ if [ "$_dkms" = "true" ] || [ "$_dkms" = "full" ]; then
       provides=('nvidia-open' 'NVIDIA-MODULE')
 
       install -dm 755 "${pkgdir}"/usr/src
-      # cp -dr --no-preserve='ownership' kernel-open "${pkgdir}/usr/src/nvidia-$pkgver"
       cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-$pkgver"
       mv "${pkgdir}/usr/src/nvidia-$pkgver/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-$pkgver/dkms.conf"
 
@@ -1146,5 +1145,3 @@ package_$__branchname-dkms-tkg() {
 }
 EOF
 fi
-
-# exit_cleanup and trap are defined in nvidia-all-config/prepare

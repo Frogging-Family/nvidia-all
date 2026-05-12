@@ -3,6 +3,7 @@
 !.gitignore
 !PKGBUILD
 !prepare
+!install.sh
 *~
 *.orig
 *.log
@@ -16,8 +17,14 @@
 *.old
 *.db
 *.files
+*.deb
+*.rpm
+*.spec
+*.dsc
 src/
 pkg/
+dist/
+release/
 logs/
 *log.txt
 *.part

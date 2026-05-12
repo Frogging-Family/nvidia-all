@@ -7,7 +7,7 @@
 _current_nvidia=("595" "580" "570" "470")
 
 # Vulkan dev series — pinned manually
-_vulkandev_version="595.44.07"
+_vulkandev_version="595.44.08"
 
 # EOL / legacy driver series
 _eol_nvidia=(
@@ -96,6 +96,29 @@ _prompt_from_array() {
   local _natural_index=$((_selected_index + 1))
   _selected_value="${!_natural_index}"
   plain "Selected: ${_selected_value}"
+}
+
+# Detect distro family
+_detect_distro() {
+  local _id="" _id_like=""
+  if [[ -f /etc/os-release ]]; then
+    _id="$(. /etc/os-release && echo "${ID:-}")"
+    _id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+  fi
+  _NV_DISTRO_ID="${_id:-generic}"
+  local _combined="${_id} ${_id_like}"
+  case "$_combined" in
+    *debian*|*ubuntu*)
+      _NV_DISTRO_FAMILY="debian"  ;;
+    *fedora*|*rhel*|*centos*)
+      _NV_DISTRO_FAMILY="fedora"  ;;
+    *suse*)
+      _NV_DISTRO_FAMILY="suse"    ;;
+    *arch*|*manjaro*)
+      _NV_DISTRO_FAMILY="arch"    ;;
+    *)
+      _NV_DISTRO_FAMILY="generic" ;;
+  esac
 }
 
 # Older driver series
@@ -291,6 +314,8 @@ _set_open_modules() {
 
 # Check installed version is newer
 _check_only_update() {
+  # pacman is Arch-only; skip this check on other distros
+  command -v pacman &>/dev/null || return 0
   [[ "${_only_update_if_newer:-}" != "true" ]] && return 0
 
   if pacman -Qs "nvidia-utils" >/dev/null 2>&1; then
@@ -347,6 +372,49 @@ _set_source_name() {
   if [[ "$_libxnvctrl" = "true" ]] && [[ "$_driver_branch" != "vulkandev" ]]; then
     _source_libxnvctrl="nvidia-settings-${_ver}.tar.gz::https://github.com/NVIDIA/nvidia-settings/archive/refs/tags/${_ver}.tar.gz"
     echo "_source_libxnvctrl='$_source_libxnvctrl'" >> "$_where/BIG_UGLY_FROGMINER"
+  fi
+}
+
+# Download .run file and optional tarballs (open-source modules, libxnvctrl).
+# Expects $srcdir and $pkgver to be set (set by install.sh or makepkg).
+_nv_download() {
+  local _filename _url
+  if [[ "$_source_name" == *"::"* ]]; then
+    _filename="${_source_name%%::*}"
+    _url="${_source_name##*::}"
+  else
+    _filename="NVIDIA-Linux-x86_64-${pkgver}.run"
+    _url="$_source_name"
+  fi
+  msg2 "Downloading ${_filename}..."
+  curl -L --fail --progress-bar -o "${srcdir}/${_filename}" "$_url"
+
+  if [[ "${_open_source_modules:-}" = "true" && -n "${_source_open:-}" ]]; then
+    local _open_file _open_url
+    if [[ "$_source_open" == *"::"* ]]; then
+      _open_file="${_source_open%%::*}"
+      _open_url="${_source_open##*::}"
+    else
+      _open_file="$(basename "$_source_open")"
+      _open_url="$_source_open"
+    fi
+    msg2 "Downloading ${_open_file}..."
+    curl -L --fail --progress-bar -o "${srcdir}/${_open_file}" "$_open_url"
+    bsdtar -xf "${srcdir}/${_open_file}" -C "$srcdir"
+  fi
+
+  if [[ -n "${_source_libxnvctrl:-}" ]]; then
+    local _lx_file _lx_url
+    if [[ "$_source_libxnvctrl" == *"::"* ]]; then
+      _lx_file="${_source_libxnvctrl%%::*}"
+      _lx_url="${_source_libxnvctrl##*::}"
+    else
+      _lx_file="$(basename "$_source_libxnvctrl")"
+      _lx_url="$_source_libxnvctrl"
+    fi
+    msg2 "Downloading ${_lx_file}..."
+    curl -L --fail --progress-bar -o "${srcdir}/${_lx_file}" "$_lx_url"
+    bsdtar -xf "${srcdir}/${_lx_file}" -C "$srcdir"
   fi
 }
 
@@ -426,6 +494,13 @@ _detect_kernels() {
       find /usr/lib/modules/*/build/version       -exec cat {} + 2>/dev/null
       find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null
     )
+
+    # RPM-based distros (Fedora, SUSE): kernel-devel packages have no pkgbase/version
+    if command -v rpm &>/dev/null; then
+      while IFS= read -r _kver; do
+        [ -n "$_kver" ] && _candidates+=("$_kver")
+      done < <(rpm -qa --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-devel 2>/dev/null)
+    fi
   fi
 
   for _kver in "${_candidates[@]}"; do
@@ -443,8 +518,21 @@ _detect_kernels() {
   done
 
   if [ ${#_result[@]} -eq 0 ]; then
-    error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg." >&2
-    return 1
+    # Last-resort fallback to running kernel
+    local _uname_r
+    _uname_r="$(uname -r)"
+    if [[ -d "/usr/lib/modules/${_uname_r}/build" ]]; then
+      warning "Could not detect kernel via pkgbase — falling back to running kernel: ${_uname_r}" >&2
+      _result+=("$_uname_r")
+    else
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        # DKMS mode: kernel headers are not required at packaging time.
+        # The module will be built by DKMS on first boot against the running kernel.
+        return 0
+      fi
+      error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg." >&2
+      return 1
+    fi
   fi
 
   printf '%s\n' "${_result[@]}"
@@ -506,8 +594,15 @@ _apply_patches() {
     [[ "$_dmin" != "-" ]] && (( $(vercmp "$pkgver" "$_dmin") < 0 )) && continue
     [[ "$_dmax" != "-" ]] && (( $(vercmp "$pkgver" "$_dmax") > 0 )) && continue
 
-    # exact driver version exclusion
-    [[ -n "$_excl" && "$_excl" != "-" && "$pkgver" == "$_excl" ]] && continue
+    # exact driver version exclusion (colon-separated list)
+    if [[ -n "$_excl" && "$_excl" != "-" ]]; then
+      local _skip=0
+      IFS=: read -ra _excl_list <<< "$_excl"
+      for _ev in "${_excl_list[@]}"; do
+        [[ "$pkgver" == "$_ev" ]] && { _skip=1; break; }
+      done
+      (( _skip )) && continue
+    fi
 
     # optional flag
     if [[ -n "$_flag" && "$_flag" != "-" ]]; then
@@ -860,17 +955,21 @@ function exit_cleanup {
   rm -f "${_where}"/*.patch
   rm -f "${_where}"/*.conf
   rm -f "${_where}"/*.rules
-  rm -f "${_where}"/*.sh
   rm -f "${_where}"/*.hook
   rm -f "${_where}"/*.install
   rm -f "${_where}"/*.dinit
   rm -f "${_where}"/*.sysusers
+  rm -f "${_where}"/gsk-renderer.sh
+  rm -f "${_where}"/nvidia-patch.sh
   rm -f "${_where}/cuda-no-stable-perf-limit"
   rm -f "${_where}/limit-vram-usage"
   rm -rf "${_where}/egl-wayland"
 
   # remove state tracker
   rm -f "$_where"/BIG_UGLY_FROGMINER
+
+  # remove install.sh build directory if present
+  [[ -d "${_build_srcdir:-}" ]] && rm -rf "$_build_srcdir"
 
   # move packages to versioned dir
   if [ "${_local_package_storing:-}" = "true" ]; then
@@ -911,7 +1010,7 @@ function exit_cleanup {
     fi
   } > "${_where}/logs/system-info.txt"
 
-  remove_deps || ( true && msg2 "remove_deps not found" )
+  command -v remove_deps &>/dev/null && remove_deps
 
   msg2 'exit cleanup done'
 }

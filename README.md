@@ -1,6 +1,14 @@
+## 📢 Announcement for nvidia-all!!
+
+We've put some effort into adding installer support for other distros, and it is still in an initial phase. Please note that this is a work in progress, and it could contain errors and rough edges, so we would greatly appreciate your help in testing it out and providing feedback. If you encounter any issues or have suggestions for improvement, please don't hesitate to report them.
+
+The original Arch-only PKGBUILD is preserved in the [`legacy`](https://github.com/Frogging-Family/nvidia-all/tree/legacy) branch. If you notice anything that was overlooked or lost during the refactor, please open an issue or PR — feedback is very welcome!
+
+Thanks in advance for your support. KISS! 🐸
+
 # nvidia-all
 
-All-in-one NVIDIA Linux driver PKGBUILD with dynamic branch selection,
+All-in-one NVIDIA Linux driver with dynamic branch selection,
 kernel compatibility patching, and optional component split packages.
 
 ## Contents
@@ -8,48 +16,45 @@ kernel compatibility patching, and optional component split packages.
 - [nvidia-all](#nvidia-all)
   - [Contents](#contents)
   - [What nvidia-all adds](#what-nvidia-all-adds)
-  - [Hardware notes](#hardware-notes)
+  - [Notes\*](#notes)
   - [Install](#install)
+  - [Legacy branch (Arch PKGBUILD)](#legacy-branch-arch-pkgbuild)
   - [Update](#update)
   - [Uninstall and revert](#uninstall-and-revert)
     - [1) Remove installed nvidia-all packages](#1-remove-installed-nvidia-all-packages)
     - [2) Reinstall distro packages](#2-reinstall-distro-packages)
+    - [Non-Arch (install.sh)](#non-arch-installsh)
   - [DKMS or regular modules](#dkms-or-regular-modules)
-  - [Important customization.cfg options](#important-customizationcfg-options)
+  - [Important customization.cfg options and paths](#important-customizationcfg-options-and-paths)
   - [Custom driver versions](#custom-driver-versions)
   - [Troubleshooting](#troubleshooting)
     - [DKMS build stopped working after a kernel update](#dkms-build-stopped-working-after-a-kernel-update)
-    - [GCC mismatch warning](#gcc-mismatch-warning)
+    - [GCC/Clang mismatch warning](#gccclang-mismatch-warning)
     - [Optimus/hybrid laptops](#optimushybrid-laptops)
 
 ## What nvidia-all adds
-
-- Builds current and legacy NVIDIA Linux drivers.
-- Supports proprietary kernel modules and NVIDIA open kernel modules.
-- Detects installed kernels and applies compatibility patches where needed.
+  
+- Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
+- Regular drivers : https://www.nvidia.com/object/unix.html
+- Builds current and legacy NVIDIA Linux drivers.*
+- Supports proprietary kernel modules and NVIDIA open kernel modules.*
+- Detects installed kernels and applies compatibility patches where needed. 
 - Offers DKMS and regular package variants.
 - Supports optional split packages.
 - Exposes many build/runtime toggles through customization.cfg.
-  
-    Vulkan dev drivers : https://developer.nvidia.com/vulkan-driver
-
-    Regular drivers : https://www.nvidia.com/object/unix.html
-
 - Legacy selection path includes additional older series down to 396.
 - Custom version input is supported for 396 and newer.
 
-Notes:
+## Notes*
 
+- As of 590, NVIDIA no longer develops proprietary (closed-source) kernel modules. https://archlinux.org/news/nvidia-590-driver-drops-pascal-support-main-packages-switch-to-open-kernel-modules/
+- For older GPUs (pre-Turing), proprietary kernel modules remain available via driver 580 and below.
+- For 470 users (Kepler legacy context) 470 is treated as a legacy branch and may require extra caution on newer kernels. NVIDIA ended Kepler support updates in September 2024, so an LTS kernel is generally recommended.
 - 390 and older series are not supported.
-- 470 is treated as a legacy branch and may require extra caution on newer kernels.
-
-## Hardware notes
-
-- For 595 NVIDIA open kernel modules are intended for Turing and newer GPUs.
-- For 470 users (Kepler legacy context): NVIDIA ended Kepler support updates
-	in September 2024, so an LTS kernel is generally recommended.
 
 ## Install
+
+**Arch-based (makepkg):**
 
 ```bash
 git clone https://github.com/Frogging-Family/nvidia-all.git
@@ -57,16 +62,56 @@ cd nvidia-all
 makepkg -si
 ```
 
-Then follow the prompts.
+**All distributions (install.sh):**
+
+Supported: Debian, Ubuntu, Fedora, SUSE/openSUSE — and Arch-based via direct install.
+
+```bash
+git clone https://github.com/Frogging-Family/nvidia-all.git
+cd nvidia-all
+bash install.sh
+```
+
+The script auto-detects your distribution and offers two install modes:
+
+- **Direct install** - installs driver files directly onto the system.
+- **Package build** - builds a native package to `dist/<distro>/`.
+
+After a package build, install the generated packages:
+
+```bash
+# Debian/Ubuntu
+sudo dpkg -i dist/ubuntu/*.deb
+
+# Fedora
+sudo rpm -i dist/fedora/*.rpm
+
+# SUSE
+sudo zypper install dist/suse/*.rpm
+```
 
 If your setup needs it, consider a pacman hook for DRM mode setting:
 https://wiki.archlinux.org/title/NVIDIA#DRM_kernel_mode_setting
+
+## Legacy branch (Arch PKGBUILD)
+
+The [`legacy`](https://github.com/Frogging-Family/nvidia-all/tree/legacy) branch preserves the original Arch-only PKGBUILD-based workflow for users who prefer it or rely on it.
+
+> **Note:** The current `master` branch may have missed some fixes or improvements that existed in the original `legacy` PKGBUILD. If you notice anything that was overlooked during the refactor, please open an issue or PR — feedback is very welcome!
+
+```bash
+git clone -b legacy https://github.com/Frogging-Family/nvidia-all.git
+cd nvidia-all
+makepkg -si
+```
 
 ## Update
 
 ```bash
 cd nvidia-all
 git pull
+bash install.sh
+# or 
 makepkg -si
 ```
 
@@ -82,41 +127,23 @@ series suffixes, dkms vs regular, lib32, split components).
 List installed nvidia-all packages first:
 
 ```bash
-pacman -Qq \
-  | grep -E \
-    '^(lib32-)?(opencl-)?nvidia([0-9]+xx)?(-dev)?(-open)?(-dkms|-utils|-settings|-egl-wayland|-egl-x11|-libxnvctrl)?-tkg$'
+pacman -Qq | grep -E 'nvidia.*-tkg'
 ```
 
 If the list looks correct, remove the matched packages:
 
 ```bash
-pacman -Qq \
-  | grep -E \
-    '^(lib32-)?(opencl-)?nvidia([0-9]+xx)?(-dev)?(-open)?(-dkms|-utils|-settings|-egl-wayland|-egl-x11|-libxnvctrl)?-tkg$' \
-  | xargs -r sudo pacman -Rdd
+pacman -Qq | grep -E 'nvidia.*-tkg' | xargs -r sudo pacman -Rdd
 ```
 
 ### 2) Reinstall distro packages
 
-For proprietary DKMS path:
-
-```bash
-sudo pacman -S \
-  nvidia-dkms \
-  egl-wayland \
-  lib32-nvidia-utils \
-  lib32-opencl-nvidia \
-  nvidia-settings \
-  opencl-nvidia \
-  nvidia-utils
-```
 
 For open DKMS path (Turing or newer only):
 
 ```bash
 sudo pacman -S \
   nvidia-open-dkms \
-  egl-wayland \
   lib32-nvidia-utils \
   lib32-opencl-nvidia \
   nvidia-settings \
@@ -124,7 +151,40 @@ sudo pacman -S \
   nvidia-utils
 ```
 
+For proprietary DKMS path:
+
+```bash
+sudo pacman -S nvidia-580xx-dkms
+```
+
 After installing the drivers provided by your distro everything should function as normal after a reboot.
+
+### Non-Arch (install.sh)
+
+List installed nvidia-all packages:
+
+```bash
+# Debian/Ubuntu
+dpkg -l | grep nvidia-tkg
+
+# Fedora/SUSE
+rpm -qa | grep nvidia-tkg
+```
+
+Remove them:
+
+```bash
+# Debian/Ubuntu
+sudo dpkg -r <package-name>...
+
+# Fedora
+sudo rpm -e <package-name>...
+
+# SUSE
+sudo zypper remove <package-name>...
+```
+
+Then reinstall the NVIDIA driver provided by your distro.
 
 ## DKMS or regular modules
 
@@ -134,11 +194,14 @@ kernels update.
 Choose regular packages only if you specifically want prebuilt non-DKMS modules
 for your workflow.
 
-## Important customization.cfg options
+## Important customization.cfg options and paths
 
-The main user-facing configuration lives in customization.cfg (external options can be placed at ~/.config/frogminer/nvidia-all.cfg).
+The main user-facing configuration lives in [customization.cfg](https://github.com/Frogging-Family/nvidia-all/blob/master/customization.cfg).
+External options can be placed at `~/.config/frogminer/nvidia-all.cfg` to automatically apply them.
 
-Build logs and environment snapshots are written under logs/.
+Prebuilted distro packages are written to `/nvidia-all/` and can be installed from there.
+
+Build logs and environment snapshots are written under `logs/`.
 
 ## Custom driver versions
 
@@ -161,10 +224,10 @@ Version format examples:
 Rebuild so the script re-detects currently installed kernels and reapplies
 relevant compatibility logic.
 
-### GCC mismatch warning
+### GCC/Clang mismatch warning
 
-NVIDIA modules should be built with the same major GCC version used for the
-kernel. Align your toolchain or rebuild kernel/modules consistently.
+NVIDIA modules should be built with the same major GCC/Clang version used for the
+kernel and not mixed between different compilers. Align your toolchain or rebuild kernel/modules consistently.
 
 ### Optimus/hybrid laptops
 
