@@ -1,0 +1,66 @@
+From 0104a2ecdb05730bd96bf9f5cf91b9df975a2d47 Mon Sep 17 00:00:00 2001
+From: Eric Naim <dnaim@cachyos.org>
+Date: Mon, 7 Apr 2025 22:02:00 +0800
+Subject: [PATCH 7/8] nvidia-uvm: Use page_pgmap()
+
+Signed-off-by: Eric Naim <dnaim@cachyos.org>
+---
+ kernel-open/nvidia-uvm/uvm_common.h  | 6 ++++++
+ kernel-open/nvidia-uvm/uvm_hmm.c     | 2 +-
+ kernel-open/nvidia-uvm/uvm_pmm_gpu.c | 4 ++--
+ 3 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_common.h b/kernel-open/nvidia-uvm/uvm_common.h
+index 08f197aa8cd5..5bcd89bc6643 100644
+--- a/kernel-open/nvidia-uvm/uvm_common.h
++++ b/kernel-open/nvidia-uvm/uvm_common.h
+@@ -39,6 +39,12 @@
+     #define UVM_IS_DEVELOP() 0
+ #endif
+ 
++#include <linux/version.h>
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
++#define page_pgmap(p) (p)->pgmap
++#endif
++
+ #include "uvm_types.h"
+ #include "uvm_linux.h"
+ 
+diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
+index 92bfd7cab5f0..ee87c2ade7ef 100644
+--- a/kernel-open/nvidia-uvm/uvm_hmm.c
++++ b/kernel-open/nvidia-uvm/uvm_hmm.c
+@@ -1991,7 +1991,7 @@ static void fill_dst_pfn(uvm_va_block_t *va_block,
+ 
+     dpage = pfn_to_page(pfn);
+     UVM_ASSERT(is_device_private_page(dpage));
+-    UVM_ASSERT(dpage->pgmap->owner == &g_uvm_global);
++    UVM_ASSERT(page_pgmap(dpage)->owner == &g_uvm_global);
+ 
+     hmm_mark_gpu_chunk_referenced(va_block, gpu, gpu_chunk);
+     UVM_ASSERT(!page_count(dpage));
+diff --git a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+index d8c082786be4..cf626ad5ca9a 100644
+--- a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
++++ b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+@@ -3329,7 +3329,7 @@ void uvm_pmm_gpu_device_p2p_init(uvm_gpu_t *gpu)
+     // TODO: Bug 4672502: [Linux Upstream][UVM] Allow drivers to manage and
+     // allocate PCI P2PDMA pages directly
+     p2p_page = pfn_to_page(pci_start_pfn);
+-    p2p_page->pgmap->ops = &uvm_device_p2p_pgmap_ops;
++    page_pgmap(p2p_page)->ops = &uvm_device_p2p_pgmap_ops;
+     for (; page_to_pfn(p2p_page) < pci_end_pfn; p2p_page++)
+         p2p_page->zone_device_data = NULL;
+ 
+@@ -3344,7 +3344,7 @@ void uvm_pmm_gpu_device_p2p_deinit(uvm_gpu_t *gpu)
+ 
+     if (gpu->device_p2p_initialised && !uvm_parent_gpu_is_coherent(gpu->parent)) {
+         p2p_page = pfn_to_page(pci_start_pfn);
+-        devm_memunmap_pages(&gpu->parent->pci_dev->dev, p2p_page->pgmap);
++        devm_memunmap_pages(&gpu->parent->pci_dev->dev, page_pgmap(p2p_page));
+     }
+ 
+     gpu->device_p2p_initialised = false;
+-- 
+2.49.0

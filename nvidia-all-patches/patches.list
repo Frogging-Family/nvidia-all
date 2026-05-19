@@ -1,0 +1,385 @@
+# nvidia-all patch list
+#
+# Columns (space-separated):
+#   type      open | dkms | closed | any
+#   file      path relative to nvidia-all-patches/
+#   kmin      min kernel version, - = any
+#   kmax      max kernel version, - = any
+#   dmin      min driver version, - = any
+#   dmax      max driver version, - = any
+#   strip     patch -pN strip level (usually 1)
+#   target    subdir for patch -d:
+#               .            driver root
+#               kernel-open  <open-src>/kernel-open/
+#               kernel-dkms  <pkg>/kernel-dkms/
+#   [flag]    optional: customization.cfg var, applied only when set to "true"
+#   [excl_dver] optional: exact driver version to skip despite dmin/dmax range
+#
+# kmin/kmax = - : static (kernel-independent).
+# Versions compared with vercmp.
+#
+# To add: drop file into all/ or <series>/, add line below.
+
+# ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# TYPE     FILE                                                                       KMIN     KMAX     DMIN         DMAX         STRIP   TARGET        [FLAG]                      [EXCL_DVER]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GENERIC — applies across all / multiple driver series
+# ══════════════════════════════════════════════════════════════════════════════
+
+# open < 525: IBT/SLS
+open     all/nvidia-open-gcc-ibt-sls.diff                                              -        -        -            524.99       1      .
+
+# GCC 15 (all series, opt-in)
+dkms     all/gcc-15.diff                                                               -        -        -            -            1      .              _gcc15
+closed   all/gcc-15.diff                                                               4.0      -        -            -            2      .              _gcc15
+
+# kernel 6.17+ (all series ≤ 575.99)
+dkms     all/kernel-6.17.patch                                                         6.17     -        -            575.99       1      .
+closed   all/kernel-6.17.patch                                                         6.17     -        -            575.99       2      .
+
+# open: atomic modesetting (570–580.142)
+open     all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -        570          580.142      1      kernel-open
+closed   all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -        570          580.142      1      .
+
+# open: Add-IBT-support (all series ≥ 570)
+open     all/0002-Add-IBT-support.patch                                                -        -        570          595.80       1      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LEGACY 396 / 410–440 / 450–460
+# ══════════════════════════════════════════════════════════════════════════════
+
+# GCC 14 (all legacy series < 470, opt-in)
+closed   all/gcc-14.diff                                                               4.0      -        -            469.9999     2      .              _gcc14
+
+# linux-version (common, all ≤ 455)
+closed   all/linux-version.diff                                                        4.0      -        -            455.9999     2      .
+
+# ── 396 ───────────────────────────────────────────────────────────────────────
+
+# clang fix (opt-in)
+dkms     396/clang.patch                                                               -        -        396          396.9999     2      kernel-dkms    _clang
+closed   396/clang.patch                                                               4.0      -        396          396.9999     2      .              _clang
+
+# kernel 4.16+: memory encryption
+dkms     396/kernel-4.16+-memory-encryption.patch                                      4.16     -        396          396.9999     2      kernel-dkms
+closed   396/kernel-4.16+-memory-encryption.patch                                      4.16     -        396          396.9999     2      .
+
+# kernel 4.20+: ipmi_user_t fix
+closed   all/01-ipmi-vm.diff                                                           4.20     -        396          415.9999     2      .
+closed   all/02-ipmi-vm.diff                                                           4.20     -        410.50       415.9999     2      .
+
+# kernel compat: 4.16–5.3
+closed   all/kernel-4.16.patch                                                         4.16     -        396          396.9999     2      .
+closed   all/kernel-4.19.patch                                                         4.19     -        396          396.9999     2      .
+closed   all/kernel-5.0.patch                                                          5.0      -        396          396.9999     2      .
+closed   all/kernel-5.1.patch                                                          5.1      -        396          396.9999     2      .
+closed   all/kernel-5.2.patch                                                          5.2      -        396          396.9999     2      .
+closed   all/kernel-5.3.patch                                                          5.3      -        396          396.9999     2      .
+
+# kernel 6.6+
+dkms     396/kernel-6.6.patch                                                          6.6      -        396          396.9999     2      kernel-dkms
+closed   396/kernel-6.6.patch                                                          6.6      -        396          396.9999     2      .
+
+# kernel 6.12+
+dkms     396/kernel-6.12.patch                                                         6.12     -        396          396.9999     2      kernel-dkms
+closed   396/kernel-6.12.patch                                                         6.12     -        396          396.9999     2      .
+
+# ── 410–440 ───────────────────────────────────────────────────────────────────
+
+# kernel compat: 4.16–5.7
+closed   all/kernel-4.16.patch                                                         4.16     -        410          415.9999     2      .
+closed   all/kernel-4.16.patch                                                         4.16     -        418.30       418.52.14    2      .
+closed   all/kernel-5.0.patch                                                          5.0      -        410.50       415.99       2      .
+closed   all/kernel-5.1.patch                                                          5.1      -        410          415.99       2      .
+closed   all/kernel-5.1.patch                                                          5.1      -        418.30       418.52.10    2      .
+closed   all/kernel-5.2.patch                                                          5.2      -        410          415.99       2      .
+closed   all/kernel-5.2.patch                                                          5.2      -        418.30       418.87       2      .
+closed   all/kernel-5.3.patch                                                          5.3      -        410          415.99       2      .
+closed   all/kernel-5.3.patch                                                          5.3      -        418.30       418.87       2      .
+closed   all/kernel-5.4.patch                                                          5.4      -        410          415.99       2      .
+closed   all/kernel-5.4.patch                                                          5.4      -        418.30       418.87       2      .
+closed   all/kernel-5.4.patch                                                          5.4      -        430          435.27.01    2      .
+closed   all/kernel-5.5.patch                                                          5.5      -        410          415.99       2      .
+closed   all/kernel-5.5.patch                                                          5.5      -        418          418.99       2      .
+closed   all/kernel-5.5.patch                                                          5.5      -        430          435.99       2      .
+closed   all/kernel-5.5.patch                                                          5.5      -        440.20       440.44       2      .
+closed   all/kernel-5.6.patch                                                          5.6      -        435          435.99       2      .
+closed   all/kernel-5.6.patch                                                          5.6      -        440.20       440.69       2      .
+closed   all/kernel-5.7.patch                                                          5.7      -        440          440.9999     2      .
+
+# 5.4: symver fix
+closed   all/kernel-5.4-symver.diff                                                    5.4      -        435.27.02    440.26       2      .
+
+# 5.4: prime fix (opt-in)
+closed   all/kernel-5.4-prime.diff                                                     5.4      -        410          440.44       2      .              _54_prime_fixing_attempt
+
+# 5.6: legacy includes + ioremap fixes
+closed   all/5.6-legacy-includes.diff                                                  5.6      -        418          440.49       2      .
+closed   all/5.6-ioremap.diff                                                          5.6      -        418          440.59       2      .
+
+# ── 450–460 ───────────────────────────────────────────────────────────────────
+
+# 455 crashfix
+closed   all/455-crashfix.diff                                                         4.0      -        455.20       455.49       2      .
+
+# 5.8: legacy driver fix
+closed   all/5.8-legacy.diff                                                           5.8      -        440          450.51       2      .
+
+# 5.9: GPL fix
+closed   all/5.9-gpl.diff                                                              5.9      -        450          455.39       2      .
+
+# 5.11: legacy driver fix (excl 455.50.19)
+closed   all/5.11-legacy.diff                                                          5.11     -        455.45       460.27.99    2      .              -                          455.50.19
+
+# kernel compat: 5.8–5.12
+closed   all/kernel-5.8.patch                                                          5.8      -        440          440.99       2      .
+closed   all/kernel-5.8.patch                                                          5.8      -        450.30       450.56.01    2      .
+closed   all/kernel-5.9.patch                                                          5.9      -        450.50       450.69       2      .
+dkms     all/kernel-5.10.patch                                                         5.10     -        450.50       450.89       1      .
+closed   all/kernel-5.10.patch                                                         5.10     -        450.50       450.89       2      .
+dkms     all/kernel-5.10.patch                                                         5.10     -        455.20       455.39       1      .
+closed   all/kernel-5.10.patch                                                         5.10     -        455.20       455.39       2      .
+closed   all/kernel-5.11.patch                                                         5.11     -        455.45       460.32.99    2      .
+closed   all/kernel-5.12.patch                                                         5.12     -        455.40       455.59       2      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 470
+# ══════════════════════════════════════════════════════════════════════════════
+
+# GCC 14 (opt-in)
+closed   all/gcc-14-470.diff                                                           4.0      -        470          470.9999     2      .              _gcc14
+
+# clang fix (opt-in)
+dkms     470/clang.patch                                                               -        -        470          470.9999     1      kernel-dkms    _clang
+closed   470/clang.patch                                                               4.0      -        470          470.9999     1      .              _clang
+
+# conftest GCC 14 compat
+dkms     470/0001-Fix-conftest-to-ignore-implicit-function-declaration.patch           -        -        470.40       470.229      1      kernel-dkms
+dkms     470/0002-Fix-conftest-to-use-a-short-wchar_t.patch                            -        -        470.40       470.229      1      kernel-dkms
+dkms     470/0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se.patch           -        -        470.40       470.229      1      kernel-dkms
+closed   470/0001-Fix-conftest-to-ignore-implicit-function-declaration.patch           4.0      -        470.40       470.229      1      .
+closed   470/0002-Fix-conftest-to-use-a-short-wchar_t.patch                            4.0      -        470.40       470.229      1      .
+closed   470/0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se.patch           4.0      -        470.40       470.229      1      .
+
+# modeset by default (required for 6.12 support)
+dkms     470/nvidia-470xx-Enable-modeset-by-default.patch                              -        -        470          470.9999     2      kernel-dkms
+closed   470/nvidia-470xx-Enable-modeset-by-default.patch                              4.0      -        470          470.9999     2      .
+
+# GPL export fix (6.1+)
+dkms     all/6.1-6-7-8-gpl.diff                                                        6.1      -        470.40       470.229      1      .
+closed   all/6.1-6-7-8-gpl.diff                                                        6.1      -        470.40       470.229      2      .
+
+# kernel compat: 5.14–5.17
+closed   all/kernel-5.14.patch                                                         5.14     -        465          470.59       2      .
+closed   all/kernel-5.16.patch                                                         5.16     -        470.80       470.9999     2      .
+closed   all/kernel-5.16-std.diff                                                      5.16     -        470.62       470.62.99    2      .
+closed   all/kernel-5.17.patch                                                         5.17     -        470.62       470.62.99    1      .
+
+# kernel 6.0+
+dkms     all/kernel-6.0-470.patch                                                      6.0      -        470.40       470.149      1      .
+dkms     all/kernel-6.0.patch                                                          6.0      -        470.40       470.149      1      .
+closed   all/kernel-6.0-470.patch                                                      6.0      -        470.40       470.149      2      .
+closed   all/kernel-6.0.patch                                                          6.0      -        470.40       470.149      2      .
+
+# kernel 6.1+: GPL pfn_valid fix
+dkms     470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      -        470          470.9999     1      kernel-dkms
+closed   470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      -        470          470.9999     1      .
+
+# kernel 6.3+
+dkms     all/kernel-6.3.patch                                                          6.3      -        470.40       470.189      1      .
+closed   all/kernel-6.3.patch                                                          6.3      -        470.40       470.189      2      .
+
+# kernel 6.4+
+dkms     all/kernel-6.4.patch                                                          6.4      -        470.40       470.199      1      .
+closed   all/kernel-6.4.patch                                                          6.4      -        470.40       470.199      2      .
+closed   all/legacy-kernel-6.4.diff                                                    6.4      -        470.199      470.199.99   2      .
+
+# kernel 6.5+: legacy fix (470.199.*)
+closed   all/legacy-kernel-6.5.diff                                                    6.5      -        470.199      470.199.99   2      .
+
+# kernel 6.6+
+dkms     470/kernel-6.6.patch                                                          6.6      -        470          470.9999     1      kernel-dkms
+closed   470/kernel-6.6.patch                                                          6.6      -        470          470.9999     1      .
+
+# kernel 6.12+
+dkms     470/kernel-6.12.patch                                                         6.12     -        470          470.9999     1      kernel-dkms
+closed   470/kernel-6.12.patch                                                         6.12     -        470          470.9999     1      .
+
+# kernel 6.19+
+dkms     all/kernel-6.19-470.patch                                                     6.19     -        470          470.9999     1      kernel-dkms
+closed   all/kernel-6.19-470.patch                                                     6.19     -        470          470.9999     1      .
+
+# kernel 7.0+
+dkms     470/kernel-7.0.patch                                                          7.0      -        470          470.9999     1      kernel-dkms
+closed   470/kernel-7.0.patch                                                          7.0      -        470          470.9999     1      .
+closed   all/kernel-7.0-470.patch                                                      7.0      -        470          470.9999     1      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 495–550
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── 495 ───────────────────────────────────────────────────────────────────────
+
+# kernel compat: 5.16–5.17
+closed   all/kernel-5.16.patch                                                         5.16     -        495          495.9999     2      .
+closed   all/kernel-5.17.patch                                                         5.17     -        495          495.9999     1      .
+
+# ── 515 ───────────────────────────────────────────────────────────────────────
+
+# kernel 6.0+
+dkms     all/kernel-6.0.patch                                                          6.0      -        515.60       515.9999     1      .
+closed   all/kernel-6.0.patch                                                          6.0      -        515.60       515.9999     2      .
+
+# ── 525 ───────────────────────────────────────────────────────────────────────
+
+# kernel 6.2+
+dkms     all/kernel-6.2.patch                                                          6.2      -        525.50       525.79       1      .
+closed   all/kernel-6.2.patch                                                          6.2      -        525.50       525.79       2      .
+
+# kernel 6.5+
+dkms     all/kernel-6.5.patch                                                          6.5      -        525.50       525.129      1      .
+closed   all/kernel-6.5.patch                                                          6.5      -        525.50       525.129      2      .
+
+# kernel 6.8+
+dkms     all/kernel-6.8.patch                                                          6.8      -        525          525.9999     1      .
+closed   all/kernel-6.8.patch                                                          6.8      -        525          525.9999     2      .
+
+# ── 530 ───────────────────────────────────────────────────────────────────────
+
+# kernel 6.4+
+dkms     all/kernel-6.4.patch                                                          6.4      -        530          530.9999     1      .
+closed   all/kernel-6.4.patch                                                          6.4      -        530          530.9999     2      .
+
+# kernel 6.5+
+dkms     all/kernel-6.5.patch                                                          6.5      -        530          530.9999     1      .
+closed   all/kernel-6.5.patch                                                          6.5      -        530          530.9999     2      .
+
+# ── 535 ───────────────────────────────────────────────────────────────────────
+
+# GPL export fix (6.1+)
+dkms     all/6.1-6-7-8-gpl.diff                                                        6.1      -        535.40       535.159      1      .
+closed   all/6.1-6-7-8-gpl.diff                                                        6.1      -        535.40       535.159      2      .
+
+# kernel 6.5+
+dkms     all/kernel-6.5.patch                                                          6.5      -        535.50       535.43.02    1      .
+closed   all/kernel-6.5.patch                                                          6.5      -        535.50       535.43.02    2      .
+
+# ── 545 ───────────────────────────────────────────────────────────────────────
+
+# GPL export fix (6.1+)
+dkms     all/6.1-6-7-8-gpl.diff                                                        6.1      -        545          545.9999     1      .
+closed   all/6.1-6-7-8-gpl.diff                                                        6.1      -        545          545.9999     2      .
+
+# ── 550 ───────────────────────────────────────────────────────────────────────
+
+# GPL export fix (6.1+)
+dkms     all/6.1-6-7-8-gpl.diff                                                        6.1      -        550.40       550.40.07    1      .
+closed   all/6.1-6-7-8-gpl.diff                                                        6.1      -        550.40.07    550.40.07    2      .
+
+# -std=gnu17 for GCC 15
+dkms     550/0002-CFLAGS-Set-std-gnu17-for-all-compilation-flags.patch                 -        -        550          550.135      1      kernel-dkms
+closed   550/0002-CFLAGS-Set-std-gnu17-for-all-compilation-flags.patch                 4.0      -        550          550.135      1      .
+
+# GPL pfn_valid fix (6.1+)
+dkms     550/nvidia-drivers-470.223.02-gpl-pfn_valid.patch                             6.1      -        550          550.135      2      kernel-dkms
+closed   550/nvidia-drivers-470.223.02-gpl-pfn_valid.patch                             6.1      -        550          550.135      2      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 560–565
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── 560 ───────────────────────────────────────────────────────────────────────
+
+# open: modeset/fbdev default (550–564)
+open     all/make-modeset-fbdev-default.diff                                           -        -        550          564.99       2      kernel-open
+
+# dkms + closed: modeset/fbdev default (6.11+)
+dkms     all/make-modeset-fbdev-default.diff                                           6.11     -        560          560.9999     1      .
+closed   all/make-modeset-fbdev-default.diff                                           6.11     -        560          560.9999     2      .
+
+# dkms + closed: fbdev phantom monitor fix (6.11+)
+dkms     all/6.11-fbdev.diff                                                           6.11     -        560          560.9999     1      .
+closed   all/6.11-fbdev.diff                                                           6.11     -        560          560.9999     2      .
+
+# ── 565 ───────────────────────────────────────────────────────────────────────
+
+# open: modeset/fbdev default, silence event assert, HDMI ELD names
+open     all/make-modeset-fbdev-default-565.diff                                       -        -        565          565.9999     2      kernel-open
+open     all/silence-event-assert-until-570.diff                                       -        -        565          565.9999     1      .
+open     all/fix-hdmi-names.diff                                                       -        -        565          565.9999     1      .
+
+# dkms + closed: modeset/fbdev default (6.11+)
+dkms     all/make-modeset-fbdev-default-565.diff                                       6.11     -        565          565.9999     1      .
+closed   all/make-modeset-fbdev-default-565.diff                                       6.11     -        565          565.9999     2      .
+
+# dkms + closed: kernel 6.12 compat (565.57–565.77)
+dkms     all/kernel-6.12.patch                                                         6.12     -        565.57       565.77       1      .
+closed   all/kernel-6.12.patch                                                         6.12     -        565.57       565.77       2      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 575
+# ══════════════════════════════════════════════════════════════════════════════
+
+# GPL nv_vm_flags workaround
+open     575/0003-Workaround-nv_vm_flags_-calling-GPL-only-code.patch                  -        -        575          575.9999     1      kernel-open
+
+# uvm fixes
+open     575/0005-nvidia-uvm-Use-__iowrite64_hi_lo.patch                               -        -        575          575.9999     1      .
+open     575/0006-nvidia-uvm-Use-page_pgmap.patch                                      -        -        575          575.9999     1      .
+open     575/0007-nvidia-uvm-Convert-make_device_exclusive_range-to-ma.patch           -        -        575          575.9999     1      .
+
+# GCC 15 kbuild workaround (opt-in)
+open     575/0008-kbuild-Add-workaround-for-GCC-15-Compilation.patch                   -        -        575          575.9999     1      .              _gcc15
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 580
+# ══════════════════════════════════════════════════════════════════════════════
+
+# open: hw cursor KDE fix
+open     580/fix-hw-cursor-kde.patch                                                   -        -        580          580.9999     1      kernel-open
+
+# open: uvm get_devmap_page API change (kernel 6.18+; 580.159+ has it natively)
+open     580/0003-nvidia-uvm-Remove-unused-get_devmap_page-parameter.patch             -        -        580          580.142      1      .
+
+# open: nvkms TMDS limit revert (580.105.08–580.142; 580.159+ has it natively)
+open     580/0004-nvkms-Limit-default-maximum-TMDS-character-rate-to-3.patch           -        -        580.105.08   580.142      1      .
+
+# open + dkms + closed: kernel 7.0+ PAHOLE fix (580–580.142)
+open     580/kernel-7.0.patch                                                          7.0      -        580          580.142      1      kernel-open
+dkms     580/kernel-7.0.patch                                                          7.0      -        580          580.142      1      kernel-dkms
+closed   580/kernel-7.0.patch                                                          7.0      -        580          580.142      1      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 590–595
+# ══════════════════════════════════════════════════════════════════════════════
+
+# open + dkms: DSC + DP fixes (595–595.x)
+open     595/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -        595          595.80       1      .
+open     595/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch           -        -        595          595.80       1      .
+open     595/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -        595          595.80       1      .
+
+# open: kernel 6.19+ (590)
+open     all/kernel-6.19.patch                                                         6.19     -        590          590.9999     2      kernel-open
+
+# open: kernel 7.0+ (590–595.58.03, excl buggy 595 tags)
+open     595/kernel-7.0.patch                                                          7.0      -        590          595.58.03    2      kernel-open    -                          595.44.06:595.44.07:595.44.08:595.44.09
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SERIES 610
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# vim: set ft=sh ts=2 sw=2 et:

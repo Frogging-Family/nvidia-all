@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# Sign NVIDIA kernel modules for Secure Boot.
+#   Default mode  : sign already-installed modules using the kernel's
+#                   own signing key.
+#   --mok-stage   : sign staged uncompressed .ko files using a MOK key
+#                   (Fedora prebuilt kmod path).
+# Usage: nvidia-sign-modules [--mok-stage <kodir>]
+
+# Locate or generate a persistent MOK key pair.
+# Prefers the DKMS-managed key if available, otherwise creates a new
+# pair under /var/lib/nvidia-all/mok/.
+_get_or_create_mok_key() {
+  if [[ -f /var/lib/dkms/mok.key && -f /var/lib/dkms/mok.pub ]]; then
+    _mok_key="/var/lib/dkms/mok.key"
+    _mok_der="/var/lib/dkms/mok.pub"
+    echo ":: nvidia-sign-modules: reusing DKMS MOK key."
+    return 0
+  fi
+
+  # No DKMS-managed key found.
+  local _mok_dir="/var/lib/nvidia-all/mok"
+  _mok_key="${_mok_dir}/mok.key"
+  _mok_der="${_mok_dir}/mok.der"
+
+  if [[ ! -f "${_mok_key}" ]]; then
+    echo ":: nvidia-sign-modules: generating MOK signing key pair at ${_mok_dir} ..."
+    sudo mkdir -p "${_mok_dir}"
+    sudo openssl req -new -x509 -newkey rsa:2048 \
+      -keyout "${_mok_key}" \
+      -outform DER -out "${_mok_der}" \
+      -days 36500 \
+      -subj "/CN=nvidia-all signing key/" \
+      -nodes
+    sudo chmod 600 "${_mok_key}"
+    sudo chmod 644 "${_mok_der}"
+    sudo mkdir -p /var/lib/dkms
+    sudo cp "${_mok_key}" /var/lib/dkms/mok.key
+    sudo chmod 600 /var/lib/dkms/mok.key
+    sudo cp "${_mok_der}" /var/lib/dkms/mok.pub
+  fi
+}
+
+# Sign staged uncompressed .ko files using the MOK key.
+_sign_staged_kmods() {
+  local _kodir="$1"
+
+  if ! command -v mokutil &>/dev/null; then
+    echo ":: nvidia-sign-modules: mokutil not found — cannot stage MOK-signed modules for Secure Boot." >&2
+    return 1
+  fi
+  mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled' || {
+    echo ":: nvidia-sign-modules: Secure Boot not active — skipping MOK staging."
+    return 0
+  }
+
+  local _mok_key _mok_der
+  _get_or_create_mok_key
+
+  local _sign_file
+  _sign_file=$(find /usr/src -maxdepth 3 -name 'sign-file' -type f 2>/dev/null \
+    | sort -V | tail -1)
+  if [[ -z "${_sign_file}" ]]; then
+    echo ":: nvidia-sign-modules: sign-file not found — install kernel-devel and retry." >&2
+    return 1
+  fi
+
+  echo ":: nvidia-sign-modules: signing staged modules in ${_kodir} ..."
+  local _ko
+  while IFS= read -r -d '' _ko; do
+    sudo "${_sign_file}" sha256 "${_mok_key}" "${_mok_der}" "${_ko}"
+  done < <(find "${_kodir}" -name '*.ko' -print0)
+}
+
+# Sign already-installed NVIDIA modules using the kernel's own signing key.
+_sign_installed_kmods() {
+  local _signed_any=0
+
+  while IFS= read -r -d '' _kbuild; do
+    local _kernel="${_kbuild%/build}"
+    _kernel="${_kernel##*/}"
+    local _sign_file="${_kbuild}/scripts/sign-file"
+    local _config="${_kbuild}/.config"
+
+    if [[ ! -x "${_sign_file}" ]] || [[ ! -r "${_config}" ]]; then
+      echo ":: nvidia-sign-modules: skipped ${_kernel}: build metadata missing"
+      continue
+    fi
+
+    local _sign_key
+    _sign_key=$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_config}" 2>/dev/null || true)
+    [[ -n "${_sign_key}" ]] || _sign_key="certs/signing_key.pem"
+    [[ "${_sign_key}" =~ ^/ ]] || _sign_key="${_kbuild}/${_sign_key}"
+    local _sign_cert="${_kbuild}/certs/signing_key.x509"
+    local _hash_algo
+    _hash_algo=$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_config}" 2>/dev/null \
+      || echo sha256)
+
+    if [[ ! -r "${_sign_key}" ]] || [[ ! -r "${_sign_cert}" ]]; then
+      echo ":: nvidia-sign-modules: skipped ${_kernel}: signing key not readable"
+      continue
+    fi
+
+    local _changed=0
+
+    while IFS= read -r -d '' _mod; do
+      local _plain_mod="${_mod}"
+      local _compression=""
+
+      case "${_mod}" in
+        *.ko.xz)
+          xz -d -f "${_mod}"
+          _plain_mod="${_mod%.xz}"
+          _compression="xz"
+          ;;
+        *.ko.gz)
+          gzip -d -f "${_mod}"
+          _plain_mod="${_mod%.gz}"
+          _compression="gz"
+          ;;
+      esac
+
+      "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}" "${_plain_mod}"
+
+      case "${_compression}" in
+        xz) xz -f "${_plain_mod}" ;;
+        gz) gzip -n -f "${_plain_mod}" ;;
+      esac
+
+      _changed=1
+      _signed_any=1
+    done < <(find "/usr/lib/modules/${_kernel}" -type f \
+      \( -name 'nvidia*.ko' -o -name 'nvidia*.ko.xz' -o -name 'nvidia*.ko.gz' \) \
+      -print0)
+
+    if (( _changed )); then
+      depmod "${_kernel}"
+    fi
+  done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type d -name build -print0)
+
+  if (( _signed_any == 0 )); then
+    echo ":: nvidia-sign-modules: skipped — no installed NVIDIA modules found"
+  fi
+}
+
+main() {
+  case "${1:-}" in
+    --mok-stage)
+      local _kodir="${2:?--mok-stage requires a directory argument}"
+      _sign_staged_kmods "${_kodir}"
+      ;;
+    "")
+      _sign_installed_kmods
+      ;;
+    *)
+      echo "Usage: nvidia-sign-modules [--mok-stage <kodir>]" >&2
+      return 1
+      ;;
+  esac
+}
+
+main "$@"
+
+# vim: set ft=sh ts=2 sw=2 et:

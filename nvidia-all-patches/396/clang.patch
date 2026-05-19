@@ -1,0 +1,26 @@
+From 11d0a845595937508a068ba433b7b79b11f7aecc Mon Sep 17 00:00:00 2001
+From: Vasiliy Stelmachenok <ventureo@cachyos.org>
+Date: Thu, 29 Aug 2024 20:31:32 +0300
+Subject: [PATCH] Fix build 390xx module via Clang
+
+Signed-off-by: Vasiliy Stelmachenok <ventureo@cachyos.org>
+---
+ kernel/Kbuild | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/Kbuild b/kernel/Kbuild
+index 85aa267..0922557 100644
+--- a/kernel/Kbuild
++++ b/kernel/Kbuild
+@@ -63,7 +63,7 @@ $(foreach _module, $(NV_KERNEL_MODULES), \
+ 
+ EXTRA_CFLAGS += -I$(src)/common/inc
+ EXTRA_CFLAGS += -I$(src)
+-EXTRA_CFLAGS += -Wall -MD $(DEFINES) $(INCLUDES) -Wsign-compare -Wno-cast-qual -Wno-error
++EXTRA_CFLAGS += -Wall -Wno-deprecated-non-prototype -Wno-strict-prototypes $(DEFINES) $(INCLUDES) -Wsign-compare -Wno-cast-qual -Wno-error
+ EXTRA_CFLAGS += -D__KERNEL__ -DMODULE -DNVRM -DNV_VERSION_STRING=\"390.157\" -Wno-unused-function -Wuninitialized -fno-strict-aliasing -mno-red-zone -mcmodel=kernel -DNV_UVM_ENABLE -Wno-sign-compare -Wno-format-extra-args
+ EXTRA_CFLAGS += $(call cc-option,-Werror=undef,)
+ EXTRA_CFLAGS += -DNV_SPECTRE_V2=$(NV_SPECTRE_V2)
+-- 
+2.46.0
+

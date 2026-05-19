@@ -1,0 +1,1440 @@
+# Shared prepare functions sourced by both install.sh and PKGBUILD.
+
+# Active driver series
+_current_nvidia=("610" "595" "580" "570" "470")
+
+# Vulkan dev series
+_vulkandev_nvidia="595.44.09"
+
+# EOL / legacy driver series
+_eol_nvidia=(
+  "590 series: 590.48.01"
+  "575 series: 575.64.05"
+  "565 series: 565.77"
+  "560 series: 560.35.03"
+  "555 series: 555.58.02"
+  "550 series: 550.144.03"
+  "545 series: 545.29.06"
+  "535 series: 535.309.01"
+  "530 series: 530.41.03"
+  "525 series: 525.147.05"
+  "520 series: 520.56.06"
+  "515 series: 515.86.01"
+  "510 series: 510.85.02"
+  "495 series: 495.46"
+  "465 series: 465.31"
+  "460 series: 460.91.03"
+  "455 series: 455.45.01"
+  "450 series: 450.119.03"
+  "440 series: 440.100  (kernel 5.8 or lower)"
+  "435 series: 435.21   (kernel 5.6 or lower)"
+  "430 series: 430.64   (kernel 5.5 or lower)"
+  "418 series: 418.113  (kernel 5.5 or lower)"
+  "415 series: 415.27   (kernel 5.4 or lower)"
+  "410 series: 410.104  (kernel 5.5 or lower)"
+  "396 series: 396.54   (kernel 5.3 or lower, 5.1 or lower recommended)"
+)
+
+# Extract the version number from an EOL label
+_ver_from_entry() {
+  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "$1" | tail -1
+}
+
+# Fetch latest driver version per active series, populates _nvidia_ver_map.
+_define_nvidia_versions() {
+  [[ -v _nvidia_ver_map ]] && return 0
+
+  typeset -gA _nvidia_ver_map
+  local _listing _series _latest
+
+  msg2 "Please make sure you have the corresponding kernel headers installed for each kernel on your system!\n"
+  msg2 "Fetching latest NVIDIA driver versions..."
+  _listing=$(curl -s --max-time 15 https://download.nvidia.com/XFree86/Linux-x86_64/ | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?/' | tr -d '/')
+
+  if [[ -z "${_listing}" ]]; then
+    error "Could not fetch NVIDIA driver listing (network error or timeout)."
+    exit 1
+  fi
+
+  for _series in "${_current_nvidia[@]}"; do
+    _latest=$(echo "${_listing}" | grep -E "^${_series}\." | sort -V | tail -1)
+    [[ -n "${_latest}" ]] && _nvidia_ver_map[${_series}]="${_latest}"
+  done
+}
+
+# Normalize a boolean config variable
+_nv_normalize_bool() {
+  local _varname="$1"
+  local _val="${!_varname:-}"
+  [[ -z "${_val}" ]] && return 0
+  if [[ "${_val}" =~ ^(Y|y|Yes|yes|true|1)$ ]]; then
+    printf -v "${_varname}" '%s' "true"
+  elif [[ "${_val}" =~ ^(N|n|No|no|false|0)$ ]]; then
+    printf -v "${_varname}" '%s' "false"
+  fi
+}
+
+_prompt_from_array() {
+  # Prompt from array; set _default_index for default on empty input.
+  # If _set_default="true", auto-selects _default_index without user interaction.
+
+  unset _selected_index
+  local _N=$(($# - 1))
+  local _index=0
+  for _value in "$@"; do
+    if [[ "${_index}" = "${_default_index}" ]]; then
+      plain "  > ${_index}) ${_value}"
+    else
+      plain "    ${_index}) ${_value}"
+    fi
+    _index=$((_index + 1))
+  done
+
+  if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ && -n "${_default_index:-}" ]]; then
+    _selected_index="${_default_index}"
+    plain "Auto-selected default: ${_selected_index}"
+  else
+    while true; do
+      read -rp "[0-${_N}]: "
+      if [[ -z "$REPLY" && -n "${_default_index}" ]]; then
+        _selected_index="${_default_index}"
+        break
+      elif [[ "$REPLY" =~ ^[0-9]+$ && 0 -le "$REPLY" && "$REPLY" -le ${_N} ]]; then
+        _selected_index="$REPLY"
+        break
+      else
+        echo "Wrong selection: select any number in 0-${_N}"
+      fi
+    done
+  fi
+  local _natural_index=$((_selected_index + 1))
+  _selected_value="${!_natural_index}"
+  plain "Selected: ${_selected_value}"
+}
+
+# Interactive prompts for configurable NVIDIA options
+_prompt_nvidia_options() {
+  # Normalize pre-set values
+  _nv_normalize_bool _blacklist_nouveau
+  _nv_normalize_bool _modprobe
+  _nv_normalize_bool _modprobe_mobile
+  _nv_normalize_bool _nvidia_patch_enc_fbc
+
+  # _blacklist_nouveau
+  if [[ -z "${_blacklist_nouveau:-}" ]]; then
+    local _blacklist_nouveau_text=("Yes (recommended)" "No")
+    local _blacklist_nouveau_vals=("true" "false")
+    msg2 "Blacklist the nouveau kernel module?"
+    _default_index="0"
+    _prompt_from_array "${_blacklist_nouveau_text[@]}"
+    _blacklist_nouveau="${_blacklist_nouveau_vals[${_selected_index}]}"
+  fi
+
+  # _modprobe
+  if [[ -z "${_modprobe:-}" ]]; then
+    local _modprobe_text=("Yes (recommended)" "No")
+    local _modprobe_vals=("true" "false")
+    msg2 "Apply advanced NVIDIA module parameters?"
+    msg2 "Enables various NVIDIA module parameters that can improve performance, reduce latency."
+    _default_index="0"
+    _prompt_from_array "${_modprobe_text[@]}"
+    _modprobe="${_modprobe_vals[${_selected_index}]}"
+  fi
+
+  # _modprobe_mobile
+  if [[ -z "${_modprobe_mobile:-}" ]]; then
+    local _modprobe_mobile_text=("Yes" "No")
+    local _modprobe_mobile_vals=("true" "false")
+    msg2 "Apply dual-GPU specific NVIDIA module parameters?"
+    msg2 "Recommended for dual-GPU systems with Optimus/dGPU."
+    _default_index="1"
+    _prompt_from_array "${_modprobe_mobile_text[@]}"
+    _modprobe_mobile="${_modprobe_mobile_vals[${_selected_index}]}"
+  fi
+
+  # _nvidia_patch_enc_fbc
+  if [[ -z "${_nvidia_patch_enc_fbc:-}" ]]; then
+    local _enc_fbc_text=("Yes" "No")
+    local _enc_fbc_vals=("true" "false")
+    msg2 "Apply nvidia-patch?"
+    msg2 "Removes NVENC session limit and enables NVFBC on consumer cards."
+    _default_index="1"
+    _prompt_from_array "${_enc_fbc_text[@]}"
+    _nvidia_patch_enc_fbc="${_enc_fbc_vals[${_selected_index}]}"
+  fi
+
+  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, modprobe=${_modprobe}, modprobe_mobile=${_modprobe_mobile}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
+
+  # Export selected options to BIG_UGLY_FROGMINER for use in PKGBUILD and install.sh
+  cat >> "${_where}/BIG_UGLY_FROGMINER" <<EOF
+_blacklist_nouveau='${_blacklist_nouveau:-}'
+_modprobe='${_modprobe:-}'
+_modprobe_mobile='${_modprobe_mobile:-}'
+_nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'
+EOF
+}
+
+# Detect distro family
+_detect_distro() {
+  local _id="" _id_like=""
+  if [[ -f /etc/os-release ]]; then
+    _id="$(. /etc/os-release && echo "${ID:-}")"
+    _id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+  fi
+  _NV_DISTRO_ID="${_id:-generic}"
+  local _combined="${_id} ${_id_like}"
+  case "${_combined}" in
+    *debian*|*ubuntu*)
+      _NV_DISTRO_FAMILY="debian"  ;;
+    *fedora*|*rhel*|*centos*)
+      _NV_DISTRO_FAMILY="fedora"  ;;
+    *suse*)
+      _NV_DISTRO_FAMILY="suse"    ;;
+    *arch*|*manjaro*|*endeavouros*|*cachyos*)
+      _NV_DISTRO_FAMILY="arch"    ;;
+    *)
+      _NV_DISTRO_FAMILY="generic" ;;
+  esac
+}
+
+# Older driver series
+_select_older_driver() {
+  local -a _labels=()
+  local -a _versions=()
+  local _e
+
+  for _e in "${_eol_nvidia[@]}"; do
+    _labels+=( "${_e}" )
+    _versions+=( "$(_ver_from_entry "${_e}")" )
+  done
+
+  plain "Which legacy driver version do you want?"
+  _default_index=0
+  _prompt_from_array "${_labels[@]}"
+  _driver_version="${_versions[${_selected_index}]}"
+  _driver_branch="regular"
+}
+
+# Custom driver version
+_select_custom_driver() {
+  local _branch_choice
+  plain "Which branch do you want?"
+  plain "  > 1) Stable or regular beta"
+  plain "    2) Vulkan dev"
+  read -rp "[1-2]: " _branch_choice
+  if [[ "${_branch_choice}" = "2" ]]; then
+    _driver_branch="vulkandev"
+    read -rp "Type the desired version number (format: xxx.xx.xx): " _driver_version
+  else
+    _driver_branch="regular"
+    read -rp "Type the desired version number (format: xxx.xx.xx or xxx.xxx or xxx.xx): " _driver_version
+  fi
+}
+
+# Version and branch
+_set_driver_version() {
+  local _series _ver
+
+  # resolve versions from NVIDIA download index
+  _define_nvidia_versions
+
+  # Build driver menu
+  local -a _DRIVERS=()
+  local _DRIVER_VULKAN_IDX=0
+  local _DRIVER_LATEST_IDX=1
+
+  _DRIVERS+=( "Vulkan dev: ${_vulkandev_nvidia}|vulkandev" )
+  for _series in "${_current_nvidia[@]}"; do
+    _ver="${_nvidia_ver_map[${_series}]:-}"
+    if [[ -z "${_ver}" ]]; then
+      warning "Could not resolve version for series ${_series} — skipping."
+      continue
+    fi
+    local _suffix=""
+    [[ "${_series}" = "470" ]] && _suffix=" (LTS kernel recommended)"
+    _DRIVERS+=( "${_series} series: ${_ver}${_suffix}|regular" )
+  done
+  _DRIVERS+=( "Older series|older" "Custom version (396.xx or higher)|custom" )
+
+  # Resolve 'latest' alias
+  if [[ "${_driver_version}" = "latest" ]]; then
+    case "${_driver_branch:-}" in
+      regular)
+        _driver_version="$(_ver_from_entry "${_DRIVERS[${_DRIVER_LATEST_IDX}]}")"
+        ;;
+      vulkandev)
+        _driver_version="${_vulkandev_nvidia}"
+        ;;
+      *)
+        error '"latest" driver specified without valid _driver_branch. Set _driver_branch in customization.cfg.'
+        return 1
+        ;;
+    esac
+    echo "_driver_version='${_driver_version}'" >> "${_where}/BIG_UGLY_FROGMINER"
+    echo "_driver_branch='${_driver_branch}'"   >> "${_where}/BIG_UGLY_FROGMINER"
+    return 0
+  fi
+
+  # Version provided in config
+  if [[ -n "${_driver_version}" && "${_driver_version}" != "custom" ]]; then
+    if [[ -z "${_driver_branch:-}" ]]; then
+      if [[ "${_driver_version}" = "${_vulkandev_nvidia}" ]]; then
+        _driver_branch="vulkandev"
+      else
+        _driver_branch="regular"
+      fi
+    fi
+    echo "_driver_version='${_driver_version}'" >> "${_where}/BIG_UGLY_FROGMINER"
+    echo "_driver_branch='${_driver_branch}'"   >> "${_where}/BIG_UGLY_FROGMINER"
+    return 0
+  fi
+
+  local -a _labels=()
+  local _e
+  for _e in "${_DRIVERS[@]}"; do
+    _labels+=( "${_e%%|*}" )
+  done
+
+  msg2 "Which driver version do you want?"
+  _default_index="${_DRIVER_LATEST_IDX}"
+  _prompt_from_array "${_labels[@]}"
+
+  _e="${_DRIVERS[${_selected_index}]}"
+  local _br="${_e##*|}"
+
+  case "${_br}" in
+    older)  _select_older_driver  ;;
+    custom) _select_custom_driver ;;
+    *)      _driver_version="$(_ver_from_entry "${_e}")"; _driver_branch="${_br}" ;;
+  esac
+
+  echo "_driver_version='${_driver_version}'" >> "${_where}/BIG_UGLY_FROGMINER"
+  echo "_driver_branch='${_driver_branch}'"   >> "${_where}/BIG_UGLY_FROGMINER"
+}
+
+# DKMS mode
+_set_dkms() {
+  if [[ -n "${_dkms:-}" ]]; then
+    echo "_dkms='${_dkms}'" >> "${_where}/BIG_UGLY_FROGMINER"
+    return 0
+  fi
+
+  # build utils package only - no driver modules
+  if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
+    _dkms="false"
+    echo "_dkms='false'" >> "${_where}/BIG_UGLY_FROGMINER"
+    msg2 "_build_utils_package_only=true - forcing _dkms=false (kernel module not needed)."
+    return 0
+  fi
+
+  local _dkms_choices=(
+    "dkms (recommended)"
+    "regular"
+  )
+  msg2 "Build the dkms package or the regular one?"
+  _default_index=0
+  _prompt_from_array "${_dkms_choices[@]}"
+  if (( _selected_index == 0 )); then
+    _dkms="true"
+  else
+    _dkms="false"
+  fi
+  echo "_dkms='${_dkms}'" >> "${_where}/BIG_UGLY_FROGMINER"
+}
+
+# Detect whether the installed NVIDIA GPU supports open source modules
+_detect_open_modules() {
+  local _pciids_file="${_where}/nvidia-all-config/nvidia-kmod-noopen-pciids"
+
+  mkdir -p "${_where}/logs"
+
+  if [[ ! -f "${_pciids_file}" ]]; then
+    echo "[INFO] _detect_open_modules: noopen PCI ID list not found — skipping" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  if ! command -v lspci &>/dev/null; then
+    msg2 "lspci not found — skipping GPU-based open module auto-detection."
+    echo "[INFO] _detect_open_modules: lspci not available — skipping" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  local -a _gpu_ids=()
+  local -a _gpu_names=()
+  local _id _line _gpu_name
+  while IFS= read -r _line; do
+    _id="$(printf '%s' "${_line}" | grep -oP '10de:[0-9a-fA-F]+')"
+    [[ -z "${_id}" ]] && continue
+    # Prefer the model token in brackets right before the PCI ID, e.g. [GeForce RTX 3090].
+    _gpu_name="$(printf '%s' "${_line}" | sed -nE 's/.*\[([^][]+)\][[:space:]]+\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\].*/\1/p')"
+    if [[ -z "${_gpu_name}" ]]; then
+      _gpu_name="$(printf '%s' "${_line}" | sed -E 's/^[^:]+:[[:space:]]*//; s/\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\]//g; s/\(rev[^)]*\)//g; s/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+    fi
+    [[ -z "${_gpu_name}" ]] && _gpu_name="NVIDIA (${_id,,})"
+    _gpu_ids+=("${_id,,}")
+    _gpu_names+=("${_gpu_name}")
+  done < <(lspci -nn 2>/dev/null | grep -Ei 'VGA compatible controller|3D controller|Display controller')
+
+  if [[ ${#_gpu_ids[@]} -eq 0 ]]; then
+    echo "[INFO] _detect_open_modules: no NVIDIA GPU found via lspci — skipping" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  local _incompatible=false
+  local _idx
+  for _idx in "${!_gpu_ids[@]}"; do
+    _id="${_gpu_ids[${_idx}]}"
+    _gpu_name="${_gpu_names[${_idx}]}"
+    if grep -qiF "${_id}" "${_pciids_file}"; then
+      _incompatible=true
+      msg2 "GPU (${_gpu_name}) is NOT supported by open source modules."
+      echo "[INFO] _detect_open_modules: ${_id} found in noopen blocklist" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+    else
+      echo "[INFO] _detect_open_modules: ${_id} supports open source modules" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+    fi
+  done
+
+  if [[ "${_incompatible}" = "true" ]]; then
+    _open_source_modules="false"
+    msg2 "Auto-selecting closed source modules (GPU not compatible with open modules)."
+    echo "[INFO] _detect_open_modules: auto-selected closed modules" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+  else
+    _open_source_modules="true"
+    if [[ ${#_gpu_names[@]} -eq 1 ]]; then
+      msg2 "GPU ${_gpu_names[0]} is compatible with open source modules — auto-selecting open modules."
+    else
+      local _gpu_name_list
+      _gpu_name_list="$(printf '%s, ' "${_gpu_names[@]}")"
+      _gpu_name_list="${_gpu_name_list%, }"
+      msg2 "Detected compatible NVIDIA GPUs: ${_gpu_name_list} — auto-selecting open modules."
+    fi
+    echo "[INFO] _detect_open_modules: auto-selected open modules" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+  fi
+}
+
+# Resolve open modules
+_set_open_modules() {
+  local _autodetect_open_modules=false
+  # Defer PCI-ID autodetect until after we confirm open modules are available.
+  if [[ "${_open_source_modules:-}" = "autodetect" ]]; then
+    _autodetect_open_modules=true
+    _open_source_modules=""
+  fi
+
+  if [[ "${_open_source_modules:-}" = "false" ]]; then
+    echo "_open_source_modules='false'" >> "${_where}/BIG_UGLY_FROGMINER"
+    return 0
+  fi
+
+  msg2 "Checking open driver availability..."
+  local _xfree_url="https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${_driver_version}.tar.xz"
+  local _github_url="https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/${_driver_version}"
+  local _xfree_status _github_status
+  _xfree_status="$(curl -Is "${_xfree_url}"  | head -n1)"
+  _github_status="$(curl -Is "${_github_url}" | head -n1)"
+
+  if [[ "${_xfree_status}" = *200* ]] || [[ "${_github_status}" = *200* ]]; then
+    if [[ "${_autodetect_open_modules}" = "true" ]]; then
+      _detect_open_modules
+      [[ "${_open_source_modules:-}" = "autodetect" ]] && _open_source_modules=""
+    fi
+
+    if [[ -z "${_open_source_modules:-}" ]]; then
+      msg2 "Open source kernel modules available for driver version ${_driver_version}."
+      plain " ======================================================================="
+      plain ""
+      plain " RECOMMENDED for Turing (GTX 16xx / RTX 20xx) and newer."
+      plain " NO SUPPORT FOR OLDER HARDWARE, unlike the proprietary driver package."
+      plain ""
+      plain " ======================================================================="
+      msg2 "Do you want to use the proprietary driver to have support for older hardware?"
+      local _prop_text=("No (recommended)" "Yes")
+      local _prop_vals=("true" "false")
+      local _prop_driver
+      _default_index="0"
+      _prompt_from_array "${_prop_text[@]}"
+      _open_source_modules="${_prop_vals[${_selected_index}]}"
+    fi
+    if [[ "${_xfree_status}" = *200* ]]; then
+      _srcbase="NVIDIA-kernel-module-source"
+    else
+      _srcbase="open-gpu-kernel-modules"
+    fi
+  else
+    msg2 "No open source kernel module available"
+    _open_source_modules="false"
+  fi
+
+  {
+    echo "_open_source_modules='${_open_source_modules}'"
+    echo "_srcbase='${_srcbase:-}'"
+  } >> "${_where}/BIG_UGLY_FROGMINER"
+}
+
+# Check installed version is newer
+_check_only_update() {
+  # pacman is Arch-only; skip this check on other distros
+  command -v pacman &>/dev/null || return 0
+  [[ "${_only_update_if_newer:-}" != "true" ]] && return 0
+
+  if pacman -Qs "nvidia-utils" >/dev/null 2>&1; then
+    local _current_version _current_pkg
+    _current_version=$(pacman -Q "nvidia-utils" | grep -oP '\d+(\.\d+)+' | head -n1)
+    _current_pkg=$(pacman -Q "nvidia-utils" | grep -oP '[a-z]+(-[a-z]+)+' | head -n1)
+    msg2 "Found version ${_current_version} installed (from package '${_current_pkg}')"
+
+    if [[ "${_driver_version}" > "${_current_version}" ]]; then
+      msg2 "Selected (${_driver_version}, ${_driver_branch}) is newer than installed version. Continuing."
+    else
+      msg2 "Selected (${_driver_version}, ${_driver_branch}) is not newer than installed version. Exiting."
+      plain ""
+      if [[ -f "${_EXT_CONFIG_PATH:-}" ]]; then
+        plain "If this is not intended, check '${_EXT_CONFIG_PATH}'"
+      else
+        plain "If this is not intended, check '${_where}/customization.cfg'"
+      fi
+      rm -f "${_where}/BIG_UGLY_FROGMINER"
+      exit 0
+    fi
+  else
+    warning "'_only_update_if_newer' is enabled, but no installed driver found."
+    warning "Continuing as if '_only_update_if_newer' was not enabled."
+    plain ""
+  fi
+}
+
+# Source name and URL
+_set_source_name() {
+  local _ver="${_driver_version}"
+  if [[ "${_driver_branch}" = "vulkandev" ]]; then
+    if (( ${_ver%%.*} >= 525 )); then
+      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/downloads/vulkan-beta-${_ver//.}-linux"
+    elif [[ "${_ver}" = 396* ]]; then
+      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/linux-${_ver//.}"
+    else
+      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/vulkan-beta-${_ver//.}-linux"
+    fi
+  else
+    _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/${_ver}/NVIDIA-Linux-x86_64-${_ver}.run"
+  fi
+  echo "_source_name='${_source_name}'" >> "${_where}/BIG_UGLY_FROGMINER"
+
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    if [[ "${_srcbase}" = "NVIDIA-kernel-module-source" ]]; then
+      _source_open="NVIDIA-kernel-module-source-${_ver}.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${_ver}.tar.xz"
+    elif [[ "${_srcbase}" = "open-gpu-kernel-modules" ]]; then
+      _source_open="open-gpu-kernel-modules-${_ver}.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${_ver}.tar.gz"
+    fi
+    echo "_source_open='${_source_open}'" >> "${_where}/BIG_UGLY_FROGMINER"
+  fi
+
+  if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
+    _source_libxnvctrl="nvidia-settings-${_ver}.tar.gz::https://github.com/NVIDIA/nvidia-settings/archive/refs/tags/${_ver}.tar.gz"
+    echo "_source_libxnvctrl='${_source_libxnvctrl}'" >> "${_where}/BIG_UGLY_FROGMINER"
+  fi
+}
+
+# Download .run file and optional tarballs (open-source modules, libxnvctrl).
+_nv_download() {
+  local _filename _url
+  if [[ "${_source_name}" == *"::"* ]]; then
+    _filename="${_source_name%%::*}"
+    _url="${_source_name##*::}"
+  else
+    _filename="NVIDIA-Linux-x86_64-${pkgver}.run"
+    _url="${_source_name}"
+  fi
+  msg2 "Downloading ${_filename}..."
+  curl -L --fail --progress-bar -o "${srcdir}/${_filename}" "${_url}"
+
+  if [[ "${_open_source_modules:-}" = "true" && -n "${_source_open:-}" ]]; then
+    local _open_file _open_url
+    if [[ "${_source_open}" == *"::"* ]]; then
+      _open_file="${_source_open%%::*}"
+      _open_url="${_source_open##*::}"
+    else
+      _open_file="$(basename "${_source_open}")"
+      _open_url="${_source_open}"
+    fi
+    msg2 "Downloading ${_open_file}..."
+    curl -L --fail --progress-bar -o "${srcdir}/${_open_file}" "${_open_url}"
+    bsdtar -xf "${srcdir}/${_open_file}" -C "$srcdir"
+  fi
+
+  if [[ -n "${_source_libxnvctrl:-}" ]]; then
+    local _lx_file _lx_url
+    if [[ "${_source_libxnvctrl}" == *"::"* ]]; then
+      _lx_file="${_source_libxnvctrl%%::*}"
+      _lx_url="${_source_libxnvctrl##*::}"
+    else
+      _lx_file="$(basename "${_source_libxnvctrl}")"
+      _lx_url="${_source_libxnvctrl}"
+    fi
+    msg2 "Downloading ${_lx_file}..."
+    curl -L --fail --progress-bar -o "${srcdir}/${_lx_file}" "${_lx_url}"
+    bsdtar -xf "${srcdir}/${_lx_file}" -C "$srcdir"
+  fi
+}
+
+# Aggregate user configuration into BIG_UGLY_FROGMINER.
+# Duplicated variables are merged: env vars > ext config file > repo's customization.cfg
+# Strips blank lines and comments
+aggregate_user_config() {
+  local _cfg="${_where}/customization.cfg"
+
+  # Resolve _EXT_CONFIG_PATH from the environment or upstream customization file
+  if [[ -z "${_EXT_CONFIG_PATH:-}" ]]; then
+    local _raw
+    _raw="$(grep -m1 '^_EXT_CONFIG_PATH=' "${_cfg}" | cut -d= -f2- | tr -d "'\"")"
+    _EXT_CONFIG_PATH="${_raw/#\~/$HOME}"
+  fi
+
+  [[ -f "${_EXT_CONFIG_PATH}" ]] && \
+    msg2 "External configuration file ${_EXT_CONFIG_PATH} will be used and will override customization.cfg values."
+
+  # Collect valid cfg keys to filter env overrides against
+  local -A _keys=()
+  local _k _v
+  while IFS='= ' read -r _k _; do
+    [[ -n "$_k" && "$_k" != '#'* ]] && _keys["$_k"]=1
+  done < "$_cfg"
+
+  # Emit env > ext > cfg, then strip blanks/comments and dedup by key (first wins)
+  {
+    while IFS='=' read -r _k _v; do
+      [[ -v "_keys[$_k]" ]] && printf '%s=%s\n' "$_k" "$_v"
+    done < <(printenv)
+
+    [[ -f "${_EXT_CONFIG_PATH}" ]] && cat "${_EXT_CONFIG_PATH}"
+    cat "$_cfg"
+  } | grep -v -E '^[[:space:]]*(#|$)' \
+    | awk -F= '!seen[$1]++' \
+    > "${_where}/BIG_UGLY_FROGMINER"
+}
+
+# Resolve settings
+_nv_initscript() {
+  # When _set_default=true, fill in sensible defaults for any empty core variables
+  # so the build can run fully unattended without a single prompt.
+  if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ ]]; then
+    : "${_driver_version:=latest}"
+    : "${_driver_branch:=regular}"
+    : "${_dkms:=true}"
+    : "${_open_source_modules:=true}"
+    msg2 "_set_default=true — using defaults: version=${_driver_version} branch=${_driver_branch} dkms=${_dkms} open_modules=${_open_source_modules}"
+  fi
+  _set_driver_version
+  _set_dkms
+  _set_open_modules
+  _check_only_update
+  _set_source_name
+  _prompt_nvidia_options
+  msg2 "Building driver version ${_driver_version} on branch ${_driver_branch}."
+}
+
+# Create symlinks
+_create_links() {
+  find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
+    [[ "${_lib}" == *libnvidia-vulkan-producer.* ]] && continue
+    local _dir _soname_name _soname _base
+    _dir="$(dirname "${_lib}")"
+    _soname_name="$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)"
+    [[ -z "${_soname_name}" ]] && continue
+    _soname="${_dir}/${_soname_name}"
+    _base="${_dir}/$(echo "${_soname_name}" | sed -r 's/(.*)\.so.*/\1.so/')"
+    [[ -e "${_soname}" ]] || ln -s "$(basename "${_lib}")" "${_soname}"
+    [[ -e "${_base}" ]]   || ln -s "${_soname_name}" "${_base}"
+  done
+}
+
+# List installed kernel
+_detect_kernels() {
+  local _path _kver
+  local -a _candidates=()
+  local -a _result=()
+  local -A _seen=()
+
+  mkdir -p "${_where}/logs"
+
+  # resolve _target_kernel package name to kernel version string
+  if [[ -n "${_target_kernel:-}" ]]; then
+    local _mod_dir _pkgbase_file _ver_file _resolved_kernel=""
+    for _mod_dir in /usr/lib/modules/*/; do
+      _pkgbase_file="${_mod_dir}pkgbase"
+      if [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_target_kernel}" ]]; then
+        _ver_file="${_mod_dir}build/version"
+        [[ -f "${_ver_file}" ]] || _ver_file="${_mod_dir}extramodules/version"
+        if [[ -f "${_ver_file}" ]]; then
+          _resolved_kernel="$(cat "${_ver_file}")"
+          break
+        fi
+      fi
+    done
+    if [[ -n "${_resolved_kernel}" ]]; then
+      _kerneloverride="${_resolved_kernel}"
+      msg2 "_target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >&2
+      echo "[INFO] _target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+    else
+      error "_target_kernel: no installed kernel found for package '${_target_kernel}'. Is it installed with its headers?" >&2
+      echo "[ERROR] _target_kernel: no installed kernel found for package '${_target_kernel}'." >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+      return 1
+    fi
+  fi
+
+  if [[ -n "${_kerneloverride:-}" ]]; then
+    _candidates=("${_kerneloverride}")
+  else
+    if [[ ! -t 0 ]]; then
+      while IFS= read -r _path; do
+        case "${_path}" in
+          usr/lib/modules/*/vmlinuz | usr/lib/modules/*/extramodules/*)
+            _kver="${_path#usr/lib/modules/}"
+            _kver="${_kver%%/*}"
+            _candidates+=("${_kver}")
+            ;;
+        esac
+      done
+    fi
+
+    while IFS= read -r _kver; do
+      [[ -n "${_kver}" ]] && _candidates+=("${_kver}")
+    done < <(
+      find /usr/lib/modules/*/build/version        -exec cat {} + 2>/dev/null
+      find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null
+    )
+
+    # RPM-based distros (Fedora, SUSE): kernel-devel packages have no pkgbase/version
+    if command -v rpm &>/dev/null; then
+      while IFS= read -r _kver; do
+        [[ -n "${_kver}" ]] && _candidates+=("${_kver}")
+      done < <(rpm -qa --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-devel 2>/dev/null)
+    fi
+  fi
+
+  for _kver in "${_candidates[@]}"; do
+    [[ -n "${_kver}" ]] || continue
+    if [[ -n "${_seen[${_kver}]:-}" ]]; then
+      continue
+    fi
+    _seen["${_kver}"]=1
+
+    if [[ -d "/usr/lib/modules/${_kver}/build" ]]; then
+      _result+=("${_kver}")
+      echo "[INFO] _detect_kernels: found buildable kernel: ${_kver}" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+    else
+      warning "Skipping ${_kver}: missing /usr/lib/modules/${_kver}/build" >&2
+      echo "[WARNING] _detect_kernels: skipping ${_kver} — missing /usr/lib/modules/${_kver}/build" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+    fi
+  done
+
+  if [[ ${#_result[@]} -eq 0 ]]; then
+    # Last-resort fallback to running kernel
+    local _uname_r
+    _uname_r="$(uname -r)"
+    if [[ -d "/usr/lib/modules/${_uname_r}/build" ]]; then
+      warning "Could not detect kernel via pkgbase — falling back to running kernel: ${_uname_r}" >&2
+      echo "[WARNING] _detect_kernels: falling back to running kernel: ${_uname_r}" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+      _result+=("${_uname_r}")
+    else
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        # DKMS mode: kernel headers are not required at packaging time.
+        # The module will be built by DKMS on first boot against the running kernel.
+        echo "[INFO] _detect_kernels: DKMS mode — skipping kernel header check" >> "${_where}/logs/prepare.log.txt"
+        echo "" >> "${_where}/logs/prepare.log.txt"
+        return 0
+      fi
+      error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg." >&2
+      echo "[ERROR] _detect_kernels: could not detect buildable kernel version" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+      return 1
+    fi
+  fi
+
+  printf '%s\n' "${_result[@]}"
+}
+
+# Set BUILD_FLAGS
+_build_flags() {
+  local _kernel="$1"
+  BUILD_FLAGS=() # GCC by default, no need to set explicitly
+
+  if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
+    BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
+    echo "[INFO] _build_flags: Clang kernel detected for ${_kernel} — using ${BUILD_FLAGS[*]}" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+  else
+    echo "[INFO] _build_flags: GCC kernel detected for ${_kernel} — using default build flags" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+  fi
+}
+
+# _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
+# TYPE: open | dkms | closed
+#   open   — ${srcdir}/${_srcbase}-${pkgver}
+#   dkms   — ${srcdir}/${_pkg}
+#   closed — ${srcdir}/${_pkg}/kernel-${_kernel}, or ${_pkg} if no kernel
+_apply_patches() {
+  local _type="$1"
+  local _kernel="${2:-}"
+  local _basedir
+  case "${_type}" in
+    open) _basedir="${srcdir}/${_srcbase}-${pkgver}" ;;
+    closed)
+      if [[ -n "${_kernel}" ]]; then
+        _basedir="${srcdir}/${_pkg}/kernel-${_kernel}"
+      else
+        _basedir="${srcdir}/${_pkg}"
+      fi
+      ;;
+    *) _basedir="${srcdir}/${_pkg}" ;;
+  esac
+  local _list="${_where}/nvidia-all-patches/patches.list"
+
+  if [[ ! -f "${_list}" ]]; then
+    warning "Patches list not found: ${_list}, skipping"
+    echo "[WARNING] Patches list not found: ${_list}, skipping" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  local _ptype _file _kmin _kmax _dmin _dmax _strip _tdir _flag _excl _rest
+  while read -r _ptype _file _kmin _kmax _dmin _dmax _strip _tdir _flag _excl _rest || [[ -n "${_ptype}" ]]; do
+    [[ -z "${_ptype}" || "${_ptype}" == \#* ]] && continue
+    [[ "${_ptype}" != "${_type}" ]] && continue
+
+    # static vs per-kernel routing
+    if [[ -z "${_kernel}" ]]; then
+      [[ "${_kmin}" != "-" ]] && continue
+    else
+      [[ "${_kmin}" == "-" ]] && continue
+    fi
+
+    # kernel version range
+    if [[ -n "${_kernel}" ]]; then
+      [[ "${_kmin}" != "-" ]] && (( $(vercmp "${_kernel}" "${_kmin}") < 0 )) && continue
+      [[ "${_kmax}" != "-" ]] && (( $(vercmp "${_kernel}" "${_kmax}") > 0 )) && continue
+    fi
+
+    # driver version range
+    [[ "${_dmin}" != "-" ]] && (( $(vercmp "$pkgver" "${_dmin}") < 0 )) && continue
+    [[ "${_dmax}" != "-" ]] && (( $(vercmp "$pkgver" "${_dmax}") > 0 )) && continue
+
+    # exact driver version exclusion (colon-separated list)
+    if [[ -n "${_excl}" && "${_excl}" != "-" ]]; then
+      local _skip=0
+      IFS=: read -ra _excl_list <<< "${_excl}"
+      for _ev in "${_excl_list[@]}"; do
+        [[ "$pkgver" == "${_ev}" ]] && { _skip=1; break; }
+      done
+      (( _skip )) && continue
+    fi
+
+    # optional flag
+    if [[ -n "${_flag}" && "${_flag}" != "-" ]]; then
+      [[ "${!_flag:-}" != "true" ]] && continue
+    fi
+
+    local _apply_dir="${_basedir}"
+    [[ "${_tdir}" != "." && -n "${_tdir}" ]] && _apply_dir="${_basedir}/${_tdir}"
+
+    local _patch_file="${_where}/nvidia-all-patches/${_file}"
+    if [[ ! -f "${_patch_file}" ]]; then
+      warning "Patch not found: ${_patch_file}"
+      echo "[WARNING] Patch not found: ${_patch_file}" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+      continue
+    fi
+
+    local _msg
+    if [[ -n "${_kernel}" ]]; then
+      _msg="Applying ${_file} (${_type}, kernel ${_kernel}, driver ${pkgver})..."
+    else
+      _msg="Applying ${_file} (${_type}, driver ${pkgver})..."
+    fi
+    msg2 "${_msg}"
+    echo "[PATCH] ${_msg}" >> "${_where}/logs/prepare.log.txt"
+    patch -Np"${_strip:-1}" -d "${_apply_dir}" -i "${_patch_file}" |& tee -a "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+  done < "${_list}"
+}
+
+_nv_user_patch_dir() {
+  local _series="${pkgver%%.*}"
+  printf '%s/nvidia%s-all-userpatches' "${_where}" "${_series}"
+}
+
+_user_patcher() {
+  local _nv_userpatch_dir="${_nv_userpatch_dir:-$(_nv_user_patch_dir)}"
+  local _userpatch_target_local="${_userpatch_target:-nvidia-${pkgver}}"
+  local _userpatch_apply_dir="${_userpatch_apply_dir:-${srcdir}/${_pkg}}"
+  local _userpatch_ext_local="${_userpatch_ext:-my}"
+  local _CONDITION=""
+  local _f
+
+  for _f in "${_where}"/*."${_userpatch_ext_local}"patch "${_where}"/*."${_userpatch_ext_local}"revert; do
+    if [ -e "${_f}" ]; then
+      warning "Found userpatch file ${_f##*/} in the PKGBUILD directory."
+      warning "Userpatches must now be placed in version-specific subdirectories (${_nv_userpatch_dir##*/} for this driver series)."
+      warning "The patch will not be applied."
+      echo "### WARNING: misplaced userpatch ignored: ${_f##*/}" >> "${_where}"/logs/prepare.log.txt
+      echo >> "${_where}"/logs/prepare.log.txt
+    fi
+  done
+
+  echo -e "nvidia-all user patches (${_userpatch_target_local}), if any:\n" >> "${_where}"/logs/prepare.log.txt
+
+  local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
+  if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
+    if [ "${_user_patches_no_confirm}" != "true" ]; then
+      msg2 "Found ${#_patches[@]} 'to revert' userpatches for ${_userpatch_target_local}:"
+      printf '%s\n' "${_patches[@]}"
+      read -rp "Do you want to install it/them? - Be careful with that ;)"$'\n> N/y : ' _CONDITION
+    fi
+    if [[ "${_CONDITION}" =~ [yY] ]] || [ "${_user_patches_no_confirm}" = "true" ]; then
+      for _f in "${_patches[@]}"; do
+        if [ -e "${_f}" ]; then
+          msg2 "######################################################"
+          msg2 ""
+          msg2 "Reverting your own ${_userpatch_target_local} patch ${_f##*/}"
+          msg2 ""
+          msg2 "######################################################"
+          echo "### Reverting user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          ( cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          echo >> "${_where}"/logs/prepare.log.txt
+        fi
+      done
+    else
+      echo "### User declined to apply revert patches" >> "${_where}"/logs/prepare.log.txt
+      echo >> "${_where}"/logs/prepare.log.txt
+    fi
+  else
+    echo "### No user revert patches found" >> "${_where}"/logs/prepare.log.txt
+    echo >> "${_where}"/logs/prepare.log.txt
+  fi
+
+  _CONDITION=""
+  _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"patch)
+  if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
+    if [ "${_user_patches_no_confirm}" != "true" ]; then
+      msg2 "Found ${#_patches[@]} userpatches for ${_userpatch_target_local}:"
+      printf '%s\n' "${_patches[@]}"
+      read -rp "Do you want to install it/them? - Be careful with that ;)"$'\n> N/y : ' _CONDITION
+    fi
+    if [[ "${_CONDITION}" =~ [yY] ]] || [ "${_user_patches_no_confirm}" = "true" ]; then
+      for _f in "${_patches[@]}"; do
+        if [ -e "${_f}" ]; then
+          msg2 "######################################################"
+          msg2 ""
+          msg2 "Applying your own ${_userpatch_target_local} patch ${_f##*/}"
+          msg2 ""
+          msg2 "######################################################"
+          echo "### Applying user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          ( cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          echo >> "${_where}"/logs/prepare.log.txt
+        fi
+      done
+    else
+      echo "### User declined to apply patches" >> "${_where}"/logs/prepare.log.txt
+      echo >> "${_where}"/logs/prepare.log.txt
+    fi
+  else
+    echo "### No user patches found" >> "${_where}"/logs/prepare.log.txt
+    echo >> "${_where}"/logs/prepare.log.txt
+  fi
+}
+
+_apply_user_patches() {
+  local _apply_dir="$1"
+  local _target_label="$2"
+
+  [[ "${_user_patches:-false}" == "true" ]] || return 0
+
+  _nv_userpatch_dir="$(_nv_user_patch_dir)"
+  _userpatch_target="${_target_label}"
+  _userpatch_apply_dir="${_apply_dir}"
+  _userpatch_ext="my"
+
+  if [[ ! -d "${_nv_userpatch_dir}" ]]; then
+    mkdir -p "${_where}/logs"
+    echo "### Userpatch dir not found for ${_target_label}: ${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  _user_patcher
+}
+
+_nv_srcprep() {
+  local _system_gcc _kernel_gcc _system_clang _kernel_clang _continue
+  local _repro_hostname="linux" _repro_whoami="builder"
+
+  # Ensure distro family is available for reproducible metadata tagging.
+  if [[ -z "${_NV_DISTRO_FAMILY:-}" ]]; then
+    _detect_distro
+  fi
+  if [[ "${_NV_DISTRO_FAMILY}" = "arch" ]]; then
+    _repro_hostname="archlinux"
+    _repro_whoami="archlinux-builder"
+  fi
+
+  # reset logs dir
+  rm -rf "${_where}/logs"
+  mkdir -p "${_where}/logs"
+
+  # copy system config files (udev, modprobe, etc.)
+  local _f
+  for _f in "${_where}"/nvidia-all-config/system/*; do
+    [[ -f "${_f}" ]] || continue
+    cp "${_f}" "${_where}/"
+  done
+
+  # remove previous build dir
+  [[ -d "${_pkg}" ]] && rm -rf "${_pkg}"
+
+  # Custom compiler paths
+  if [[ -n "${CUSTOM_LLVM_PATH}" ]]; then
+    PATH=${CUSTOM_LLVM_PATH}/bin:${CUSTOM_LLVM_PATH}/lib:${CUSTOM_LLVM_PATH}/include:${PATH}
+  fi
+  if [[ -n "${CUSTOM_GCC_PATH}" ]]; then
+    PATH=${CUSTOM_GCC_PATH}/bin:${CUSTOM_GCC_PATH}/lib:${CUSTOM_GCC_PATH}/include:${PATH}
+  fi
+
+  # GCC version check
+  _system_gcc=$(gcc -dumpversion | cut -d. -f1)
+  _kernel_gcc=$(grep -oP 'gcc \(GCC\) \K[0-9]+' /proc/version 2>/dev/null || \
+                grep -oP 'gcc version \K[0-9]+' /proc/version 2>/dev/null || \
+                grep -oP 'gcc-\K[0-9]+' /proc/version 2>/dev/null || \
+                true)
+  if [[ -n "${_kernel_gcc}" && "${_system_gcc}" != "${_kernel_gcc}" ]]; then
+    warning "========================================================================"
+    warning ""
+    warning "GCC VERSION MISMATCH DETECTED!"
+    warning "Your system GCC: ${_system_gcc}"
+    warning "Your running kernel was built with GCC: ${_kernel_gcc}"
+    warning ""
+    warning "NVIDIA modules must be compiled with the same GCC as the kernel."
+    warning "Compilation may fail or cause issues!"
+    warning ""
+    warning "Either install GCC ${_kernel_gcc} or rebuild your kernel with GCC ${_system_gcc}"
+    warning ""
+    warning "========================================================================"
+    plain ""
+    read -p "    Continue anyway? [y/N] " _continue
+    if [[ ! "${_continue}" =~ [yY] ]]; then
+      error "Aborted by user due to GCC mismatch."
+      exit 1
+    fi
+  fi
+
+  # Clang/LLVM version check
+  _system_clang=$(clang --version 2>/dev/null | grep -oP 'clang version \K[0-9]+' | head -1 || true)
+  _kernel_clang=$(grep -oP 'clang version \K[0-9]+' /proc/version 2>/dev/null || true)
+  if [[ -n "${_kernel_clang}" && -n "${_system_clang}" && "${_system_clang}" != "${_kernel_clang}" ]]; then
+    warning "========================================================================"
+    warning ""
+    warning "CLANG/LLVM VERSION MISMATCH DETECTED!"
+    warning "Your system Clang: ${_system_clang}"
+    warning "Your running kernel was built with Clang: ${_kernel_clang}"
+    warning ""
+    warning "NVIDIA modules must be compiled with the same Clang as the kernel."
+    warning "Compilation may fail or cause issues!"
+    warning ""
+    warning "Either install Clang ${_kernel_clang} or rebuild your kernel with Clang ${_system_clang}"
+    warning ""
+    warning "========================================================================"
+    plain ""
+    read -p "    Continue anyway? [y/N] " _continue
+    if [[ ! "${_continue}" =~ [yY] ]]; then
+      error "Aborted by user due to Clang mismatch."
+      exit 1
+    fi
+  fi
+
+  if [[ "${_gcc14_fix}" = "true" ]] && [[ "$(gcc -dumpversion)" = 14* ]]; then
+    _gcc14="true"
+    msg2 "GCC 14 detected"
+  elif [[ "${_gcc15_fix}" = "true" ]] && [[ "$(gcc -dumpversion)" = 15* ]]; then
+    _gcc15="true"
+    msg2 "GCC 15 detected"
+  fi
+
+  # Extract
+  msg2 "Self-Extracting ${_pkg}.run..."
+  sh "${_pkg}.run" --extract-only
+
+  if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
+    msg2 "Applying libxnvctrl_so.diff to nvidia-settings-${pkgver}..."
+    patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt"
+  fi
+
+  if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
+    msg2 "_build_utils_package_only=true - skipping kernel module prepare steps."
+    cd "${srcdir}/${_pkg}"
+    if [[ -f nvidia-persistenced-init.tar.bz2 ]]; then
+      bsdtar -xf nvidia-persistenced-init.tar.bz2
+    fi
+    return 0
+  fi
+
+  # ! open-source module prep
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    cd "${srcdir}/${_srcbase}-${pkgver}"
+
+    # static open patches
+    _apply_patches "open"
+
+    # per-kernel open patches
+    local -a _kernels
+    mapfile -t _kernels < <(_detect_kernels)
+
+    for _kernel in "${_kernels[@]}"; do
+      _apply_patches "open" "${_kernel}"
+    done
+
+    # GCC 15
+    if [[ "${_gcc15}" = "true" ]]; then
+      local _gcc15_patch="${_where}/nvidia-all-patches/all/gcc-15.diff"
+      msg2 "Applying gcc-15.diff to kernel-open (open source)..."
+      ( cd kernel-open && patch -Np2 -i "${_gcc15_patch}" |& tee -a "${_where}/logs/prepare.log.txt" )
+      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_gcc15_patch}" |& tee -a "${_where}/logs/prepare.log.txt" )
+    fi
+
+    # user patches to open modules
+    _apply_user_patches "${srcdir}/${_srcbase}-${pkgver}" "nvidia-open-${pkgver}"
+
+    # open DKMS confs
+    sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_repro_hostname}"/ utils.mk
+    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_repro_whoami}"/ utils.mk
+    # Fall back to current date when version.mk is not in the build
+    sed -i "s/^DATE.*/DATE = date -r version.mk 2>\/dev\/null || date"/ utils.mk
+
+    shopt -s globstar
+    for conf in "${srcdir}"/**/dkms.conf; do
+      sed -i "s/__VERSION_STRING/${pkgver}/" "$conf"
+      sed -i 's/__JOBS/`nproc`/' "$conf"
+      sed -i 's/__EXCLUDE_MODULES//' "$conf"
+      sed -i 's/__DKMS_MODULES//' "$conf"
+      sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' "$conf"
+      sed -i '$i\
+BUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' "$conf"
+    done
+    shopt -u globstar
+
+    # kernel-open dkms.conf locations
+    cat <<EOF >>"${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf"
+BUILT_MODULE_LOCATION[0]="kernel-open"
+BUILT_MODULE_LOCATION[1]="kernel-open"
+BUILT_MODULE_LOCATION[2]="kernel-open"
+BUILT_MODULE_LOCATION[3]="kernel-open"
+BUILT_MODULE_LOCATION[4]="kernel-open"
+EOF
+
+    # copy for DKMS
+    cp -r "../${_srcbase}-${pkgver}" "${srcdir}/open-gpu-kernel-modules-dkms"
+
+    cd "${srcdir}/${_pkg}"
+    bsdtar -xf nvidia-persistenced-init.tar.bz2
+
+  # ! closed-source module prep
+  else
+    cd "${_pkg}"
+
+    # linux-rt: bypass PREEMPT_RT check
+    sed -i -e 's|PREEMPT_RT_PRESENT=1|PREEMPT_RT_PRESENT=0|g' kernel/conftest.sh
+
+    # non-english locale workaround for 440.26
+    if [[ $pkgver = 440.26 ]]; then
+      sed -i -e 's|$CC $CFLAGS -c conftest_headers$$.c|LC_ALL=C $CC $CFLAGS -c conftest_headers$$.c|g' kernel/conftest.sh
+    fi
+
+    # 440.58.01 Unfrogging
+    if [[ $pkgver = 440.58.01 ]]; then
+      sed -i -e '/bug/d' nvidia-application-profiles-440.58.01-rc
+    fi
+
+    # closed DKMS confs
+    cp -a kernel kernel-dkms
+    cd kernel-dkms
+    sed -i "s/__VERSION_STRING/${pkgver}/" dkms.conf
+    sed -i 's/__JOBS/`nproc`/' dkms.conf
+    sed -i 's/__DKMS_MODULES//' dkms.conf
+    if (( ${pkgver%%.*} >= 470 )); then
+        sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"' dkms.conf
+    elif (( ${pkgver%%.*} = 465 )); then
+      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[4]="nvidia-peermem"\
+DEST_MODULE_LOCATION[4]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[5]="nvidia-ib-peermem-stub"\
+DEST_MODULE_LOCATION[5]="/kernel/drivers/video"' dkms.conf
+    else
+      sed -i '$iBUILT_MODULE_NAME[0]="nvidia"\
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[1]="nvidia-uvm"\
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[2]="nvidia-modeset"\
+DEST_MODULE_LOCATION[2]="/kernel/drivers/video"\
+BUILT_MODULE_NAME[3]="nvidia-drm"\
+DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
+    fi
+
+    # Gift for linux-rt guys
+    sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' dkms.conf
+
+    cd ../
+    bsdtar -xf nvidia-persistenced-init.tar.bz2
+
+    if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
+      sed -i 's/__NV_VK_ICD__/libGLX_nvidia.so.0/' nvidia_icd.json.template
+    fi
+
+    # closed patches
+    local -a _kernels
+    mapfile -t _kernels < <(_detect_kernels)
+
+    _apply_patches "closed"
+    _apply_user_patches "${srcdir}/${_pkg}" "nvidia-closed-${pkgver}"
+
+    for _kernel in "${_kernels[@]}"; do
+      cd "${srcdir}/${_pkg}"
+      # separate source tree per kernel
+      cp -r kernel "kernel-${_kernel}"
+
+      # closed per-kernel patches
+      _apply_patches "closed" "${_kernel}"
+
+      # https://bugs.archlinux.org/task/62142
+      if [[ "$_62142_fix" = "true" ]]; then
+        sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
+      fi
+
+      # 5.1: vma_fault return type + list_is_first fix (< 418.56 drivers)
+      if (( $(vercmp "${_kernel}" "5.1") >= 0 )); then
+        if [[ $pkgver != 430* ]]; then
+          sed -i "s/static int nv_drm_vma_fault(struct vm_fault \*vmf)/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic int nv_drm_vma_fault(struct vm_fault \*vmf)\n#else\nstatic vm_fault_t nv_drm_vma_fault(struct vm_fault \*vmf)\n#endif/g" "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-drm/nvidia-drm-gem-nvkms-memory.c"
+          if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418.3* ]] || [[ $pkgver = 418.4* ]]; then
+            cd "${srcdir}/${_pkg}/kernel-${_kernel}"
+            msg2 "Applying list_is_first.diff for ${_kernel}..."
+            # sed for the moving parts - Fix "redefinition of 'list_is_first'" (< 418.56 + 5.1+)
+            sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "${srcdir}/${_pkg}/kernel-${_kernel}/common/inc/nv-list-helpers.h"
+            sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "${srcdir}/${_pkg}/kernel-${_kernel}/common/inc/nv-list-helpers.h"
+            patch -Np2 -i "${_where}/nvidia-all-patches/all/list_is_first.diff"
+            cd ..
+          fi
+        fi
+      fi
+
+      # user patches for this kernel
+      _apply_user_patches "${srcdir}/${_pkg}/kernel-${_kernel}" "nvidia-closed-kernel-${_kernel}"
+
+      cd ..
+
+    done
+
+    # dkms patches
+    if [[ "${_dkms}" = "true" ]]; then
+
+      # https://bugs.archlinux.org/task/62142
+      if [[ "$_62142_fix" = "true" ]]; then
+        sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "${srcdir}/${_pkg}/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
+      fi
+
+      _apply_patches "dkms"
+      for _kernel in "${_kernels[@]}"; do
+        _apply_patches "dkms" "${_kernel}"
+      done
+
+      # user patches for DKMS
+      _apply_user_patches "${srcdir}/${_pkg}/kernel-dkms" "nvidia-dkms-${pkgver}"
+
+    fi
+  fi
+}
+
+_nv_build() {
+  if [[ "${_libxnvctrl}" = "true" ]]; then
+    msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
+    echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    cd "${srcdir}/nvidia-settings-${pkgver}"
+    make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so
+    cd "${srcdir}"
+  fi
+
+  if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
+    msg2 "_build_utils_package_only=true - skipping kernel module build steps."
+    echo "[INFO] _nv_build: _build_utils_package_only=true — skipping kernel module build steps" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  # skip for DKMS
+  if [[ "${_dkms}" = "true" ]]; then
+    msg2 "_dkms=true - skipping kernel module build steps (handled by DKMS)."
+    echo "[INFO] _nv_build: _dkms=true — skipping kernel module build steps (handled by DKMS)" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    return 0
+  fi
+
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    cd "${_srcbase}-${pkgver}"
+
+    # per-kernel output dirs
+    rm -rf "${srcdir}/open-kmods"
+    mkdir -p "${srcdir}/open-kmods"
+  fi
+
+  local _kernel
+  local -a _kernels
+  mapfile -t _kernels < <(_detect_kernels)
+
+  for _kernel in "${_kernels[@]}"; do
+    _build_flags "${_kernel}"
+
+    local MODULE_FLAGS=(
+      IGNORE_CC_MISMATCH=yes
+      IGNORE_XEN_PRESENCE=1
+      IGNORE_PREEMPT_RT_PRESENCE=1
+      SYSSRC="/usr/lib/modules/${_kernel}/build"
+    )
+
+    local _label="Nvidia"
+    if [[ "${_open_source_modules}" = "true" ]]; then
+      _label="open NVIDIA"
+    else
+      cd "${srcdir}/${_pkg}/kernel-${_kernel}"
+    fi
+
+    msg2 "Building ${_label} module for ${_kernel}..."
+    echo "[BUILD] _nv_build: building ${_label} module for kernel ${_kernel}" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+    CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules |& tee -a "${_where}/logs/build.log.txt"
+    local _make_status=${PIPESTATUS[0]}
+    if (( _make_status != 0 )); then
+      error "Building ${_label} module for ${_kernel} failed (exit ${_make_status})."
+      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_make_status})" >> "${_where}/logs/prepare.log.txt"
+      echo "" >> "${_where}/logs/prepare.log.txt"
+      return "${_make_status}"
+    fi
+    echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
+    echo "" >> "${_where}/logs/prepare.log.txt"
+
+    if [[ "${_open_source_modules}" = "true" ]]; then
+      local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
+      mkdir -p "${_open_kmods_dir}"
+      install -m644 -t "${_open_kmods_dir}" kernel-open/*.ko
+    fi
+  done
+}
+
+# Clean on exit
+_exit_cleanup() {
+  # remove flat-copied system files
+  rm -f "${_where}"/*.diff
+  rm -f "${_where}"/*.patch
+  rm -f "${_where}"/*.conf
+  rm -f "${_where}"/*.rules
+  rm -f "${_where}"/*.hook
+  rm -f "${_where}"/*.install
+  rm -f "${_where}"/*.dinit
+  rm -f "${_where}"/*.sysusers
+  rm -f "${_where}"/*.txt
+  rm -f "${_where}/gsk-renderer.sh"
+  rm -f "${_where}/nvidia-patch.sh"
+  rm -f "${_where}/cuda-no-stable-perf-limit"
+  rm -f "${_where}/limit-vram-usage"
+  rm -f "${_where}/nvidia-kmod-noopen-pciids"
+
+  # remove install.sh build directory if present
+  [[ -d "${_build_srcdir:-}" ]] && rm -rf "${_build_srcdir}"
+
+  # move packages to versioned dir
+  if [[ "${_local_package_storing:-}" = "true" ]]; then
+    rm -rf "${_where}/${pkgver}-packages" && \
+      mkdir -p "${_where}/${pkgver}-packages" && \
+      mv "${_where}/"*.pkg.* "${_where}/${pkgver}-packages/" >/dev/null 2>&1
+  fi
+
+  if [ "${_distro}" = "Arch" ]; then
+    if command -v remove_deps &>/dev/null; then
+      remove_deps
+    else
+      msg2 "remove_deps not found"
+    fi
+  fi
+
+  msg2 'exit cleanup done\n'
+  if [ -n "${_runtime}" ]; then
+    msg2 "compilation time: ${_runtime}"
+  fi
+
+  # ensure logs dir exists
+  mkdir -p "${_where}/logs"
+
+  # copy lean config snapshot to logs (aggregate_user_config already cleaned and deduped it)
+  [[ -f "${_where}/BIG_UGLY_FROGMINER" ]] && \
+    cp -f "${_where}/BIG_UGLY_FROGMINER" "${_where}/logs/customization.cfg.txt"
+
+  # Remove state tracker
+  rm -f "${_where}/BIG_UGLY_FROGMINER"
+
+  # Move eventual shell-output.log file to logs folder
+  if [[ -f "${_where}/shell-output.log" ]]; then
+    mv -f "${_where}/shell-output.log" "${_where}/logs/shell-output.log.txt"
+    sed -i 's/\x1b\[[0-9;]*m//g' "${_where}/logs/shell-output.log.txt"
+    sed -i 's/\x1b(B//g' "${_where}/logs/shell-output.log.txt"
+  fi
+
+  # Create logs/system-info.txt
+  {
+    cat /etc/os-release
+    echo "#################"
+    echo "NVIDIA driver: ${_driver_version:-unknown} (${_driver_branch:-unknown})"
+    echo "#################"
+    gcc -v 2>&1
+    if command -v clang &>/dev/null; then
+      echo "#################"
+      clang -v 2>&1
+    fi
+  } > "${_where}/logs/system-info.txt"
+}
+
+trap _exit_cleanup EXIT
+
+# vim: set ft=sh ts=2 sw=2 et:
