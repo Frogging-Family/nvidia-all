@@ -1,0 +1,42 @@
+From acb3513d6614c57863e0cd231e560dd1d1263da9 Mon Sep 17 00:00:00 2001
+From: Eric Naim <dnaim@cachyos.org>
+Date: Mon, 7 Apr 2025 21:59:27 +0800
+Subject: [PATCH 6/8] nvidia-uvm: Use __iowrite64_hi_lo()
+
+Signed-off-by: Eric Naim <dnaim@cachyos.org>
+---
+ kernel-open/nvidia-uvm/uvm_ats_sva.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_ats_sva.c b/kernel-open/nvidia-uvm/uvm_ats_sva.c
+index a1256f265e33..a8b489c5f1d1 100644
+--- a/kernel-open/nvidia-uvm/uvm_ats_sva.c
++++ b/kernel-open/nvidia-uvm/uvm_ats_sva.c
+@@ -20,6 +20,7 @@
+     DEALINGS IN THE SOFTWARE.
+ 
+ *******************************************************************************/
++#include <linux/version.h>
+ 
+ #include "uvm_ats_sva.h"
+ 
+@@ -137,10 +138,17 @@ static NvU32 smmu_vcmdq_read32(void __iomem *smmu_cmdqv_base, int reg)
+     return ioread32(SMMU_VCMDQ_BASE_ADDR(smmu_cmdqv_base, VCMDQ) + reg);
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
+ static void smmu_vcmdq_write64(void __iomem *smmu_cmdqv_base, int reg, NvU64 val)
+ {
+     iowrite64(val, SMMU_VCMDQ_BASE_ADDR(smmu_cmdqv_base, VCMDQ) + reg);
+ }
++#else
++static void smmu_vcmdq_write64(void __iomem *smmu_cmdqv_base, int reg, NvU64 val)
++{
++    __iowrite64_hi_lo(val, SMMU_VCMDQ_BASE_ADDR(smmu_cmdqv_base, VCMDQ) + reg);
++}
++#endif
+ 
+ // Fix for Bug 4130089: [GH180][r535] WAR for kernel not issuing SMMU
+ // TLB invalidates on read-only to read-write upgrades
+-- 
+2.49.0

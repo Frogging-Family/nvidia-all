@@ -35,22 +35,6 @@
         {
             "pattern": "webcord",
             "profile": "CudaNoStablePerfLimit"
-        },
-        {
-            "pattern": "brave",
-            "profile": "CudaNoStablePerfLimit"
-        },
-        {
-            "pattern": "chrome",
-            "profile": "CudaNoStablePerfLimit"
-        },
-        {
-            "pattern": "chromium",
-            "profile": "CudaNoStablePerfLimit"
-        },
-        {
-            "pattern": "firefox",
-            "profile": "CudaNoStablePerfLimit"
         }
     ],
     "profiles": [

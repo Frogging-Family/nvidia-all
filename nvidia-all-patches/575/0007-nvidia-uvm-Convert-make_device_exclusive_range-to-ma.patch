@@ -1,0 +1,161 @@
+From 1a2e7f3ddfb499966ec7f8856232e6aa3c68c117 Mon Sep 17 00:00:00 2001
+From: Eric Naim <dnaim@cachyos.org>
+Date: Mon, 7 Apr 2025 22:17:29 +0800
+Subject: [PATCH 8/8] nvidia-uvm: Convert make_device_exclusive_range() to
+ make_device_exclusive()
+
+Signed-off-by: Eric Naim <dnaim@cachyos.org>
+---
+ kernel-open/nvidia-uvm/uvm_hmm.c | 130 +++++++++++++++++++++++++++++++
+ 1 file changed, 130 insertions(+)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
+index ee87c2ade7ef..e07ac882b171 100644
+--- a/kernel-open/nvidia-uvm/uvm_hmm.c
++++ b/kernel-open/nvidia-uvm/uvm_hmm.c
+@@ -2437,6 +2437,7 @@ static void hmm_release_atomic_pages(uvm_va_block_t *va_block,
+     }
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
+ static NV_STATUS hmm_block_atomic_fault_locked(uvm_processor_id_t processor_id,
+                                                uvm_va_block_t *va_block,
+                                                uvm_va_block_retry_t *va_block_retry,
+@@ -2555,6 +2556,135 @@ release:
+ done:
+     return status;
+ }
++#else
++static NV_STATUS hmm_block_atomic_fault_locked(uvm_processor_id_t processor_id,
++                                               uvm_va_block_t *va_block,
++                                               uvm_va_block_retry_t *va_block_retry,
++                                               uvm_service_block_context_t *service_context)
++{
++    uvm_va_block_region_t region = service_context->region;
++    struct page **pages = service_context->block_context->hmm.pages;
++    struct vm_area_struct *vma = service_context->block_context->hmm.vma;
++    struct page *page;
++    struct folio *folio;
++    uvm_page_index_t page_index;
++    uvm_make_resident_cause_t cause;
++    NV_STATUS status;
++
++    if (!uvm_processor_mask_test(&va_block->resident, UVM_ID_CPU) ||
++        !uvm_va_block_cpu_is_region_resident_on(va_block, NUMA_NO_NODE, region)) {
++        // There is an atomic GPU fault. We need to make sure no pages are
++        // GPU resident so that make_device_exclusive_range() doesn't call
++        // migrate_to_ram() and cause a va_space lock recursion problem.
++        if (service_context->operation == UVM_SERVICE_OPERATION_REPLAYABLE_FAULTS)
++            cause = UVM_MAKE_RESIDENT_CAUSE_REPLAYABLE_FAULT;
++        else if (service_context->operation == UVM_SERVICE_OPERATION_NON_REPLAYABLE_FAULTS)
++            cause = UVM_MAKE_RESIDENT_CAUSE_NON_REPLAYABLE_FAULT;
++        else
++            cause = UVM_MAKE_RESIDENT_CAUSE_ACCESS_COUNTER;
++
++        UVM_ASSERT(uvm_hmm_check_context_vma_is_valid(va_block, vma, region));
++
++        status = uvm_hmm_va_block_migrate_locked(va_block, va_block_retry, service_context, UVM_ID_CPU, region, cause);
++        if (status != NV_OK)
++            goto done;
++
++        // make_device_exclusive_range() will try to call migrate_to_ram()
++        // and deadlock with ourself if the data isn't CPU resident.
++        if (!uvm_processor_mask_test(&va_block->resident, UVM_ID_CPU) ||
++            !uvm_va_block_cpu_is_region_resident_on(va_block, NUMA_NO_NODE, region)) {
++            status = NV_WARN_MORE_PROCESSING_REQUIRED;
++            goto done;
++        }
++    }
++
++    // TODO: Bug 4014681: atomic GPU operations are not supported on MAP_SHARED
++    // mmap() files so we check for that here and report a fatal fault.
++    // Otherwise with the current Linux 6.1 make_device_exclusive_range(),
++    // it doesn't make the page exclusive and we end up in an endless loop.
++    if (vma->vm_flags & (VM_SHARED | VM_HUGETLB)) {
++        status = NV_ERR_NOT_SUPPORTED;
++        goto done;
++    }
++
++    hmm_range_fault_begin(va_block);
++
++    uvm_mutex_unlock(&va_block->lock);
++
++    unsigned long start = uvm_va_block_cpu_page_address(va_block, region.first);
++    page = make_device_exclusive(service_context->block_context->mm, start,
++            &g_uvm_global, &folio);
++
++    uvm_mutex_lock(&va_block->lock);
++
++    if (IS_ERR(page)) {
++        long err = PTR_ERR(page);
++        status = (err == -EBUSY) ? NV_WARN_MORE_PROCESSING_REQUIRED : errno_to_nv_status(err);
++        goto done;
++    }
++
++    /*
++     * This code is most likely WRONG, but it *should* be relatively safe
++     * because of the error above
++     */
++    size_t npages = (uvm_va_block_cpu_page_address(va_block, region.outer - 1) + PAGE_SIZE -
++            start) >> PAGE_SHIFT;
++    while (npages < uvm_va_block_region_num_pages(region))
++        pages[region.first + npages++] = NULL;
++
++    folio_unlock(folio);
++    folio_put(folio);
++
++    if (hmm_range_fault_retry(va_block)) {
++        status = NV_WARN_MORE_PROCESSING_REQUIRED;
++        goto release;
++    }
++
++    status = NV_OK;
++
++    for_each_va_block_page_in_region(page_index, region) {
++        struct page *page = pages[page_index];
++
++        if (!page) {
++            // Record that one of the pages isn't exclusive but keep converting
++            // the others.
++            status = NV_WARN_MORE_PROCESSING_REQUIRED;
++            continue;
++        }
++
++        // If a CPU chunk is already allocated, check to see it matches what
++        // make_device_exclusive_range() found.
++        if (uvm_page_mask_test(&va_block->cpu.allocated, page_index)) {
++            UVM_ASSERT(hmm_va_block_cpu_page_is_same(va_block, page_index, page));
++            UVM_ASSERT(uvm_processor_mask_test(&va_block->resident, UVM_ID_CPU));
++            UVM_ASSERT(uvm_va_block_cpu_is_page_resident_on(va_block, NUMA_NO_NODE, page_index));
++        }
++        else {
++            NV_STATUS s = hmm_va_block_cpu_page_populate(va_block, page_index, page);
++
++            if (s == NV_OK)
++                uvm_va_block_cpu_set_resident_page(va_block, page_to_nid(page), page_index);
++        }
++
++        cpu_mapping_clear(va_block, page_index);
++    }
++
++    if (status != NV_OK)
++        goto release;
++
++    status = uvm_va_block_service_copy(processor_id, UVM_ID_CPU, va_block, va_block_retry, service_context);
++    if (status != NV_OK)
++        goto release;
++
++    status = uvm_va_block_service_finish(processor_id, va_block, service_context);
++
++release:
++    hmm_release_atomic_pages(va_block, service_context);
++
++done:
++    return status;
++}
++#endif
+ 
+ static bool is_atomic_fault(NvU8 *access_type, uvm_va_block_region_t region)
+ {
+-- 
+2.49.0
