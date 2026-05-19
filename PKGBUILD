@@ -849,7 +849,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} >= 590 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && [[ "${pkgver}" != "595.44.06" ]] && [[ "${pkgver}" != "595.44.07" ]]; then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && ( (( $(vercmp "${pkgver}" "595.44.06") < 0 )) || (( $(vercmp "${pkgver}" "595.44.08") > 0 )) ); then
           msg2 "Applying kernel-7.0.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
         else
@@ -872,7 +872,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} == 595 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && [[ "${pkgver}" != "595.44.06" ]] && [[ "${pkgver}" != "595.44.07" ]] && [[ "${pkgver}" != "595.44.08" ]]; then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && ( (( $(vercmp "${pkgver}" "595.44.06") < 0 )) || (( $(vercmp "${pkgver}" "595.44.08") > 0 )) ); then
           msg2 "Applying kernel-7.1.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.1.patch" )
         else
