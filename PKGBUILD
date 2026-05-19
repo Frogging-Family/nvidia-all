@@ -546,7 +546,7 @@ md5sums=("$_md5sum"
         '7615a55125516891610125e890cd6d91' # kernel-7.1.patch
         '24bd1c8e7b9265020969a8da2962e114'
         '84ca49afabf4907f19c81e0bb56b5873'
-        '68d5cb25248f1c95200d72010d6ee488' # nvidia-patch.sh
+        'a9c8bc598e2e5f55aa17fb9c31a49e75' # nvidia-patch.sh
         '1d27b1fa3bdf36fced428a90b61e63dc' # nvidia-modprobe.conf
         '75b27635ec652ab5d71437e605e3fede' # nvidia-modprobe-mobile.conf
         '7d0bc0a3656a24b2c17f2362e60b70ae' # nvidia-persistenced.dinit
