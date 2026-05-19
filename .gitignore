@@ -1,6 +1,10 @@
 .*
 !.github
 !.gitignore
+!install.sh
+!PKGBUILD
+!prepare
+!install-common
 *~
 *.orig
 *.log
@@ -14,5 +18,15 @@
 *.old
 *.db
 *.files
+*.deb
+*.rpm
+*.spec
+*.dsc
 src/
 pkg/
+dist/
+release/
+logs/
+*log.txt
+*.part
+BIG_UGLY_FROGMINER

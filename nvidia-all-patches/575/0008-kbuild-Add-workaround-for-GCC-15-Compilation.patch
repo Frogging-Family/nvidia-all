@@ -1,0 +1,25 @@
+From abf480a9d4fa740fbf9e2a066ce060809bce64db Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Thu, 17 Apr 2025 18:52:34 +0200
+Subject: [PATCH 8/8] kbuild: Add workaround for GCC 15 Compilation
+
+Signed-off-by: Peter Jung <admin@ptr1337.dev>
+---
+ kernel-open/Kbuild | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel-open/Kbuild b/kernel-open/Kbuild
+index 6c6b1df2..ce1c1f24 100644
+--- a/kernel-open/Kbuild
++++ b/kernel-open/Kbuild
+@@ -75,6 +75,7 @@ $(foreach _module, $(NV_KERNEL_MODULES), \
+  $(eval include $(src)/$(_module)/$(_module).Kbuild))
+ 
+ 
++ccflags-y += -std=gnu17
+ ccflags-y += -I$(src)/common/inc
+ ccflags-y += -I$(src)
+ ccflags-y += -Wall $(DEFINES) $(INCLUDES) -Wno-cast-qual -Wno-format-extra-args
+-- 
+2.48.0.rc1
+

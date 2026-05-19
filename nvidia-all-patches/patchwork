@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_DEFAULT_LIST="${_SCRIPT_DIR}/patches.list"
+
+_tmp=""
+_cleanup() { [[ -n "${_tmp:-}" ]] && rm -f "$_tmp"; }
+trap '_cleanup' EXIT
+
+_usage() {
+    printf 'Usage: %s [--check] [FILE]\n' "$(basename "$0")" >&2
+    printf '  --check   Exit 1 if FILE needs reformatting (CI mode)\n' >&2
+    printf '  FILE      Path to patches.list (default: %s)\n' \
+        "${_DEFAULT_LIST}" >&2
+}
+
+_normalize_awk() {
+    local _in="$1"
+    local _out="$2"
+
+    awk '
+    BEGIN {
+        COL_GAP = 3
+        split("6:75:6:6:10:10:4:12:0:0", col_min, ":")
+        for (i = 1; i <= 10; i++) col_w[i] = col_min[i] + 0
+    }
+
+    { lines[NR] = $0 }
+
+    END {
+        for (r = 1; r <= NR; r++) {
+            line = lines[r]
+            if (line ~ /^[[:space:]]*#/ || line == "") continue
+            n = split(line, f)
+            for (i = 1; i <= n && i <= 10; i++) {
+                if (length(f[i]) > col_w[i]) col_w[i] = length(f[i])
+            }
+        }
+
+        for (r = 1; r <= NR; r++) {
+            line = lines[r]
+
+            # Comment and blank lines pass through verbatim
+            if (line ~ /^[[:space:]]*#/ || line == "") {
+                print line
+                continue
+            }
+
+            n = split(line, f)
+            out = ""
+            for (i = 1; i <= n; i++) {
+                if (i < n) {
+                    out = out sprintf("%-*s", col_w[i] + COL_GAP, f[i])
+                } else {
+                    out = out f[i]
+                }
+            }
+            print out
+        }
+    }
+    ' "$_in" > "$_out"
+}
+
+main() {
+    local _check=0
+    local _file=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check)   _check=1 ;;
+            --help|-h) _usage; exit 0 ;;
+            -*)
+                printf 'Unknown option: %s\n' "$1" >&2
+                _usage
+                exit 1
+                ;;
+            *)
+                [[ -n "$_file" ]] && { printf 'Too many arguments.\n' >&2; _usage; exit 1; }
+                _file="$1"
+                ;;
+        esac
+        shift
+    done
+
+    [[ -z "$_file" ]] && _file="$_DEFAULT_LIST"
+
+    if [[ ! -f "$_file" ]]; then
+        printf 'Error: file not found: %s\n' "$_file" >&2
+        exit 1
+    fi
+
+    _tmp="$(mktemp "${_file}.XXXXXX")"
+
+    _normalize_awk "$_file" "$_tmp"
+
+    if (( _check )); then
+        if diff -q "$_file" "$_tmp" > /dev/null 2>&1; then
+            printf 'OK: %s\n' "$_file"
+            exit 0
+        else
+            printf 'FAIL: %s needs normalization\n' "$_file" >&2
+            diff --unified=2 "$_file" "$_tmp" | head -40 >&2
+            exit 1
+        fi
+    fi
+
+    if diff -q "$_file" "$_tmp" > /dev/null 2>&1; then
+        printf 'Already normalized: %s\n' "$_file"
+        return 0
+    fi
+
+    chmod --reference="$_file" "$_tmp"
+    mv "$_tmp" "$_file"
+    _tmp=""
+    printf 'Normalized: %s\n' "$_file"
+}
+
+main "$@"
