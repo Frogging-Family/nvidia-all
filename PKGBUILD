@@ -54,7 +54,7 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
   warning "Please make sure you have the corresponding kernel headers package installed for each kernel on your system !\n"
 
   if [[ -z $CONDITION ]]; then
-    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.08\n      2.595 series: 595.71.05\n      3.580 series: 580.159.03\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
+    read -p "    Which driver version do you want?`echo $'\n    > 1.Vulkan dev: 595.44.09\n      2.595 series: 595.71.05\n      3.580 series: 580.159.04\n      4.570 series: 570.211.01\n      5.470 series: 470.256.02 (LTS kernel recommended)\n      6.Older series\n      7.Custom version (396.xx series or higher)\n    choice[1-7?]: '`" CONDITION;
   fi
     # This will be treated as the latest regular driver.
     if [ "$CONDITION" = "2" ]; then
@@ -62,8 +62,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo '_md5sum=56662e512d860e10493a2df2b7509c74' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "3" ]; then
-      echo '_driver_version=580.159.03' > options
-      echo '_md5sum=b14e337547b6203862dfe34e49c22375' >> options
+      echo '_driver_version=580.159.04' > options
+      echo '_md5sum=1dfefa678351a366648d931fe075953c' >> options
       echo '_driver_branch=regular' >> options
     elif [ "$CONDITION" = "4" ]; then
       echo '_driver_version=570.211.01' > options
@@ -190,8 +190,8 @@ if [ -z "$_driver_version" ] || [ "$_driver_version" = "latest" ] || [ -z "$_dri
       echo "_driver_version=$_driver_version" >> options
     # This (condition 1) will be treated as the latest Vulkan developer driver.
     else
-      echo '_driver_version=595.44.08' > options
-      echo '_md5sum=da6a4dc0394b14f50cb4c0c4462a0105' >> options
+      echo '_driver_version=595.44.09' > options
+      echo '_md5sum=9623bb34eb29a874289d1f90ec9edf6a' >> options
       echo '_driver_branch=vulkandev' >> options
     fi
 # Package type selector
@@ -849,7 +849,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} >= 590 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && ( (( $(vercmp "${pkgver}" "595.44.06") < 0 )) || (( $(vercmp "${pkgver}" "595.44.08") > 0 )) ); then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && (( $(vercmp "${pkgver}" "595.44.06") < 0 || $(vercmp "${pkgver}" "595.44.09") > 0 )); then
           msg2 "Applying kernel-7.0.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.0.patch" )
         else
@@ -872,7 +872,7 @@ prepare() {
         [[ ${pkgver} = ${yup} ]] && patchy=1
       done
       if (( ${pkgver%%.*} == 595 )); then
-        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && ( (( $(vercmp "${pkgver}" "595.44.06") < 0 )) || (( $(vercmp "${pkgver}" "595.44.08") > 0 )) ); then
+        if [ "${patchy}" = "1" ] && (( $(vercmp "${pkgver}" "595.58.03") <= 0 )) && (( $(vercmp "${pkgver}" "595.44.06") < 0 || $(vercmp "${pkgver}" "595.44.09") > 0 )); then
           msg2 "Applying kernel-7.1.patch to kernel-open..."
           ( cd "${srcdir}/${_srcbase}-${pkgver}/kernel-open" && patch -Np2 -i "${srcdir}/kernel-7.1.patch" )
         else
@@ -1319,7 +1319,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       # 7.0
       if (( $(vercmp "$_kernel" "7.0") >= 0 )); then
         _whitelist70=( 590* 595* )
-        [[ "$pkgver" = "595.44.06" || "$pkgver" = "595.44.07" || "$pkgver" = "595.44.08" ]] && _whitelist70=( 590* )
+        [[ "$pkgver" = "595.44.06" || "$pkgver" = "595.44.07" || "$pkgver" = "595.44.08" || "$pkgver" = "595.44.09" ]] && _whitelist70=( 590* )
         if [[ $pkgver = 470* ]]; then
           cd "$srcdir"/"$_pkg"/kernel-$_kernel
           msg2 "Applying kernel-7.0-470.patch for $_kernel..."
@@ -1338,7 +1338,7 @@ DEST_MODULE_LOCATION[3]="/kernel/drivers/video"' dkms.conf
       if (( $(vercmp "$_kernel" "7.1") >= 0 )); then
         _whitelist70=()
         _whitelist71=( 595* )
-        [[ "$pkgver" = "595.44.06" || "$pkgver" = "595.44.07" || "$pkgver" = "595.44.08" ]] && _whitelist71=()
+        [[ "$pkgver" = "595.44.06" || "$pkgver" = "595.44.07" || "$pkgver" = "595.44.08" || "$pkgver" = "595.44.09" ]] && _whitelist71=()
       fi
 
       if [ "$_gcc14" = "true" ]; then
