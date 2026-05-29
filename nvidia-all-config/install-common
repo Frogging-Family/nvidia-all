@@ -251,6 +251,9 @@ _install_utils() {
     # nvidia-powerd
     if [[ -e nvidia-powerd ]] && [[ "${_detected_init}" != "other" ]]; then
       install -D -m755 nvidia-powerd "${pkgdir}/usr/bin/nvidia-powerd"
+      if [[ -e dlsnetparams.csv ]]; then
+        install -Dm644 dlsnetparams.csv "${pkgdir}/usr/share/nvidia/nvidia-powerd/dlsnetparams.csv"
+      fi
       install -D -m644 nvidia-dbus.conf "${pkgdir}/usr/share/dbus-1/system.d/nvidia-dbus.conf"
       if [[ "${_detected_init}" = "systemd" ]]; then
         install -D -m644 ${_path_addon1}nvidia-powerd.service "${pkgdir}/usr/lib/systemd/system/nvidia-powerd.service"
