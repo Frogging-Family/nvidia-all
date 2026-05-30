@@ -378,8 +378,11 @@ open     595/kernel-7.0.patch                                                   
 # SERIES 610
 # ══════════════════════════════════════════════════════════════════════════════
 
+# open + dkms: DSC + DP fixes (610.x)
+open     610/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -        610          -            1      .
+# open 610/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch is already upstream in 610.43.02+ (EvoSetDpDscParams uses bpc), skip.
+open     610/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -        610          -            1      .
+
 
 
 # ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-# vim: set ft=sh ts=2 sw=2 et:
