@@ -1,0 +1,77 @@
+From db9b94342d202eef25a724aceb74a31ea6efd5bc Mon Sep 17 00:00:00 2001
+From: triple-groove <triple-groove@users.noreply.github.com>
+Date: Sun, 22 Feb 2026 16:08:10 -0800
+Subject: [PATCH 2/4] fix(dsc): use bits_per_component for flatnessDetThresh in
+ DP DSC path
+
+EvoSetDpDscParamsC9() (nvkms-evo4.c, Ada/Blackwell) and
+EvoSetDpDscParams() (nvkms-evo3.c, Turing/Ampere) compute the DSC
+encoder's flatness_det_thresh register using bitsPerPixelX16 instead
+of bits_per_component. For 8bpc content at 8.0 bpp this produces
+2 << (129 - 8) = 2 << 121, which is undefined behavior for a 32-bit
+integer. On x86-64, the shift wraps to 2 << 25 = 0x4000000, which
+truncates to 0 in the 10-bit register field.
+
+The VESA DSC spec defines: flatness_det_thresh = 2 << (bpc - 8)
+where bpc is 8, 10, or 12, yielding values of 2, 8, or 32.
+
+The HDMI DSC path in the same files already uses the correct formula.
+The existing code had an XXX comment acknowledging the bug:
+  // XXX: I'm pretty sure that this is wrong.
+
+Fix: extract bits_per_component from PPS byte 3 bits [7:4], which is
+already computed correctly by the PPS generator.
+
+Signed-off-by: triple-groove <triple-groove@users.noreply.github.com>
+---
+ src/nvidia-modeset/src/nvkms-evo3.c | 11 +++++++----
+ src/nvidia-modeset/src/nvkms-evo4.c | 11 +++++++----
+ 2 files changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/src/nvidia-modeset/src/nvkms-evo3.c b/src/nvidia-modeset/src/nvkms-evo3.c
+index 27e533a..3b76261 100644
+--- a/src/nvidia-modeset/src/nvkms-evo3.c
++++ b/src/nvidia-modeset/src/nvkms-evo3.c
+@@ -7816,10 +7816,13 @@ static void EvoSetDpDscParams(const NVDispEvoRec *pDispEvo,
+ 
+     nvAssert(pDscInfo->type == NV_DSC_INFO_EVO_TYPE_DP);
+ 
+-    // XXX: I'm pretty sure that this is wrong.
+-    // BitsPerPixelx16 is something like (24 * 16) = 384, and 2 << (384 - 8) is
+-    // an insanely large number.
+-    flatnessDetThresh = (2 << (pDscInfo->dp.bitsPerPixelX16 - 8)); /* ??? */
++    // Fix: use bits_per_component from PPS byte 3 [7:4], not bitsPerPixelX16.
++    // DSC spec: flatness_det_thresh = 2 << (bpc - 8).
++    // PPS DW[0] packs bytes [3][2][1][0] as [31:24][23:16][15:8][7:0].
++    {
++        NvU32 bpc = (pDscInfo->dp.pps[0] >> 28) & 0xF; // PPS byte 3 bits[7:4]
++        flatnessDetThresh = (bpc >= 8) ? (2 << (bpc - 8)) : 2;
++    }
+ 
+     nvAssert((pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_DUAL) ||
+                 (pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_SINGLE));
+diff --git a/src/nvidia-modeset/src/nvkms-evo4.c b/src/nvidia-modeset/src/nvkms-evo4.c
+index 3159086..bd498a5 100644
+--- a/src/nvidia-modeset/src/nvkms-evo4.c
++++ b/src/nvidia-modeset/src/nvkms-evo4.c
+@@ -1409,10 +1409,13 @@ static void EvoSetDpDscParamsC9(const NVDispEvoRec *pDispEvo,
+ 
+     nvAssert(pDscInfo->type == NV_DSC_INFO_EVO_TYPE_DP);
+ 
+-    // XXX: I'm pretty sure that this is wrong.
+-    // BitsPerPixelx16 is something like (24 * 16) = 384, and 2 << (384 - 8) is
+-    // an insanely large number.
+-    flatnessDetThresh = (2 << (pDscInfo->dp.bitsPerPixelX16 - 8)); /* ??? */
++    // Fix: use bits_per_component from PPS byte 3 [7:4], not bitsPerPixelX16.
++    // DSC spec: flatness_det_thresh = 2 << (bpc - 8).
++    // PPS DW[0] packs bytes [3][2][1][0] as [31:24][23:16][15:8][7:0].
++    {
++        NvU32 bpc = (pDscInfo->dp.pps[0] >> 28) & 0xF;
++        flatnessDetThresh = (bpc >= 8) ? (2 << (bpc - 8)) : 2;
++    }
+ 
+     nvAssert((pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_DUAL) ||
+                 (pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_SINGLE));
+-- 
+2.53.0
+
