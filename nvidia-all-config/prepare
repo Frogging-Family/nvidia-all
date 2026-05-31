@@ -350,14 +350,12 @@ _detect_open_modules() {
 
   if [[ ! -f "${_pciids_file}" ]]; then
     echo "[INFO] _detect_open_modules: noopen PCI ID list not found — skipping" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
   if ! command -v lspci &>/dev/null; then
     msg2 "lspci not found — skipping GPU-based open module auto-detection."
     echo "[INFO] _detect_open_modules: lspci not available — skipping" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -379,7 +377,6 @@ _detect_open_modules() {
 
   if [[ ${#_gpu_ids[@]} -eq 0 ]]; then
     echo "[INFO] _detect_open_modules: no NVIDIA GPU found via lspci — skipping" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -392,10 +389,8 @@ _detect_open_modules() {
       _incompatible=true
       msg2 "GPU (${_gpu_name}) is NOT supported by open source modules."
       echo "[INFO] _detect_open_modules: ${_id} found in noopen blocklist" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
     else
       echo "[INFO] _detect_open_modules: ${_id} supports open source modules" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
     fi
   done
 
@@ -403,7 +398,6 @@ _detect_open_modules() {
     _open_source_modules="false"
     msg2 "Auto-selecting closed source modules (GPU not compatible with open modules)."
     echo "[INFO] _detect_open_modules: auto-selected closed modules" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
   else
     _open_source_modules="true"
     if [[ ${#_gpu_names[@]} -eq 1 ]]; then
@@ -415,7 +409,6 @@ _detect_open_modules() {
       msg2 "Detected compatible NVIDIA GPUs: ${_gpu_name_list} — auto-selecting open modules."
     fi
     echo "[INFO] _detect_open_modules: auto-selected open modules" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
   fi
 }
 
@@ -619,6 +612,14 @@ aggregate_user_config() {
     > "${_where}/BIG_UGLY_FROGMINER"
 }
 
+# Reset logs directory
+_nv_reset_logs() {
+  if [[ -e "${_where}/logs" ]]; then
+    rm -rf "${_where}/logs"
+  fi
+  mkdir -p "${_where}/logs"
+}
+
 # Resolve settings
 _nv_initscript() {
   # When _set_default=true, fill in sensible defaults for any empty core variables
@@ -684,11 +685,9 @@ _detect_kernels() {
       _kerneloverride="${_resolved_kernel}"
       msg2 "_target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >&2
       echo "[INFO] _target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
     else
       error "_target_kernel: no installed kernel found for package '${_target_kernel}'. Is it installed with its headers?" >&2
       echo "[ERROR] _target_kernel: no installed kernel found for package '${_target_kernel}'." >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
       return 1
     fi
   fi
@@ -733,11 +732,9 @@ _detect_kernels() {
     if [[ -d "/usr/lib/modules/${_kver}/build" ]]; then
       _result+=("${_kver}")
       echo "[INFO] _detect_kernels: found buildable kernel: ${_kver}" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
     else
       warning "Skipping ${_kver}: missing /usr/lib/modules/${_kver}/build" >&2
       echo "[WARNING] _detect_kernels: skipping ${_kver} — missing /usr/lib/modules/${_kver}/build" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
     fi
   done
 
@@ -748,19 +745,16 @@ _detect_kernels() {
     if [[ -d "/usr/lib/modules/${_uname_r}/build" ]]; then
       warning "Could not detect kernel via pkgbase — falling back to running kernel: ${_uname_r}" >&2
       echo "[WARNING] _detect_kernels: falling back to running kernel: ${_uname_r}" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
       _result+=("${_uname_r}")
     else
       if [[ "${_dkms:-false}" == "true" ]]; then
         # DKMS mode: kernel headers are not required at packaging time.
         # The module will be built by DKMS on first boot against the running kernel.
         echo "[INFO] _detect_kernels: DKMS mode — skipping kernel header check" >> "${_where}/logs/prepare.log.txt"
-        echo "" >> "${_where}/logs/prepare.log.txt"
         return 0
       fi
       error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg." >&2
       echo "[ERROR] _detect_kernels: could not detect buildable kernel version" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
       return 1
     fi
   fi
@@ -776,10 +770,8 @@ _build_flags() {
   if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
     BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
     echo "[INFO] _build_flags: Clang kernel detected for ${_kernel} — using ${BUILD_FLAGS[*]}" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
   else
     echo "[INFO] _build_flags: GCC kernel detected for ${_kernel} — using default build flags" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
   fi
 }
 
@@ -808,7 +800,6 @@ _apply_patches() {
   if [[ ! -f "${_list}" ]]; then
     warning "Patches list not found: ${_list}, skipping"
     echo "[WARNING] Patches list not found: ${_list}, skipping" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -856,7 +847,6 @@ _apply_patches() {
     if [[ ! -f "${_patch_file}" ]]; then
       warning "Patch not found: ${_patch_file}"
       echo "[WARNING] Patch not found: ${_patch_file}" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
       continue
     fi
 
@@ -888,7 +878,6 @@ _apply_patches() {
       if [[ "${_abort_on_patch_error:-false}" == "true" ]]; then
         warning "######################################################"
         echo "[ERROR] ${_err_msg}; aborting because _abort_on_patch_error=true" >> "${_where}/logs/prepare.log.txt"
-        echo "" >> "${_where}/logs/prepare.log.txt"
         return 1
       fi
       warning "Continuing with build, but the resulting package may be broken."
@@ -896,7 +885,6 @@ _apply_patches() {
       echo "[WARNING] ${_err_msg}; continuing (_abort_on_patch_error=false)" >> "${_where}/logs/prepare.log.txt"
     fi
 
-    echo "" >> "${_where}/logs/prepare.log.txt"
   done < "${_list}"
 }
 
@@ -919,11 +907,10 @@ _user_patcher() {
       warning "Userpatches must now be placed in version-specific subdirectories (${_nv_userpatch_dir##*/} for this driver series)."
       warning "The patch will not be applied."
       echo "### WARNING: misplaced userpatch ignored: ${_f##*/}" >> "${_where}"/logs/prepare.log.txt
-      echo >> "${_where}"/logs/prepare.log.txt
     fi
   done
 
-  echo -e "nvidia-all user patches (${_userpatch_target_local}), if any:\n" >> "${_where}"/logs/prepare.log.txt
+  echo "nvidia-all user patches (${_userpatch_target_local}), if any:" >> "${_where}"/logs/prepare.log.txt
 
   local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
@@ -942,16 +929,13 @@ _user_patcher() {
           msg2 "######################################################"
           echo "### Reverting user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
           ( cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
-          echo >> "${_where}"/logs/prepare.log.txt
         fi
       done
     else
       echo "### User declined to apply revert patches" >> "${_where}"/logs/prepare.log.txt
-      echo >> "${_where}"/logs/prepare.log.txt
     fi
   else
     echo "### No user revert patches found" >> "${_where}"/logs/prepare.log.txt
-    echo >> "${_where}"/logs/prepare.log.txt
   fi
 
   _CONDITION=""
@@ -972,16 +956,13 @@ _user_patcher() {
           msg2 "######################################################"
           echo "### Applying user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
           ( cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
-          echo >> "${_where}"/logs/prepare.log.txt
         fi
       done
     else
       echo "### User declined to apply patches" >> "${_where}"/logs/prepare.log.txt
-      echo >> "${_where}"/logs/prepare.log.txt
     fi
   else
     echo "### No user patches found" >> "${_where}"/logs/prepare.log.txt
-    echo >> "${_where}"/logs/prepare.log.txt
   fi
 }
 
@@ -999,7 +980,6 @@ _apply_user_patches() {
   if [[ ! -d "${_nv_userpatch_dir}" ]]; then
     mkdir -p "${_where}/logs"
     echo "### Userpatch dir not found for ${_target_label}: ${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1022,17 +1002,6 @@ _nv_srcprep() {
     _repro_hostname="archlinux"
     _repro_whoami="archlinux-builder"
   fi
-
-  # reset logs dir
-  rm -rf "${_where}/logs"
-  mkdir -p "${_where}/logs"
-
-  # copy system config files (udev, modprobe, etc.)
-  local _f
-  for _f in "${_where}"/nvidia-all-config/system/*; do
-    [[ -f "${_f}" ]] || continue
-    cp "${_f}" "${_where}/"
-  done
 
   # remove previous build dir
   [[ -d "${_pkg}" ]] && rm -rf "${_pkg}"
@@ -1132,11 +1101,10 @@ _nv_srcprep() {
     done
 
     # GCC 15
-    if [[ "${_gcc15}" = "true" ]]; then
-      local _gcc15_patch="${_where}/nvidia-all-patches/all/gcc-15.diff"
+    if [[ "${_gcc15_fix}" = "true" ]]; then
       msg2 "Applying gcc-15.diff to kernel-open (open source)..."
-      ( cd kernel-open && patch -Np2 -i "${_gcc15_patch}" |& tee -a "${_where}/logs/prepare.log.txt" )
-      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_gcc15_patch}" |& tee -a "${_where}/logs/prepare.log.txt" )
+      ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
     fi
 
     # user patches to open modules
@@ -1315,7 +1283,6 @@ _nv_build() {
   if [[ "${_libxnvctrl}" = "true" ]]; then
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     cd "${srcdir}/nvidia-settings-${pkgver}"
     make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so
     cd "${srcdir}"
@@ -1324,7 +1291,6 @@ _nv_build() {
   if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
     msg2 "_build_utils_package_only=true - skipping kernel module build steps."
     echo "[INFO] _nv_build: _build_utils_package_only=true — skipping kernel module build steps" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1332,7 +1298,6 @@ _nv_build() {
   if [[ "${_dkms}" = "true" ]]; then
     msg2 "_dkms=true - skipping kernel module build steps (handled by DKMS)."
     echo "[INFO] _nv_build: _dkms=true — skipping kernel module build steps (handled by DKMS)" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1367,17 +1332,14 @@ _nv_build() {
 
     msg2 "Building ${_label} module for ${_kernel}..."
     echo "[BUILD] _nv_build: building ${_label} module for kernel ${_kernel}" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
     CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules |& tee -a "${_where}/logs/build.log.txt"
     local _make_status=${PIPESTATUS[0]}
     if (( _make_status != 0 )); then
       error "Building ${_label} module for ${_kernel} failed (exit ${_make_status})."
       echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_make_status})" >> "${_where}/logs/prepare.log.txt"
-      echo "" >> "${_where}/logs/prepare.log.txt"
       return "${_make_status}"
     fi
     echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
-    echo "" >> "${_where}/logs/prepare.log.txt"
 
     if [[ "${_open_source_modules}" = "true" ]]; then
       local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
@@ -1389,24 +1351,8 @@ _nv_build() {
 
 # Clean on exit
 _exit_cleanup() {
-  # remove flat-copied system files
-  rm -f "${_where}"/*.diff
-  rm -f "${_where}"/*.patch
-  rm -f "${_where}"/*.conf
-  rm -f "${_where}"/*.rules
-  rm -f "${_where}"/*.hook
-  rm -f "${_where}"/*.install
-  rm -f "${_where}"/*.dinit
-  rm -f "${_where}"/*.sysusers
-  rm -f "${_where}"/*.txt
-  rm -f "${_where}/gsk-renderer.sh"
-  rm -f "${_where}/nvidia-patch.sh"
-  rm -f "${_where}/cuda-no-stable-perf-limit"
-  rm -f "${_where}/limit-vram-usage"
-  rm -f "${_where}/nvidia-kmod-noopen-pciids"
-
-  # remove install.sh build directory if present
-  [[ -d "${_build_srcdir:-}" ]] && rm -rf "${_build_srcdir}"
+  # Remove install.sh's temporary srcdir; makepkg owns its own srcdir.
+  [[ "${srcdir:-}" == /tmp/nvidia-install-* && -d "${srcdir}" ]] && rm -rf "${srcdir}"
 
   # move packages to versioned dir
   if [[ "${_local_package_storing:-}" = "true" ]]; then
@@ -1458,7 +1404,5 @@ _exit_cleanup() {
     fi
   } > "${_where}/logs/system-info.txt"
 }
-
-trap _exit_cleanup EXIT
 
 # vim: set ft=sh ts=2 sw=2 et:

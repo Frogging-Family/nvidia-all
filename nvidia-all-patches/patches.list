@@ -32,8 +32,8 @@
 open     all/nvidia-open-gcc-ibt-sls.diff                                              -        -        -            524.99       1      .
 
 # GCC 15 (all series, opt-in)
-dkms     all/gcc-15.diff                                                               -        -        -            -            1      .              _gcc15
-closed   all/gcc-15.diff                                                               4.0      -        -            -            2      .              _gcc15
+dkms     all/gcc-15.diff                                                               -        -        -            -            1      .              _gcc15_fix
+closed   all/gcc-15.diff                                                               4.0      -        -            -            2      .              _gcc15_fix
 
 # kernel 6.17+ (all series ≤ 575.99)
 dkms     all/kernel-6.17.patch                                                         6.17     -        -            575.99       1      .
@@ -52,7 +52,7 @@ open     all/0002-Add-IBT-support.patch                                         
 # ══════════════════════════════════════════════════════════════════════════════
 
 # GCC 14 (all legacy series < 470, opt-in)
-closed   all/gcc-14.diff                                                               4.0      -        -            469.9999     2      .              _gcc14
+closed   all/gcc-14.diff                                                               4.0      -        -            469.9999     2      .              _gcc14_fix
 
 # linux-version (common, all ≤ 455)
 closed   all/linux-version.diff                                                        4.0      -        -            455.9999     2      .
@@ -151,7 +151,7 @@ closed   all/kernel-5.12.patch                                                  
 # ══════════════════════════════════════════════════════════════════════════════
 
 # GCC 14 (opt-in)
-closed   all/gcc-14-470.diff                                                           4.0      -        470          470.9999     2      .              _gcc14
+closed   all/gcc-14-470.diff                                                           4.0      -        470          470.9999     2      .              _gcc14_fix
 
 # clang fix (opt-in)
 dkms     470/clang.patch                                                               -        -        470          470.9999     1      kernel-dkms    _clang
@@ -336,7 +336,7 @@ open     575/0006-nvidia-uvm-Use-page_pgmap.patch                               
 open     575/0007-nvidia-uvm-Convert-make_device_exclusive_range-to-ma.patch           -        -        575          575.9999     1      .
 
 # GCC 15 kbuild workaround (opt-in)
-open     575/0008-kbuild-Add-workaround-for-GCC-15-Compilation.patch                   -        -        575          575.9999     1      .              _gcc15
+open     575/0008-kbuild-Add-workaround-for-GCC-15-Compilation.patch                   -        -        575          575.9999     1      .              _gcc15_fix
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -382,7 +382,6 @@ open     595/kernel-7.0.patch                                                   
 open     610/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -        610          -            1      .
 # open 610/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch is already upstream in 610.43.02+ (EvoSetDpDscParams uses bpc), skip.
 open     610/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -        610          -            1      .
-
 
 
 # ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
