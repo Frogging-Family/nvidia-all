@@ -213,7 +213,7 @@ _install_utils() {
     install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
     sed -i 's/__USER__/nvidia-persistenced/' "${pkgdir}/usr/lib/systemd/system/nvidia-persistenced.service"
   elif [[ "${_detected_init}" = "dinit" ]]; then
-    install -D -m644 "${_where}/nvidia-persistenced.dinit" "${pkgdir}/etc/dinit.d/nvidia-persistenced"
+    install -D -m644 "${_where}/nvidia-all-config/system/nvidia-persistenced.dinit" "${pkgdir}/etc/dinit.d/nvidia-persistenced"
   fi
 
   # application profiles
@@ -261,11 +261,11 @@ _install_utils() {
     fi
     # systemd-homed override
     if [[ "${_detected_init}" = "systemd" ]] && (( ${pkgver%%.*} >= 580 )); then
-      install -Dm644 "${_where}/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
-      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
-      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
-      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hibernate.service.d/10-nvidia-no-freeze-session.conf"
-      install -Dm644 "${_where}/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/nvidia-all-config/system/systemd-homed-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-homed.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/nvidia-all-config/system/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/nvidia-all-config/system/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/nvidia-all-config/system/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hibernate.service.d/10-nvidia-no-freeze-session.conf"
+      install -Dm644 "${_where}/nvidia-all-config/system/systemd-suspend-override.conf" "${pkgdir}/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/10-nvidia-no-freeze-session.conf"
     fi
   fi
 
@@ -281,11 +281,11 @@ _install_utils() {
   fi
 
   # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
-  install -Dm644 "${_where}/10-nvidia-drm-outputclass.conf" "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
+  install -Dm644 "${_where}/nvidia-all-config/system/10-nvidia-drm-outputclass.conf" "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
 
-  install -Dm644 "${_where}/nvidia-utils-tkg.sysusers" "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils-tkg.sysusers" "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
 
-  install -Dm644 "${_where}/60-nvidia.rules" "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
+  install -Dm644 "${_where}/nvidia-all-config/system/60-nvidia.rules" "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
 
   if (( ${pkgver%%.*} >= 595 )); then
     # 595+ open modules use kernel suspend notifiers for video memory preservation
@@ -294,7 +294,7 @@ _install_utils() {
   else
     # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
     # Fixes Wayland Sleep, when restoring the session
-    install -Dm644 "${_where}/nvidia-sleep.conf" "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sleep.conf" "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
   fi
 
   # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
@@ -309,12 +309,12 @@ _install_utils() {
 
   if (( ${pkgver%%.*} >= 580 )); then
     # reduce idle power (CUDA contexts)
-    install -Dm644 "${_where}/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    install -Dm644 "${_where}/nvidia-all-config/system/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
   fi
 
   if (( ${pkgver%%.*} >= 590 )); then
-    install -Dm644 "${_where}/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
-    install -Dm644 "${_where}/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+    install -Dm644 "${_where}/nvidia-all-config/system/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+    install -Dm644 "${_where}/nvidia-all-config/system/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
   fi
 
   # nvidia-modprobe config
@@ -322,12 +322,12 @@ _install_utils() {
   _modprobe_mobile="${_modprobe_mobile:-false}"
   if [[ "${_modprobe}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters..."
-    install -Dm644 "${_where}/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
   fi
 
   if [[ "${_modprobe_mobile}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-    install -Dm644 "${_where}/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe-mobile.conf"
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe-mobile.conf"
   fi
 
   # Install nvidia-patch from https://github.com/keylase/nvidia-patch
@@ -339,7 +339,7 @@ _install_utils() {
   if [[ "${_nvidia_patch_enc_fbc}" == "true" ]]; then
     msg2 "Applying nvidia-patch to remove NVENC session limit and enable NVFBC..."
     # Source the nvidia-patch.sh script to get patch definitions
-    source "${_where}/nvidia-patch.sh" 2>/dev/null || true
+    source "${_where}/nvidia-all-config/system/nvidia-patch.sh" 2>/dev/null || true
     # Apply NVENC patch (libnvidia-encode)
     if [[ -f "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}" ]]; then
       if [[ -n "${enc_patch_list[$pkgver]}" ]]; then

@@ -7,6 +7,8 @@ Target=nvidia-tkg
 Target=nvidia-dkms-tkg
 Target=nvidia-dev-tkg
 Target=nvidia-dev-dkms-tkg
+Target=nvidia-dev-open-tkg
+Target=nvidia-dev-open-dkms-tkg
 Target=nvidia-open-tkg
 Target=nvidia-open-dkms-tkg
 

@@ -3,7 +3,7 @@
 # Stop the script at any encountered error
 set -e
 
-_where="$(pwd)"
+_where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 srcdir="${_where}"
 
 # Command used for superuser privileges (`sudo`, `doas`, `su`)
@@ -68,18 +68,10 @@ for _required in "${_where}/customization.cfg" "${_where}/nvidia-all-config/prep
 done
 
 source "${_where}/nvidia-all-config/prepare"
-
-# Cleanup on any exit
-_cleanup() {
-  [[ "${srcdir:-}" == /tmp/* && -d "${srcdir}" ]] && \
-    rm -rf "${srcdir}"
-
-  [[ -f "${_where}/BIG_UGLY_FROGMINER" ]] && \
-    rm -f "${_where}/BIG_UGLY_FROGMINER"
-}
-trap _cleanup EXIT
+trap _exit_cleanup EXIT
 
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
+  _nv_reset_logs
   aggregate_user_config
   echo "_where=\"${_where}\"" >> "${_where}/BIG_UGLY_FROGMINER"
 
@@ -781,36 +773,10 @@ _build_pkg_list() {
   echo "${_list[@]}"
 }
 
-# .deb builder
-_build_deb() {
-  local _pkgname="$1" _stagedir="$2" _outdir="$3"
-  local _debdir="${_outdir}/${_pkgname}_${pkgver}_amd64"
-  mkdir -p "${_debdir}/DEBIAN"
-  cp -a "${_stagedir}/." "${_debdir}/"
-  local _inst_size
-  _inst_size=$(du -sk "${_stagedir}" | cut -f1)
-  cat > "${_debdir}/DEBIAN/control" <<EOF
-Package: ${_pkgname}
-Version: ${pkgver}
-Architecture: amd64
-Maintainer: nvidia-all-tkg <https://github.com/Frogging-Family/nvidia-all>
-Installed-Size: ${_inst_size}
-Description: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
-EOF
-  local _deps="${_NV_META[${_pkgname}_depends_deb]:-}"
-  [[ -n "${_deps}" ]] && echo "Depends: ${_deps}" >> "${_debdir}/DEBIAN/control"
-  local _recs="${_NV_META[${_pkgname}_recommends_deb]:-}"
-  [[ -n "${_recs}" ]] && echo "Recommends: ${_recs}" >> "${_debdir}/DEBIAN/control"
-  local _prov="${_NV_META[${_pkgname}_provides_deb]:-}"
-  [[ -n "${_prov}" ]] && echo "Provides: ${_prov}" >> "${_debdir}/DEBIAN/control"
-  local _conf="${_NV_META[${_pkgname}_conflicts_deb]:-}"
-  [[ -n "${_conf}" ]] && echo "Conflicts: ${_conf}" >> "${_debdir}/DEBIAN/control"
-  local _repl="${_NV_META[${_pkgname}_replaces_deb]:-}"
-  [[ -n "${_repl}" ]] && echo "Replaces: ${_repl}" >> "${_debdir}/DEBIAN/control"
+_deb_postinst() {
+  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
 
-  if [[ "${_pkgname}" == *dkms* ]]; then
-    # Derive the DKMS module name from the staged dkms.conf so that postinst
-    # and prerm stay consistent with the source tree without hardcoding "nvidia".
+  if [[ "${_mode}" == "dkms" ]]; then
     local _nv_dkms_name
     _nv_dkms_name=$(grep -Po 'PACKAGE_NAME="\K[^"]+' \
       "${_stagedir}/usr/src/nvidia-${pkgver}/dkms.conf" 2>/dev/null || echo "nvidia")
@@ -850,45 +816,51 @@ case "\$1" in
     ;;
 esac
 POSTINST
-  elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    cat > "${_debdir}/DEBIAN/postinst" <<'POSTINST'
+    chmod 755 "${_debdir}/DEBIAN/postinst"
+    return 0
+  fi
+
+  cat > "${_debdir}/DEBIAN/postinst" <<POSTINST
 #!/bin/sh
 set -e
 ldconfig
+POSTINST
+
+  if [[ "${_mode}" == "kmod" ]]; then
+    cat >> "${_debdir}/DEBIAN/postinst" <<'POSTINST'
 for moddir in /lib/modules/*; do
   [ -d "$moddir" ] || continue
   kver=${moddir##*/}
   depmod -a "$kver" 2>/dev/null || true
 done
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force
-fi
-systemctl daemon-reload 2>/dev/null || true
-POSTINST
-  elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
-    cat > "${_debdir}/DEBIAN/postinst" <<'POSTINST'
-#!/bin/sh
-set -e
-ldconfig
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force
-fi
-POSTINST
-  else
-    cat > "${_debdir}/DEBIAN/postinst" <<'POSTINST'
-#!/bin/sh
-set -e
-ldconfig
 POSTINST
   fi
-  chmod 755 "${_debdir}/DEBIAN/postinst"
 
-  if [[ "${_pkgname}" == *dkms* ]]; then
-    cat > "${_debdir}/DEBIAN/prerm" <<PRERM
+  if [[ "${_mode}" == "kmod" || "${_mode}" == "initramfs" ]]; then
+    cat >> "${_debdir}/DEBIAN/postinst" <<'POSTINST'
+if command -v update-initramfs >/dev/null 2>&1; then
+  update-initramfs -u -k all
+elif command -v dracut >/dev/null 2>&1; then
+  dracut --force
+fi
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl daemon-reload 2>/dev/null || true
+fi
+POSTINST
+  fi
+
+  chmod 755 "${_debdir}/DEBIAN/postinst"
+}
+
+_deb_prerm() {
+  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}"
+
+  case "${_mode}" in
+    dkms)
+      local _nv_dkms_name
+      _nv_dkms_name=$(grep -Po 'PACKAGE_NAME="\K[^"]+' \
+        "${_stagedir}/usr/src/nvidia-${pkgver}/dkms.conf" 2>/dev/null || echo "nvidia")
+      cat > "${_debdir}/DEBIAN/prerm" <<PRERM
 #!/bin/sh
 set -e
 DKMS_NAME=${_nv_dkms_name}
@@ -902,9 +874,9 @@ case "\$1" in
     ;;
 esac
 PRERM
-    chmod 755 "${_debdir}/DEBIAN/prerm"
-  elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    cat > "${_debdir}/DEBIAN/prerm" <<'PRERM'
+      ;;
+    kmod)
+      cat > "${_debdir}/DEBIAN/prerm" <<'PRERM'
 #!/bin/sh
 set -e
 case "$1" in
@@ -917,49 +889,95 @@ case "$1" in
     ;;
 esac
 PRERM
-    chmod 755 "${_debdir}/DEBIAN/prerm"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  chmod 755 "${_debdir}/DEBIAN/prerm"
+}
+
+_deb_postrm() {
+  local _debdir="$1"
+  cat > "${_debdir}/DEBIAN/postrm" <<'POSTRM'
+#!/bin/sh
+ldconfig
+for moddir in /lib/modules/*; do
+  [ -d "$moddir" ] || continue
+  kver=${moddir##*/}
+  depmod -a "$kver" 2>/dev/null
+done
+if command -v update-initramfs >/dev/null 2>&1; then
+  update-initramfs -u -k all 2>/dev/null || true
+elif command -v dracut >/dev/null 2>&1; then
+  dracut --force 2>/dev/null || true
+fi
+POSTRM
+
+  chmod 755 "${_debdir}/DEBIAN/postrm"
+}
+
+# .deb builder
+_deb_builder() {
+  local _pkgname="$1" _stagedir="$2" _outdir="$3"
+  local _debdir="${_outdir}/${_pkgname}_${pkgver}_amd64"
+  mkdir -p "${_debdir}/DEBIAN"
+  cp -a "${_stagedir}/." "${_debdir}/"
+  local _inst_size
+  _inst_size=$(du -sk "${_stagedir}" | cut -f1)
+  cat > "${_debdir}/DEBIAN/control" <<EOF
+Package: ${_pkgname}
+Version: ${pkgver}
+Architecture: amd64
+Maintainer: nvidia-all-tkg <https://github.com/Frogging-Family/nvidia-all>
+Installed-Size: ${_inst_size}
+Description: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
+EOF
+  local _deps="${_NV_META[${_pkgname}_depends_deb]:-}"
+  [[ -n "${_deps}" ]] && echo "Depends: ${_deps}" >> "${_debdir}/DEBIAN/control"
+  local _recs="${_NV_META[${_pkgname}_recommends_deb]:-}"
+  [[ -n "${_recs}" ]] && echo "Recommends: ${_recs}" >> "${_debdir}/DEBIAN/control"
+  local _prov="${_NV_META[${_pkgname}_provides_deb]:-}"
+  [[ -n "${_prov}" ]] && echo "Provides: ${_prov}" >> "${_debdir}/DEBIAN/control"
+  local _conf="${_NV_META[${_pkgname}_conflicts_deb]:-}"
+  [[ -n "${_conf}" ]] && echo "Conflicts: ${_conf}" >> "${_debdir}/DEBIAN/control"
+  local _repl="${_NV_META[${_pkgname}_replaces_deb]:-}"
+  [[ -n "${_repl}" ]] && echo "Replaces: ${_repl}" >> "${_debdir}/DEBIAN/control"
+
+  local _mode=""
+  if [[ "${_pkgname}" == *dkms* ]]; then
+    _mode=dkms
+  elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
+    _mode=kmod
+  elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _mode=initramfs
   fi
 
-  if [[ "${_pkgname}" == *dkms* ]]; then
-    cat > "${_debdir}/DEBIAN/postrm" <<'POSTRM'
-#!/bin/sh
-ldconfig
-for moddir in /lib/modules/*; do
-  [ -d "$moddir" ] || continue
-  kver=${moddir##*/}
-  depmod -a "$kver" 2>/dev/null
-done
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all 2>/dev/null || true
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-POSTRM
-  else
-    cat > "${_debdir}/DEBIAN/postrm" <<'POSTRM'
-#!/bin/sh
-ldconfig
-for moddir in /lib/modules/*; do
-  [ -d "$moddir" ] || continue
-  kver=${moddir##*/}
-  depmod -a "$kver" 2>/dev/null
-done
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all 2>/dev/null || true
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-POSTRM
-  fi
-  chmod 755 "${_debdir}/DEBIAN/postrm"
+  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+  _deb_postrm "${_debdir}"
 
   fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
   rm -rf "${_debdir}"
   msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
 }
 
+_rpm_spec_field() {
+  local _specfile="$1" _field="$2" _value="$3" _entry
+  local -a _entries=()
+  [[ -n "${_value}" ]] || return 0
+
+  IFS=',' read -ra _entries <<< "${_value}"
+  for _entry in "${_entries[@]}"; do
+    _entry="${_entry#"${_entry%%[! ]*}"}"
+    _entry="${_entry%"${_entry##*[! ]}"}"
+    [[ -n "${_entry}" ]] && echo "${_field}: ${_entry}" >> "${_specfile}"
+  done
+}
+
 # .rpm builder
-_build_rpm() {
+_rpm_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
   local _specfile="${_outdir}/${_pkgname}.spec"
   local _is_fedora=false
@@ -989,60 +1007,12 @@ SPEC
     echo "%define __arch_install_post %{nil}" >> "${_specfile}"
   fi
 
-  local _deps="${_NV_META[${_pkgname}_depends_rpm]:-}"
-  if [[ -n "${_deps}" ]]; then
-    IFS=',' read -ra _dep_arr <<< "${_deps}"
-    for _d in "${_dep_arr[@]}"; do
-      _d="${_d#"${_d%%[! ]*}"}"
-      _d="${_d%"${_d##*[! ]}"}"
-      [[ -n "${_d}" ]] && echo "Requires: ${_d}" >> "${_specfile}"
-    done
-  fi
-  local _prov="${_NV_META[${_pkgname}_provides_rpm]:-}"
-  if [[ -n "${_prov}" ]]; then
-    IFS=',' read -ra _prov_arr <<< "${_prov}"
-    for _p in "${_prov_arr[@]}"; do
-      _p="${_p#"${_p%%[! ]*}"}"
-      _p="${_p%"${_p##*[! ]}"}" 
-      [[ -n "${_p}" ]] && echo "Provides: ${_p}" >> "${_specfile}"
-    done
-  fi
-  local _conf="${_NV_META[${_pkgname}_conflicts_rpm]:-}"
-  if [[ -n "${_conf}" ]]; then
-    IFS=',' read -ra _conf_arr <<< "${_conf}"
-    for _c in "${_conf_arr[@]}"; do
-      _c="${_c#"${_c%%[! ]*}"}"
-      _c="${_c%"${_c##*[! ]}"}" 
-      [[ -n "${_c}" ]] && echo "Conflicts: ${_c}" >> "${_specfile}"
-    done
-  fi
-  local _obso="${_NV_META[${_pkgname}_obsoletes_rpm]:-}"
-  if [[ -n "${_obso}" ]]; then
-    IFS=',' read -ra _obso_arr <<< "${_obso}"
-    for _o in "${_obso_arr[@]}"; do
-      _o="${_o#"${_o%%[! ]*}"}"
-      _o="${_o%"${_o##*[! ]}"}"
-      [[ -n "${_o}" ]] && echo "Obsoletes: ${_o}" >> "${_specfile}"
-    done
-  fi
-  local _sugg="${_NV_META[${_pkgname}_suggests_rpm]:-}"
-  if [[ -n "${_sugg}" ]]; then
-    IFS=',' read -ra _sugg_arr <<< "${_sugg}"
-    for _s in "${_sugg_arr[@]}"; do
-      _s="${_s#"${_s%%[! ]*}"}"
-      _s="${_s%"${_s##*[! ]}"}"
-      [[ -n "${_s}" ]] && echo "Suggests: ${_s}" >> "${_specfile}"
-    done
-  fi
-  local _reco="${_NV_META[${_pkgname}_recommends_rpm]:-}"
-  if [[ -n "${_reco}" ]]; then
-    IFS=',' read -ra _reco_arr <<< "${_reco}"
-    for _r in "${_reco_arr[@]}"; do
-      _r="${_r#"${_r%%[! ]*}"}"
-      _r="${_r%"${_r##*[! ]}"}"
-      [[ -n "${_r}" ]] && echo "Recommends: ${_r}" >> "${_specfile}"
-    done
-  fi
+  _rpm_spec_field "${_specfile}" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"
+  _rpm_spec_field "${_specfile}" Provides "${_NV_META[${_pkgname}_provides_rpm]:-}"
+  _rpm_spec_field "${_specfile}" Conflicts "${_NV_META[${_pkgname}_conflicts_rpm]:-}"
+  _rpm_spec_field "${_specfile}" Obsoletes "${_NV_META[${_pkgname}_obsoletes_rpm]:-}"
+  _rpm_spec_field "${_specfile}" Suggests "${_NV_META[${_pkgname}_suggests_rpm]:-}"
+  _rpm_spec_field "${_specfile}" Recommends "${_NV_META[${_pkgname}_recommends_rpm]:-}"
 
   cat >> "${_specfile}" <<SPEC
 
@@ -1239,10 +1209,10 @@ for _pkgname in "${_packages[@]}"; do
 
   msg2 "Packaging ${_pkgname}"
   if [[ "$PKG_FORMAT" == "deb" ]]; then
-    _build_deb "${_pkgname}" "${_pkgstage}" "${_distdir}"
+    _deb_builder "${_pkgname}" "${_pkgstage}" "${_distdir}"
     _built_pkg_files+=("${_distdir}/${_pkgname}_${pkgver}_amd64.deb")
   else
-    _build_rpm "${_pkgname}" "${_pkgstage}" "${_distdir}"
+    _rpm_builder "${_pkgname}" "${_pkgstage}" "${_distdir}"
     _built_pkg_files+=("${_distdir}/${_pkgname}-${pkgver}-1.x86_64.rpm")
   fi
 

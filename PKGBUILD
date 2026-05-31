@@ -22,13 +22,15 @@ plain '    `:sdNNNNNNNNNNNNNNNNNNNNNNNNNds:`'
 plain '       `-+shdNNNNNNNNNNNNNNNdhs+-`'
 plain '             `.-:///////:-.`'
 
-_where="${PWD}" # track basedir as different Arch based distros are moving srcdir around
+_where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
+trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
+  _nv_reset_logs
   aggregate_user_config
   echo "_where=\"${_where}\"" >> "${_where}/BIG_UGLY_FROGMINER"
 
@@ -268,7 +270,7 @@ nvidia-utils-tkg() {
               'egl-wayland-git: for alternative, more advanced Wayland library (libnvidia-egl-wayland.so)')
   provides=("nvidia-utils=${pkgver}" "nvidia-utils-tkg=${pkgver}" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
   conflicts=('nvidia-utils' 'nvidia-libgl')
-  install=nvidia-utils-tkg.install
+  install=nvidia-all-config/system/nvidia-utils-tkg.install
 
   cd "${_pkg}"
   # Arch-only: skip nvidia-patch if conflicting AUR package is installed
@@ -375,7 +377,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         install -Dm755 "${_where}/nvidia-all-config/nvidia-sign-modules" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
-        install -Dm644 "${_where}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
       echo "Skipping mkinitcpio hook due to user config"
@@ -385,7 +387,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     depends=("nvidia-utils-tkg>=${pkgver}" 'libglvnd')
     provides=("nvidia=${pkgver}" "nvidia-tkg>=${pkgver}")
     conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
-    install=nvidia-tkg.install
+    install=nvidia-all-config/system/nvidia-tkg.install
 
     local _kernel
     local -a _kernels
@@ -414,7 +416,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         install -Dm755 "${_where}/nvidia-all-config/nvidia-sign-modules" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
-        install -Dm644 "${_where}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
       echo "Skipping mkinitcpio hook due to user config"
@@ -490,7 +492,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
       if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-        install -Dm644 "${_where}/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         echo "Skipping mkinitcpio hook due to user config"
       fi
@@ -500,8 +502,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
 
     # Enable nvidia-uvm autoload at boot
     if [[ "${_blacklist_nouveau}" != "false" ]]; then
-      echo "nvidia-uvm" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
+      echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
     else
       msg2 "Skipping nvidia-uvm autoload due to user config"
     fi
