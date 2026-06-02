@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# Stop the script at any encountered error
+set -e
+
+# Sign NVIDIA kernel modules for Secure Boot.
+#   no args: Arch pacman hook path, using the kernel's own signing key
+#   --sign : generic installed-module MOK signing for prebuilt kmod packages
+
+_runas_root() {
+  if (( EUID == 0 )); then
+    "$@"
+  elif command -v sudo &>/dev/null; then
+    sudo "$@"
+  else
+    echo ":: nvidia-sign-modules: root privileges are required for: $*" >&2
+    return 1
+  fi
+}
+
+_find_sign_file() {
+  find /usr/src /usr/lib/linux-kbuild-* /usr/lib/modules/*/build/scripts \
+    -name 'sign-file' -type f 2>/dev/null | sort -V | tail -1
+}
+
+_sign_module() {
+  local _mod="$1" _sign_file="$2" _hash_algo="$3" _sign_key="$4" _sign_cert="$5" _root_mode="${6:-false}"
+  local _plain_mod="${_mod}" _compression=""
+  local -a _run=()
+
+  if [[ "${_root_mode}" == "true" ]]; then
+    _run=(_runas_root)
+  fi
+
+  case "${_mod}" in
+    *.ko.xz)
+      "${_run[@]}" xz -d -f "${_mod}"
+      _plain_mod="${_mod%.xz}"
+      _compression="xz"
+      ;;
+    *.ko.gz)
+      "${_run[@]}" gzip -d -f "${_mod}"
+      _plain_mod="${_mod%.gz}"
+      _compression="gz"
+      ;;
+  esac
+
+  "${_run[@]}" "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}" "${_plain_mod}"
+
+  case "${_compression}" in
+    xz) "${_run[@]}" xz -f "${_plain_mod}" ;;
+    gz) "${_run[@]}" gzip -n -f "${_plain_mod}" ;;
+  esac
+}
+
+_sign_generic_kmods() {
+  if ! command -v mokutil &>/dev/null; then
+    echo ":: nvidia-sign-modules: mokutil not found — cannot MOK-sign installed modules for Secure Boot." >&2
+    return 1
+  fi
+  mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled' || {
+    echo ":: nvidia-sign-modules: Secure Boot not active — skipping installed MOK signing."
+    return 0
+  }
+
+  local _mok_key _mok_der _sign_file
+  if [[ -f /var/lib/dkms/mok.key && -f /var/lib/dkms/mok.pub ]]; then
+    _mok_key="/var/lib/dkms/mok.key"
+    _mok_der="/var/lib/dkms/mok.pub"
+    echo ":: nvidia-sign-modules: reusing DKMS MOK key."
+  elif [[ -f /var/lib/shim-signed/mok/MOK.priv && -f /var/lib/shim-signed/mok/MOK.der ]]; then
+    _mok_key="/var/lib/shim-signed/mok/MOK.priv"
+    _mok_der="/var/lib/shim-signed/mok/MOK.der"
+    echo ":: nvidia-sign-modules: reusing shim-signed MOK key."
+  else
+    local _mok_dir="/var/lib/nvidia-all/mok"
+    _mok_key="${_mok_dir}/mok.key"
+    _mok_der="${_mok_dir}/mok.der"
+
+    if [[ ! -f "${_mok_key}" || ! -f "${_mok_der}" ]]; then
+      echo ":: nvidia-sign-modules: generating MOK signing key pair at ${_mok_dir} ..."
+      _runas_root mkdir -p "${_mok_dir}"
+      _runas_root openssl req -new -x509 -newkey rsa:2048 \
+        -keyout "${_mok_key}" \
+        -outform DER -out "${_mok_der}" \
+        -days 36500 \
+        -subj "/CN=nvidia-all signing key/" \
+        -nodes
+      _runas_root chmod 600 "${_mok_key}"
+      _runas_root chmod 644 "${_mok_der}"
+    fi
+
+    _runas_root mkdir -p /var/lib/dkms
+    [[ -f /var/lib/dkms/mok.key ]] || _runas_root cp "${_mok_key}" /var/lib/dkms/mok.key
+    _runas_root chmod 600 /var/lib/dkms/mok.key
+    [[ -f /var/lib/dkms/mok.pub ]] || _runas_root cp "${_mok_der}" /var/lib/dkms/mok.pub
+  fi
+
+  _sign_file="$(_find_sign_file)"
+  if [[ -z "${_sign_file}" ]]; then
+    echo ":: nvidia-sign-modules: sign-file not found — install kernel-devel/linux-kbuild and retry." >&2
+    return 1
+  fi
+
+  local -a _module_roots=()
+  local -A _seen_roots=()
+  local _root _real _mod _signed_any=0
+
+  for _root in /usr/lib/modules /lib/modules; do
+    [[ -d "${_root}" ]] || continue
+    _real="$(readlink -f "${_root}" 2>/dev/null || true)"
+    [[ -n "${_real}" ]] || _real="${_root}"
+    [[ -z "${_seen_roots[${_real}]:-}" ]] || continue
+    _seen_roots["${_real}"]=1
+    _module_roots+=("${_root}")
+  done
+
+  if ((${#_module_roots[@]})); then
+    while IFS= read -r -d '' _mod; do
+      _sign_module "${_mod}" "${_sign_file}" sha256 "${_mok_key}" "${_mok_der}" true
+      _signed_any=1
+    done < <(find "${_module_roots[@]}" -type f \
+      \( -name 'nvidia*.ko' -o -name 'nvidia*.ko.xz' -o -name 'nvidia*.ko.gz' \) \
+      -print0 2>/dev/null)
+  fi
+
+  if (( _signed_any == 0 )); then
+    echo ":: nvidia-sign-modules: skipped — no installed NVIDIA modules found"
+  fi
+}
+
+# Arch pacman hook path
+_sign_arch_kmods() {
+  local _signed_any=0
+
+  while IFS= read -r -d '' _kbuild; do
+    local _kernel="${_kbuild%/build}"
+    _kernel="${_kernel##*/}"
+    local _sign_file="${_kbuild}/scripts/sign-file"
+    local _config="${_kbuild}/.config"
+
+    if [[ ! -x "${_sign_file}" ]] || [[ ! -r "${_config}" ]]; then
+      echo ":: nvidia-sign-modules: skipped ${_kernel}: build metadata missing"
+      continue
+    fi
+
+    local _sign_key
+    _sign_key=$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_config}" 2>/dev/null || true)
+    [[ -n "${_sign_key}" ]] || _sign_key="certs/signing_key.pem"
+    [[ "${_sign_key}" =~ ^/ ]] || _sign_key="${_kbuild}/${_sign_key}"
+    local _sign_cert="${_kbuild}/certs/signing_key.x509"
+    local _hash_algo
+    _hash_algo=$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_config}" 2>/dev/null \
+      || echo sha256)
+
+    if [[ ! -r "${_sign_key}" ]] || [[ ! -r "${_sign_cert}" ]]; then
+      echo ":: nvidia-sign-modules: skipped ${_kernel}: signing key not readable"
+      continue
+    fi
+
+    local _changed=0
+
+    while IFS= read -r -d '' _mod; do
+      _sign_module "${_mod}" "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}"
+      _changed=1
+      _signed_any=1
+    done < <(find "/usr/lib/modules/${_kernel}" -type f \
+      \( -name 'nvidia*.ko' -o -name 'nvidia*.ko.xz' -o -name 'nvidia*.ko.gz' \) \
+      -print0)
+
+    if (( _changed )); then
+      depmod "${_kernel}"
+    fi
+  done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type d -name build -print0)
+
+  if (( _signed_any == 0 )); then
+    echo ":: nvidia-sign-modules: skipped — no installed NVIDIA modules found"
+  fi
+}
+
+main() {
+  case "${1:-}" in
+    --sign)
+      _sign_generic_kmods
+      ;;
+    "")
+      _sign_arch_kmods
+      ;;
+    *)
+      echo "Usage: nvidia-sign-modules [--sign]" >&2
+      echo "  no args: Arch kernel-key signing" >&2
+      echo "  --sign : generic installed-module MOK signing" >&2
+      return 1
+      ;;
+  esac
+}
+
+main "$@"
+
+# vim: set ft=sh ts=2 sw=2 et:

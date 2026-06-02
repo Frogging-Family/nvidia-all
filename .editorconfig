@@ -1,0 +1,24 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[PKGBUILD]
+shell_variant = bash
+
+[*.sh]
+shell_variant = bash
+
+[*.install]
+shell_variant = bash
+
+[nvidia-all-config/{prepare,install-common,module-signing}]
+shell_variant = bash
+
+[nvidia-all-patches/{patchwork,patches.list}]
+shell_variant = bash

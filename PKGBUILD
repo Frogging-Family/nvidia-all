@@ -200,7 +200,7 @@ nvidia-egl-wayland-tkg() {
   cd "${_pkg}"
 
   local _eglwver
-  _eglwver=$(_nv_so_egl_ver "libnvidia-egl-wayland.so.*.*.*")
+  _eglwver=$(_eglw_so_ver "libnvidia-egl-wayland.so.*.*.*")
   pkgdesc="NVIDIA EGL Wayland library (libnvidia-egl-wayland.so.${_eglwver}) for 'nvidia-utils-tkg'"
 
   _install_egl_wayland
@@ -367,14 +367,14 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     done
 
     # Force module to load even on unsupported GPUs
-    mkdir -p "$pkgdir"/usr/lib/modprobe.d
-    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "$pkgdir"/usr/lib/modprobe.d/${pkgname}-gpus.conf
+    mkdir -p "${pkgdir}/usr/lib/modprobe.d"
+    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}-gpus.conf"
 
-    install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname
+    install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}"
 
     if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
       if [[ "${_module_signing:-false}" = "true" ]]; then
-        install -Dm755 "${_where}/nvidia-all-config/nvidia-sign-modules" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+        install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
@@ -405,15 +405,14 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
 
     # Enable nvidia-uvm autoload at boot
     if [[ "${_blacklist_nouveau}" != "false" ]]; then
-      echo "nvidia-uvm" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
+      echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
     else
       msg2 "Skipping nvidia-uvm autoload due to user config"
     fi
 
     if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
       if [[ "${_module_signing:-false}" = "true" ]]; then
-        install -Dm755 "${_where}/nvidia-all-config/nvidia-sign-modules" "${pkgdir}/usr/lib/nvidia-tkg/sign-modules"
+        install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"

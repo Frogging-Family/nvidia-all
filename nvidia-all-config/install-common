@@ -1,7 +1,9 @@
 # Shared install functions sourced by both install.sh and PKGBUILD.
 
 # Detect version string from a shared-library filename glob.
-_nv_so_egl_ver() { ls "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1 || true; }
+_eglw_so_ver() { ls "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1; }
+_sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse|debian|ubuntu)$ ]]; }
+_sys_pkg_rpm() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse)$ ]]; }
 
 # _install_utils – core utilities and libraries
 _install_utils() {
@@ -409,8 +411,8 @@ _install_lib32_utils() {
   install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
   install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
 
-  # egl-xlib/xcb: skip when explicitly disabled, or on Fedora/Suse (system egl-x11 RPM covers it)
-  if [[ "${_eglx11:-external}" != "false" ]] && [[ ! "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse)$ ]]; then
+  # egl-xlib/xcb: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle only on Arch.
+  if ! _sys_pkg_all && [[ "${_eglx11:-external}" != "false" ]]; then
     if [[ -e libnvidia-egl-xlib.so.1 ]]; then
       install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
     elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
@@ -471,109 +473,85 @@ _install_lib32_utils() {
 # _install_egl_wayland – EGL Wayland + GBM platform libraries
 _install_egl_wayland() {
   local _eglwver _eglwver2
-  _eglwver=$(_nv_so_egl_ver  "libnvidia-egl-wayland.so.*.*.*")
-  _eglwver2=$(_nv_so_egl_ver "libnvidia-egl-wayland2.so.*.*.*")
+  _eglwver=$(_eglw_so_ver "libnvidia-egl-wayland.so.*.*.*")
+  _eglwver2=$(_eglw_so_ver "libnvidia-egl-wayland2.so.*.*.*")
 
-  # wayland1: Fedora/Suse provide egl-wayland RPM; Debian/Ubuntu libnvidia-egl-wayland1 — only bundle on Arch.
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse|debian|ubuntu) ;;
-    *)
-      if [[ -n "${_eglwver}" ]] && [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
-        install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.${_eglwver}"
-        ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.1"
-        ln -s "libnvidia-egl-wayland.so.1" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so"
-      fi
-      if [[ -e 10_nvidia_wayland.json ]]; then
-        install -Dm644 "10_nvidia_wayland.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json"
-      fi
-      ;;
-  esac
+  # wayland1: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle otherwise.
+  if ! _sys_pkg_all; then
+    if [[ -n "${_eglwver}" ]] && [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
+      install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.${_eglwver}"
+      ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.1"
+      ln -s "libnvidia-egl-wayland.so.1" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so"
+    fi
+    if [[ -e 10_nvidia_wayland.json ]]; then
+      install -Dm644 "10_nvidia_wayland.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json"
+    fi
+  fi
 
-  # wayland2 (driver >= 590): Fedora/Suse provide egl-wayland2 RPM — only bundle on other targets.
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse) ;;
-    *)
-      if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
-        install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}"
-        ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.1"
-        ln -s "libnvidia-egl-wayland2.so.1" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so"
-      fi
-      if [[ -e 99_nvidia_wayland2.json ]]; then
-        install -Dm644 "99_nvidia_wayland2.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json"
-      fi
-      ;;
-  esac
+  # wayland2 (driver >= 590): use Fedora/Suse packages; bundle on Debian/Ubuntu if present.
+  if ! _sys_pkg_rpm; then
+    if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
+      install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}"
+      ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.1"
+      ln -s "libnvidia-egl-wayland2.so.1" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so"
+    fi
+    if [[ -e 99_nvidia_wayland2.json ]]; then
+      install -Dm644 "99_nvidia_wayland2.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json"
+    fi
+  fi
 
-  # gbm: only when bundled (_eglgbm=true, Arch); Fedora/Suse/Debian/Ubuntu use system packages.
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse|debian|ubuntu) ;;
-    *)
-      if [[ "${_eglgbm:-external}" = "true" ]]; then
-        local _eglgver
-        _eglgver=$(_nv_so_egl_ver "libnvidia-egl-gbm.so.*.*.*")
-        if [[ -n "${_eglgver:-}" ]] && [[ -e "libnvidia-egl-gbm.so.${_eglgver}" ]]; then
-          install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.${_eglgver}"
-          ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.1"
-          ln -s "libnvidia-egl-gbm.so.1" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so"
-        fi
-        if [[ -e 15_nvidia_gbm.json ]]; then
-          install -Dm644 "15_nvidia_gbm.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json"
-        fi
-      fi
-      ;;
-  esac
+  # gbm: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle on Arch and others.
+  if ! _sys_pkg_all; then
+    local _eglgver
+    _eglgver=$(_eglw_so_ver "libnvidia-egl-gbm.so.*.*.*")
+    if [[ -n "${_eglgver:-}" ]] && [[ -e "libnvidia-egl-gbm.so.${_eglgver}" ]]; then
+      install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.${_eglgver}"
+      ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so.1"
+      ln -s "libnvidia-egl-gbm.so.1" "${pkgdir}/usr/lib/libnvidia-egl-gbm.so"
+    fi
+    if [[ -e 15_nvidia_gbm.json ]]; then
+      install -Dm644 "15_nvidia_gbm.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/15_nvidia_gbm.json"
+    fi
+  fi
 }
 
 # _install_lib32_egl_wayland – 32-bit EGL Wayland + GBM platform libraries
 _install_lib32_egl_wayland() {
   local _eglwver _eglwver2
-  _eglwver=$(_nv_so_egl_ver  "libnvidia-egl-wayland.so.*.*.*")
-  _eglwver2=$(_nv_so_egl_ver "libnvidia-egl-wayland2.so.*.*.*")
+  _eglwver=$(_eglw_so_ver  "libnvidia-egl-wayland.so.*.*.*")
+  _eglwver2=$(_eglw_so_ver "libnvidia-egl-wayland2.so.*.*.*")
 
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse|debian|ubuntu) ;;
-    *)
-      if [[ -n "${_eglwver}" ]] && [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
-        install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.${_eglwver}"
-        ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.1"
-        ln -s "libnvidia-egl-wayland.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so"
-      fi
-      ;;
-  esac
+  if ! _sys_pkg_all; then
+    if [[ -n "${_eglwver}" ]] && [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
+      install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.${_eglwver}"
+      ln -s "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so.1"
+      ln -s "libnvidia-egl-wayland.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-wayland.so"
+    fi
+  fi
 
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse) ;;
-    *)
-      if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
-        install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.${_eglwver2}"
-        ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.1"
-        ln -s "libnvidia-egl-wayland2.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so"
-      fi
-      ;;
-  esac
+  if ! _sys_pkg_rpm; then
+    if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
+      install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.${_eglwver2}"
+      ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so.1"
+      ln -s "libnvidia-egl-wayland2.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-wayland2.so"
+    fi
+  fi
 
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse|debian|ubuntu) ;;
-    *)
-      if [[ "${_eglgbm:-external}" = "true" ]]; then
-        local _eglgver
-        _eglgver=$(_nv_so_egl_ver "libnvidia-egl-gbm.so.*.*.*")
-        if [[ -n "${_eglgver:-}" ]] && [[ -e "libnvidia-egl-gbm.so.${_eglgver}" ]]; then
-          install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.${_eglgver}"
-          ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.1"
-          ln -s "libnvidia-egl-gbm.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so"
-        fi
-      fi
-      ;;
-  esac
+  if ! _sys_pkg_all; then
+    local _eglgver
+    _eglgver=$(_eglw_so_ver "libnvidia-egl-gbm.so.*.*.*")
+    if [[ -n "${_eglgver:-}" ]] && [[ -e "libnvidia-egl-gbm.so.${_eglgver}" ]]; then
+      install -Dm755 "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.${_eglgver}"
+      ln -s "libnvidia-egl-gbm.so.${_eglgver}" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so.1"
+      ln -s "libnvidia-egl-gbm.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-gbm.so"
+    fi
+  fi
 }
 
 # _install_egl_x11 – EGL X11 platform libraries
 _install_egl_x11() {
+  _sys_pkg_all && return 0
   [[ "${_eglx11:-external}" = "false" ]] && return 0
-  case "${_NV_PKG_TARGET:-}" in
-    fedora|suse) return 0 ;;
-  esac
 
   # egl-xlib
   if [[ -e libnvidia-egl-xlib.so.1 ]]; then
