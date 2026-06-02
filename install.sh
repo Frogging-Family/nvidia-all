@@ -609,7 +609,7 @@ _meta_nvidia_dkms() {
   _NV_META[nvidia-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-dkms-tkg_replaces_deb]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
   _NV_META[nvidia-dkms-tkg_conflicts_rpm]="nvidia-dkms, nvidia-open-dkms, kmod-nvidia, akmod-nvidia, akmod-nvidia-open"
-  _NV_META[nvidia-dkms-tkg_obsoletes_rpm]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-dkms-tkg_obsoletes_rpm]="nvidia-open-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
 
   _NV_META[nvidia-open-dkms-tkg_desc]="NVIDIA open kernel module sources (DKMS)"
   _NV_META[nvidia-open-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
@@ -619,7 +619,7 @@ _meta_nvidia_dkms() {
   _NV_META[nvidia-open-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-open-dkms-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
   _NV_META[nvidia-open-dkms-tkg_conflicts_rpm]="nvidia-dkms, nvidia-open-dkms, kmod-nvidia, akmod-nvidia, akmod-nvidia-open"
-  _NV_META[nvidia-open-dkms-tkg_obsoletes_rpm]="nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-open-dkms-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
 }
 
 _meta_nvidia_kmod() {
@@ -632,7 +632,7 @@ _meta_nvidia_kmod() {
   _NV_META[nvidia-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-open-tkg"
   _NV_META[nvidia-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-open-tkg"
   _NV_META[nvidia-tkg_conflicts_rpm]="nvidia, nvidia-dkms, kmod-nvidia, nvidia-open, nvidia-open-kmod, akmod-nvidia, akmod-nvidia-open"
-  _NV_META[nvidia-tkg_obsoletes_rpm]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-open-dkms-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
 
   _NV_META[nvidia-open-tkg_desc]="NVIDIA open kernel modules (prebuilt)"
   _NV_META[nvidia-open-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
@@ -642,7 +642,7 @@ _meta_nvidia_kmod() {
   _NV_META[nvidia-open-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg"
   _NV_META[nvidia-open-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-tkg"
   _NV_META[nvidia-open-tkg_conflicts_rpm]="nvidia, nvidia-dkms, kmod-nvidia, nvidia-kmod, nvidia-open, akmod-nvidia, akmod-nvidia-open"
-  _NV_META[nvidia-open-tkg_obsoletes_rpm]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-tkg"
+  _NV_META[nvidia-open-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-open-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}"
 }
 
 _meta_opencl() {
