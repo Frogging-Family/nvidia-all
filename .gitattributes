@@ -1,0 +1,10 @@
+PKGBUILD                                             linguist-language=Shell
+
+*.install                                            linguist-language=Shell
+
+nvidia-all-config/prepare                            linguist-language=Shell
+nvidia-all-config/install-common                     linguist-language=Shell
+nvidia-all-config/module-signing                     linguist-language=Shell
+
+nvidia-all-patches/patchwork                         linguist-language=Shell
+nvidia-all-patches/patches.list                      linguist-language=Shell

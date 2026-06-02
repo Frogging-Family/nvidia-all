@@ -184,7 +184,7 @@ _distro_prompt() {
 }
 _distro_prompt
 
-# Package targets disallow building/installing DKMS and prebuilt module variants together.
+# Package targets disallow building/installing DKMS and prebuilt module variants together
 if [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu|fedora|suse)$ ]] && [[ "${_dkms:-false}" == "full" ]]; then
   error "_dkms=full is not supported on ${_NV_PKG_TARGET}. Choose exactly one module variant: _dkms=true (DKMS) or _dkms=false (prebuilt)."
   exit 1
@@ -194,10 +194,7 @@ fi
 _install_dependencies() {
   msg2 "Installing build dependencies for ${_NV_PKG_TARGET}..."
   local -a _kernels
-  local _utils_only="${_build_utils_package_only:-false}"
-  if [[ "${_utils_only}" != "true" ]]; then
-    mapfile -t _kernels < <(_detect_kernels)
-  fi
+  mapfile -t _kernels < <(_detect_kernels)
 
   case "${_NV_PKG_TARGET}" in
     debian|ubuntu)
@@ -210,40 +207,28 @@ _install_dependencies() {
 
       local _kver
       for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install "linux-headers-${_kver}"
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "linux-headers-${_kver}"
       done
 
-      if [[ "${_utils_only}" != "true" ]]; then
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install dkms build-essential gcc-multilib dwarves libarchive-tools patchelf libglvnd-dev libvulkan-dev curl pciutils mokutil
-      else
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install gcc-multilib dwarves libarchive-tools patchelf libglvnd-dev libvulkan-dev curl pciutils mokutil
-      fi
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y dkms build-essential gcc-multilib dwarves libarchive-tools patchelf libglvnd-dev libvulkan-dev curl pciutils mokutil
       ;;
 
     fedora)
       local _kver
       for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
-        sudo dnf install "kernel-devel-${_kver}"
+        sudo dnf install -y "kernel-devel-${_kver}"
       done
 
-      if [[ "${_utils_only}" != "true" ]]; then
-        sudo dnf install kernel-headers dkms gcc gcc-c++ make bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      else
-        sudo dnf install bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      fi
+      sudo dnf install -y kernel-headers dkms gcc gcc-c++ make bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
       ;;
 
     suse)
       local _kver
       for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
-        sudo zypper install "kernel-devel-${_kver}"
+        sudo zypper install -y "kernel-devel-${_kver}"
       done
 
-      if [[ "${_utils_only}" != "true" ]]; then
-        sudo zypper install dkms gcc gcc-c++ make libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      else
-        sudo zypper install libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      fi
+      sudo zypper install -y dkms gcc gcc-c++ make libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
       ;;
     *)
       error "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported."
@@ -274,6 +259,12 @@ _install_mode() {
   fi
   msg2 "Package format: ${PKG_FORMAT}"
 
+  # _build_utils_package_only is an Arch/PKGBUILD-only
+  if [[ "${_build_utils_package_only:-false}" == "true" ]]; then
+    msg2 "_build_utils_package_only ignored for ${PKG_FORMAT} package builds — forcing false."
+    _build_utils_package_only="false"
+  fi
+
   local _deb=false _rpm=false
   ( command -v dpkg-deb &>/dev/null && command -v fakeroot &>/dev/null ) && _deb=true
   command -v rpmbuild &>/dev/null && _rpm=true
@@ -298,7 +289,7 @@ _install_mode() {
 }
 _install_mode
 
-# Relocate ELF shared libraries to the distribution-canonical library prefix.
+# Relocate ELF shared libraries to the distribution-canonical library prefix
 _relocate_elfs() {
   local _pkgdir="$1"
   local _lib="${_pkgdir}/usr/lib"
@@ -306,12 +297,12 @@ _relocate_elfs() {
 
   case "${_NV_PKG_TARGET:-}" in
     fedora)
-      # 64-bit ELF: usr/lib → usr/lib64
+      # 64-bit ELF
       local _lib64="${_pkgdir}/usr/lib64"
       if [[ -d "${_lib}" ]]; then
         mkdir -p "${_lib64}"
         # Move ELF-containing subdirectories
-        # non-ELF config dirs remain in usr/lib.
+        # non-ELF config dirs remain in usr/lib
         local _dir
         for _dir in gbm nvidia vdpau xorg tls; do
           [[ -d "${_lib}/${_dir}" ]] && mv "${_lib}/${_dir}" "${_lib64}/"
@@ -321,7 +312,7 @@ _relocate_elfs() {
           -exec mv {} "${_lib64}/" \;
       fi
 
-      # 32-bit ELF: usr/lib32 → usr/lib.
+      # 32-bit ELF
       if [[ -d "${_lib32}" ]]; then
         mkdir -p "${_lib}"
         cp -a "${_lib32}/." "${_lib}/"
@@ -330,7 +321,7 @@ _relocate_elfs() {
       ;;
 
     debian|ubuntu)
-      # 64-bit ELF: usr/lib → usr/lib/x86_64-linux-gnu.
+      # 64-bit ELF
       local _libma="${_pkgdir}/usr/lib/x86_64-linux-gnu"
       if [[ -d "${_lib}" ]]; then
         mkdir -p "${_libma}"
@@ -344,7 +335,7 @@ _relocate_elfs() {
           -exec mv {} "${_libma}/" \;
       fi
 
-      # 32-bit ELF: usr/lib32 → usr/lib/i386-linux-gnu.
+      # 32-bit ELF
       if [[ -d "${_lib32}" ]]; then
         local _libma32="${_pkgdir}/usr/lib/i386-linux-gnu"
         mkdir -p "${_libma32}"
@@ -363,8 +354,8 @@ _relocate_elfs() {
 _stage_utils() {
   cd "${srcdir}/${_pkg}"
   _install_utils
-  _install_egl_wayland # only on .deb targets
-  _install_egl_x11 # only on .deb targets
+  _install_egl_wayland # target-gated in install-common
+  _install_egl_x11 # target-gated in install-common
   _relocate_elfs "${pkgdir}"
 }
 
@@ -372,7 +363,7 @@ _stage_utils() {
 _stage_lib32_utils() {
   cd "${srcdir}/${_pkg}/32"
   _install_lib32_utils
-  _install_lib32_egl_wayland # only on .deb targets
+  _install_lib32_egl_wayland # target-gated in install-common
   _relocate_elfs "${pkgdir}"
 }
 
@@ -397,64 +388,13 @@ _stage_settings() {
   _relocate_elfs "${pkgdir}"
 }
 
-# Staging the DKMS source tree for the DKMS package variant.
-_stage_dkms() {
-  local _dkms_src
+# Debian/Ubuntu initramfs-tools staging
+_stage_initramfs() {
+  printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
+    install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
 
-  # Open-source DKMS modules.
-  if [[ "${_open_source_modules:-}" = "true" ]]; then
-    _dkms_src="${srcdir}/open-gpu-kernel-modules-dkms"
-
-    install -dm755 "${pkgdir}/usr/src"
-    cp -dr --no-preserve='ownership' "${_dkms_src}" "${pkgdir}/usr/src/nvidia-${pkgver}"
-    mv "${pkgdir}/usr/src/nvidia-${pkgver}/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-${pkgver}/dkms.conf"
-
-    # Force module to load even on unsupported GPUs
-    mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
-       install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
-
-    # Debian for early KMS support.
-    if [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-      printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia.conf"
-    fi
-
-    install -Dm644 "${_dkms_src}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
-  # Closed-source DKMS modules.
-  else
-    _dkms_src="${srcdir}/${_pkg}/kernel-dkms"
-
-    install -dm755 "${pkgdir}/usr/src"
-    cp -dr --no-preserve='ownership' "${_dkms_src}" "${pkgdir}/usr/src/nvidia-${pkgver}"
-
-    install -Dm644 "${srcdir}/${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
-  fi
-
-  # Enable nvidia-uvm autoload at boot
-  if [[ "${_blacklist_nouveau}" != "false" ]]; then
-    echo "nvidia-uvm" |
-      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia-uvm.conf"
-  else
-    msg2 "Skipping nvidia-uvm autoload due to user config"
-  fi
-
-  # Configure dracut for nvidia kernel modules.
-  if command -v dracut &>/dev/null; then
-    if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
-      echo 'omit_drivers+=" nvidia nvidia-modeset nvidia-uvm nvidia-drm "' | \
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    else
-      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-dracut.conf" "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    fi
-  elif [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-    # Debian for early KMS support.
-    printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-      install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
-
-    # initramfs hook: embeds DKMS modules from the build directory into the image.
-    install -dm755 "${pkgdir}/usr/share/initramfs-tools/hooks"
-    cat > "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg" <<'HOOK'
+  install -dm755 "${pkgdir}/usr/share/initramfs-tools/hooks"
+  cat > "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg" <<'HOOK'
 #!/bin/sh
 PREREQ=""
 prereqs() { echo "$PREREQ"; }
@@ -466,15 +406,31 @@ for mod in nvidia nvidia-modeset nvidia-uvm nvidia-drm; do
   manual_add_modules "$mod" || true
 done
 HOOK
-    chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
+  chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
+}
+
+# Autoload nvidia modules at boot
+_stage_modules_load() {
+  printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
+    install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia.conf"
+}
+
+# Autoload nvidia-uvm at boot
+_stage_uvm_load() {
+  if [[ "${_blacklist_nouveau}" != "false" ]]; then
+    echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia-uvm.conf"
+  else
+    msg2 "Skipping nvidia-uvm autoload due to user config"
   fi
 }
 
-# This function is used for the non-DKMS package variant, where we stage precompiled kernel modules directly.
+# This function is used for the non-DKMS package variant, where we stage precompiled kernel modules directly
 _stage_kmod() {
   local -a _kernels
   mapfile -t _kernels < <(_detect_kernels)
   local _kernel
+
+  install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
 
   for _kernel in "${_kernels[@]}"; do
     msg2 "Staging kernel modules for ${_kernel}..."
@@ -491,32 +447,23 @@ _stage_kmod() {
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
-      # Early KMS autoload for prebuilt package variant.
+      # Early KMS autoload for prebuilt package variant
       if [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-        printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia.conf"
+        _stage_modules_load
       fi
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
 
       # Enable nvidia-uvm autoload at boot
-      if [[ "${_blacklist_nouveau}" != "false" ]]; then
-        echo "nvidia-uvm" |
-          install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia-uvm.conf"
-      else
-        msg2 "Skipping nvidia-uvm autoload due to user config"
-      fi
+      _stage_uvm_load
     fi
 
-    # Sign modules for Secure Boot.
-    bash "${_where}/nvidia-all-config/nvidia-sign-modules" --mok-stage \
-      "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
     find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec gzip -n {} + 2>/dev/null || \
       find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
   done
 
-  # Configure dracut for nvidia kernel modules.
+  # Configure dracut for nvidia kernel modules
   if command -v dracut &>/dev/null; then
     if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
       echo 'force_drivers+=" nvidia nvidia-modeset nvidia-uvm nvidia-drm "' | \
@@ -525,24 +472,65 @@ _stage_kmod() {
       install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-dracut.conf" "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
     fi
   elif [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-    printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-      install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
+    _stage_initramfs
+  fi
+}
 
-    # initramfs hook: embeds DKMS modules from the build directory into the image.
-    install -dm755 "${pkgdir}/usr/share/initramfs-tools/hooks"
-    cat > "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg" <<'HOOK'
-#!/bin/sh
-PREREQ=""
-prereqs() { echo "$PREREQ"; }
-case $1 in
-prereqs) prereqs; exit 0 ;;
-esac
-. /usr/share/initramfs-tools/hook-functions
-for mod in nvidia nvidia-modeset nvidia-uvm nvidia-drm; do
-  manual_add_modules "$mod" || true
-done
-HOOK
-    chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
+# Staging the DKMS source tree for the DKMS package variant
+_stage_dkms() {
+  local _dkms_src
+  local _source_conf _dkms_name _dkms_version _dkms_dest
+
+  # Open-source DKMS modules.
+  if [[ "${_open_source_modules:-}" = "true" ]]; then
+    _dkms_src="${srcdir}/open-gpu-kernel-modules-dkms"
+    _source_conf="${_dkms_src}/kernel-open/dkms.conf"
+    _dkms_name="$(_dkms_conf_value "${_source_conf}" PACKAGE_NAME "nvidia")"
+    _dkms_version="$(_dkms_conf_value "${_source_conf}" PACKAGE_VERSION "${pkgver}")"
+    _dkms_dest="${pkgdir}/usr/src/${_dkms_name}-${_dkms_version}"
+
+    install -dm755 "${pkgdir}/usr/src"
+    cp -dr --no-preserve='ownership' "${_dkms_src}" "${_dkms_dest}"
+    mv "${_dkms_dest}/kernel-open/dkms.conf" "${_dkms_dest}/dkms.conf"
+
+    # Force module to load even on unsupported GPUs
+    mkdir -p "${pkgdir}/usr/lib/modprobe.d"
+    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
+       install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
+
+    # Debian for early KMS support.
+    if [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
+      _stage_modules_load
+    fi
+
+    install -Dm644 "${_dkms_src}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+  # Closed-source DKMS modules
+  else
+    _dkms_src="${srcdir}/${_pkg}/kernel-dkms"
+    _source_conf="${_dkms_src}/dkms.conf"
+    _dkms_name="$(_dkms_conf_value "${_source_conf}" PACKAGE_NAME "nvidia")"
+    _dkms_version="$(_dkms_conf_value "${_source_conf}" PACKAGE_VERSION "${pkgver}")"
+    _dkms_dest="${pkgdir}/usr/src/${_dkms_name}-${_dkms_version}"
+
+    install -dm755 "${pkgdir}/usr/src"
+    cp -dr --no-preserve='ownership' "${_dkms_src}" "${_dkms_dest}"
+
+    install -Dm644 "${srcdir}/${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  fi
+
+  # Enable nvidia-uvm autoload at boot
+  _stage_uvm_load
+
+  # Configure dracut for nvidia kernel modules
+  if command -v dracut &>/dev/null; then
+    if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
+      echo 'omit_drivers+=" nvidia nvidia-modeset nvidia-uvm nvidia-drm "' | \
+        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
+    else
+      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-dracut.conf" "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
+    fi
+  elif [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
+    _stage_initramfs
   fi
 }
 
@@ -569,36 +557,54 @@ _stage_package() {
   esac
 }
 
+# Read a shell assignment from a dkms.conf file without sourcing it
+_dkms_conf_value() {
+  local _conf="$1" _key="$2" _default="${3:-}" _value
+  _value=$(sed -nE "s/^${_key}=\"?([^\"#]+)\"?.*/\\1/p" "${_conf}" 2>/dev/null | head -n1)
+  printf '%s' "${_value:-${_default}}"
+}
+
+_staged_dkms_conf() {
+  local _stagedir="$1"
+  find "${_stagedir}/usr/src" -mindepth 2 -maxdepth 2 -name dkms.conf -print -quit 2>/dev/null
+}
+
+_staged_dkms_name() {
+  local _stagedir="$1" _conf
+  _conf="$(_staged_dkms_conf "${_stagedir}")"
+  _dkms_conf_value "${_conf}" PACKAGE_NAME "nvidia"
+}
+
 # package metadata
 declare -A _NV_META
 
 _meta_nvidia_utils() {
   local _epoch="$1"
   _NV_META[nvidia-utils-tkg_desc]="NVIDIA driver utilities and libraries"
-  _NV_META[nvidia-utils-tkg_depends_deb]="libglvnd0, libgl1-mesa-glx | libgl1, libvulkan1"
+  _NV_META[nvidia-utils-tkg_depends_deb]="libc6, libglvnd0, libgl1-mesa-glx | libgl1, libvulkan1, libx11-6, libxext6, libwayland-client0"
   _NV_META[nvidia-utils-tkg_depends_rpm]="libglvnd >= 1.3, mesa-libGL, vulkan-loader"
   _NV_META[nvidia-utils-tkg_provides_deb]="nvidia-utils (= ${pkgver}), libgl1-nvidia-glvnd-glx, nvidia-libgl, vulkan-driver, opengl-driver"
   _NV_META[nvidia-utils-tkg_provides_rpm]="nvidia-utils = ${pkgver}, nvidia-libgl, vulkan-driver, opengl-driver"
-  _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx"
+  _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, nvidia-vulkan-icd"
   _NV_META[nvidia-utils-tkg_conflicts_rpm]="nvidia-utils, xorg-x11-drv-nvidia, xorg-x11-drv-nvidia-libs, xorg-x11-drv-nvidia-470xx, xorg-x11-drv-nvidia-580xx, nvidia-modprobe, nvidia-persistenced"
-  _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx"
+  _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, nvidia-vulkan-icd"
 
   _NV_META[lib32-nvidia-utils-tkg_desc]="NVIDIA driver utilities and libraries (32-bit)"
   _NV_META[lib32-nvidia-utils-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), gcc-multilib, libglvnd0:i386, libvulkan1:i386, libnvidia-egl-wayland1:i386"
   _NV_META[lib32-nvidia-utils-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, glibc(x86-32), libglvnd(x86-32)"
   _NV_META[lib32-nvidia-utils-tkg_provides_deb]="lib32-nvidia-utils (= ${pkgver}), lib32-nvidia-libgl, lib32-vulkan-driver, lib32-opengl-driver"
   _NV_META[lib32-nvidia-utils-tkg_provides_rpm]="lib32-nvidia-utils = ${pkgver}"
-  _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl"
+  _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386"
   _NV_META[lib32-nvidia-utils-tkg_conflicts_rpm]="lib32-nvidia-utils, xorg-x11-drv-nvidia-libs-i686, xorg-x11-drv-nvidia-470xx-libs"
-  _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl"
+  _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386"
 }
 
 _meta_nvidia_dkms() {
   local _epoch="$1"
   _NV_META[nvidia-dkms-tkg_desc]="NVIDIA kernel module sources (DKMS)"
-  _NV_META[nvidia-dkms-tkg_depends_deb]="dkms, nvidia-utils-tkg (= ${pkgver}), pahole"
+  _NV_META[nvidia-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
   _NV_META[nvidia-dkms-tkg_depends_rpm]="dkms, nvidia-utils-tkg = ${_epoch}, dwarves"
-  _NV_META[nvidia-dkms-tkg_provides_deb]="nvidia-kernel-dkms (= ${pkgver}), nvidia-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
+  _NV_META[nvidia-dkms-tkg_provides_deb]="nvidia-kernel-dkms (= ${pkgver}), nvidia-kernel-${pkgver}, nvidia-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
   _NV_META[nvidia-dkms-tkg_provides_rpm]="nvidia-dkms = ${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-dkms-tkg_replaces_deb]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
@@ -606,9 +612,9 @@ _meta_nvidia_dkms() {
   _NV_META[nvidia-dkms-tkg_obsoletes_rpm]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
 
   _NV_META[nvidia-open-dkms-tkg_desc]="NVIDIA open kernel module sources (DKMS)"
-  _NV_META[nvidia-open-dkms-tkg_depends_deb]="dkms, nvidia-utils-tkg (= ${pkgver}), pahole"
+  _NV_META[nvidia-open-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
   _NV_META[nvidia-open-dkms-tkg_depends_rpm]="dkms, nvidia-utils-tkg = ${_epoch}, dwarves"
-  _NV_META[nvidia-open-dkms-tkg_provides_deb]="nvidia-open-kernel-dkms (= ${pkgver}), nvidia-open-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
+  _NV_META[nvidia-open-dkms-tkg_provides_deb]="nvidia-open-kernel-dkms (= ${pkgver}), nvidia-open-kernel-${pkgver}, nvidia-open-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
   _NV_META[nvidia-open-dkms-tkg_provides_rpm]="nvidia-open-dkms = ${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-open-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-open-dkms-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
@@ -621,7 +627,7 @@ _meta_nvidia_kmod() {
   _NV_META[nvidia-tkg_desc]="NVIDIA kernel modules (prebuilt)"
   _NV_META[nvidia-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
   _NV_META[nvidia-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, libglvnd"
-  _NV_META[nvidia-tkg_provides_deb]="nvidia (= ${pkgver}), NVIDIA-MODULE"
+  _NV_META[nvidia-tkg_provides_deb]="nvidia (= ${pkgver}), nvidia-kernel-${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-tkg_provides_rpm]="nvidia = ${pkgver}, NVIDIA-MODULE, kmod-nvidia"
   _NV_META[nvidia-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-open-tkg"
   _NV_META[nvidia-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-open-tkg"
@@ -631,7 +637,7 @@ _meta_nvidia_kmod() {
   _NV_META[nvidia-open-tkg_desc]="NVIDIA open kernel modules (prebuilt)"
   _NV_META[nvidia-open-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
   _NV_META[nvidia-open-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, libglvnd"
-  _NV_META[nvidia-open-tkg_provides_deb]="nvidia-open (= ${pkgver}), NVIDIA-MODULE"
+  _NV_META[nvidia-open-tkg_provides_deb]="nvidia-open (= ${pkgver}), nvidia-open-kernel-${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-open-tkg_provides_rpm]="nvidia-open = ${pkgver}, NVIDIA-MODULE, kmod-nvidia"
   _NV_META[nvidia-open-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg"
   _NV_META[nvidia-open-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-tkg"
@@ -661,10 +667,10 @@ _meta_opencl() {
 _meta_nvidia_settings() {
   local _epoch="$1"
   _NV_META[nvidia-settings-tkg_desc]="NVIDIA GPU configuration tool"
-  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libjansson4"
-  _NV_META[nvidia-settings-tkg_recommends_deb]="libgtk-3-0 | libgtk-3-0t64, libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
-  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, jansson"
-  _NV_META[nvidia-settings-tkg_suggests_rpm]="gtk3, libXv, libvdpau"
+  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1"
+  _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
+  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, wayland"
+  _NV_META[nvidia-settings-tkg_suggests_rpm]="libXv, libvdpau"
   _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
   _NV_META[nvidia-settings-tkg_provides_rpm]="nvidia-settings = ${pkgver}"
   _NV_META[nvidia-settings-tkg_conflicts_deb]="nvidia-settings"
@@ -681,14 +687,22 @@ _build_metadata() {
   _meta_opencl
   _meta_nvidia_settings "${_rpm_pkgver_epoch}"
 
-  # Fedora-specific metadata tuning based on available runtime package names.
+  if (( ${pkgver%%.*} >= 465 )); then
+    _NV_META[nvidia-utils-tkg_provides_deb]+=", firmware-nvidia-gsp (= ${pkgver}), firmware-nvidia-gsp-${pkgver}"
+    _NV_META[nvidia-utils-tkg_conflicts_deb]+=", firmware-nvidia-gsp, firmware-nvidia-gsp-${pkgver}"
+    _NV_META[nvidia-utils-tkg_replaces_deb]+=", firmware-nvidia-gsp, firmware-nvidia-gsp-${pkgver}"
+    _NV_META[nvidia-utils-tkg_provides_rpm]+=", firmware-nvidia-gsp = ${pkgver}"
+    _NV_META[nvidia-utils-tkg_conflicts_rpm]+=", firmware-nvidia-gsp"
+  fi
+
+  # Fedora-specific metadata tuning based on available runtime package names
   if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
     _NV_META[nvidia-utils-tkg_depends_rpm]+=", pciutils, which, egl-wayland, egl-wayland2, egl-gbm, egl-x11"
+    _NV_META[lib32-nvidia-utils-tkg_depends_rpm]+=", egl-wayland(x86-32), egl-wayland2(x86-32), egl-gbm(x86-32), egl-x11(x86-32)"
     _NV_META[nvidia-utils-tkg_suggests_rpm]="acpica-tools, vulkan-tools"
     _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, opencl-filesystem, libOpenCL.so.1()(64bit)"
 
-    # libxnvctrl: bundled inside nvidia-settings-tkg ("true") or expected
-    # as a system RPM ("external"); "false" means compiled without support.
+    # libxnvctrl
     if [[ "${_nvsettings:-false}" == "true" ]]; then
       case "${_libxnvctrl:-external}" in
         true)
@@ -702,11 +716,12 @@ _build_metadata() {
     fi
   fi
 
-  # detect Ubuntu-style versioned NVIDIA packages
+  # detect .deb versioned NVIDIA packages
   if command -v dpkg &>/dev/null && [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu)$ ]]; then
     if (( ${pkgver%%.*} >= 470 )); then
-      # Debian/Ubuntu consume egl-gbm from distro.
-      _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1, libnvidia-egl-gbm1"
+      # EGL libraries from distro packages
+      _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1, libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
+      _NV_META[lib32-nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
     fi
 
     # libxnvctrl
@@ -738,7 +753,7 @@ _build_metadata() {
     for _entry in "${_cr_map[@]}"; do
       _pat="${_entry%%:*}"
       _key="${_entry##*:}"
-      _pkgs=$(dpkg -l "${_pat}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ' || true)
+      _pkgs=$(dpkg -l "${_pat}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')
       if [[ -n "${_pkgs}" ]]; then
         _NV_META[${_key}_conflicts_deb]+=", ${_pkgs}"
         _NV_META[${_key}_replaces_deb]+=", ${_pkgs}"
@@ -747,7 +762,7 @@ _build_metadata() {
 
     # Special case two packages, no replaces
     local _u_nvdkms_open
-    _u_nvdkms_open=$(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ' || true)
+    _u_nvdkms_open=$(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')
     if [[ -n "${_u_nvdkms_open}" ]]; then
       _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", ${_u_nvdkms_open}"
       _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", ${_u_nvdkms_open}"
@@ -773,13 +788,25 @@ _build_pkg_list() {
   echo "${_list[@]}"
 }
 
+_append_secure_boot_postinst_snippet() {
+  local _script="$1"
+  cat >> "${_script}" <<'POSTINST'
+if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
+  if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
+    /usr/lib/nvidia-tkg/module-signing --sign || true
+  else
+    echo "WARNING: Secure Boot is active but the NVIDIA module signing helper is missing." >&2
+  fi
+fi
+POSTINST
+}
+
 _deb_postinst() {
   local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
 
   if [[ "${_mode}" == "dkms" ]]; then
     local _nv_dkms_name
-    _nv_dkms_name=$(grep -Po 'PACKAGE_NAME="\K[^"]+' \
-      "${_stagedir}/usr/src/nvidia-${pkgver}/dkms.conf" 2>/dev/null || echo "nvidia")
+    _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
     cat > "${_debdir}/DEBIAN/postinst" <<POSTINST
 #!/bin/sh
 set -e
@@ -795,11 +822,13 @@ case "\$1" in
     fi
     postinst_found=0
     # Prefer Debian/Ubuntu standard DKMS helper
-    if [ -f /usr/lib/dkms/common.postinst ]; then
-      _ARCH="\$(dpkg --print-architecture 2>/dev/null | sed 's/amd64/x86_64/;s/i386/i686/')"
-      /usr/lib/dkms/common.postinst "\$DKMS_NAME" "\$DKMS_VERSION" "" "\$_ARCH" "\$2"
-      postinst_found=1
-    fi
+    for DKMS_POSTINST in /usr/lib/dkms/common.postinst /usr/share/\$DKMS_PACKAGE_NAME/postinst; do
+      if [ -f "\$DKMS_POSTINST" ]; then
+        "\$DKMS_POSTINST" "\$DKMS_NAME" "\$DKMS_VERSION" "/usr/share/\$DKMS_PACKAGE_NAME" "" "\$2"
+        postinst_found=1
+        break
+      fi
+    done
     if [ "\$postinst_found" -eq 0 ]; then
       # Manual DKMS steps if common.postinst is missing.
       echo "WARNING: /usr/lib/dkms/common.postinst not found — using manual DKMS fallback." >&2
@@ -834,6 +863,7 @@ for moddir in /lib/modules/*; do
   depmod -a "$kver" 2>/dev/null || true
 done
 POSTINST
+    _append_secure_boot_postinst_snippet "${_debdir}/DEBIAN/postinst"
   fi
 
   if [[ "${_mode}" == "kmod" || "${_mode}" == "initramfs" ]]; then
@@ -858,8 +888,7 @@ _deb_prerm() {
   case "${_mode}" in
     dkms)
       local _nv_dkms_name
-      _nv_dkms_name=$(grep -Po 'PACKAGE_NAME="\K[^"]+' \
-        "${_stagedir}/usr/src/nvidia-${pkgver}/dkms.conf" 2>/dev/null || echo "nvidia")
+      _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
       cat > "${_debdir}/DEBIAN/prerm" <<PRERM
 #!/bin/sh
 set -e
@@ -1024,12 +1053,11 @@ cp -a ${_stagedir}/. %{buildroot}/
 
 SPEC
 
-  # DKMS packages need dkms add/build/install in %post and dkms remove in %preun.
-  # All other packages only need ldconfig + depmod.
+  # DKMS packages need dkms add/build/install in %post and dkms remove in %preun
+  # All other packages only need ldconfig + depmod
   if [[ "${_pkgname}" == *dkms* ]]; then
     local _nv_dkms_name
-    _nv_dkms_name=$(grep -Po 'PACKAGE_NAME="\K[^"]+' \
-      "${_stagedir}/usr/src/nvidia-${pkgver}/dkms.conf" 2>/dev/null || echo "nvidia")
+    _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
     cat >> "${_specfile}" <<SPEC
 %post
 if command -v dkms >/dev/null 2>&1; then
@@ -1049,6 +1077,10 @@ SPEC
     if [[ "${_is_fedora}" == true ]]; then
       cat >> "${_specfile}" <<SPEC
 %posttrans
+if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
+  echo 'WARNING: Fedora Secure Boot with nvidia-all DKMS uses DKMS MOK signing, not RPM Fusion akmods signing.' >&2
+  echo 'WARNING: Ensure the DKMS MOK public key is enrolled after DKMS generates it.' >&2
+fi
 if [ "\${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
   grubby --update-kernel=ALL --remove-args='nomodeset' --args='${_dracutopts}' >/dev/null 2>&1 || true
 fi
@@ -1097,6 +1129,9 @@ for moddir in /lib/modules/*; do
     depmod -a "\$kver" || true
   fi
 done
+SPEC
+    _append_secure_boot_postinst_snippet "${_specfile}"
+    cat >> "${_specfile}" <<SPEC
 if command -v dracut >/dev/null 2>&1; then
   dracut --force 2>/dev/null || true
 fi
@@ -1159,7 +1194,7 @@ SPEC
 %files
 SPEC
 
-  # %files list: one path per line, appended directly under the %files header.
+  # %files list: one path per line, appended directly under the %files header
   find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_specfile}"
 
   # Minimal %changelog entry to suppress the Fedora RPM macro warning.
@@ -1225,7 +1260,7 @@ msg2 "Packages from current run:"
 printf '  %s\n' "${_built_pkg_files[@]}"
 plain ""
 
-# Shared helper: check and enroll the MOK signing key if Secure Boot is active.
+# Shared helper: check and enroll the MOK signing key if Secure Boot is active
 _enroll_mok_if_needed() {
   if ! command -v mokutil &>/dev/null; then
     warning "Secure Boot is active, but mokutil is not installed. Cannot verify or enroll the MOK key."
@@ -1236,9 +1271,16 @@ _enroll_mok_if_needed() {
   mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled' || return 0
   msg2 "Secure Boot is active — checking MOK key enrollment..."
 
-  _mok_pub=""
-  [[ -f /var/lib/dkms/mok.pub ]] && _mok_pub="/var/lib/dkms/mok.pub"
-  [[ -z "${_mok_pub}" && -f /var/lib/nvidia-all/mok/mok.der ]] && _mok_pub="/var/lib/nvidia-all/mok/mok.der"
+  local _mok_pub="" _candidate
+  for _candidate in \
+    /var/lib/dkms/mok.pub \
+    /var/lib/shim-signed/mok/MOK.der \
+    /var/lib/nvidia-all/mok/mok.der; do
+    if [[ -f "${_candidate}" ]]; then
+      _mok_pub="${_candidate}"
+      break
+    fi
+  done
 
   if [[ -n "${_mok_pub}" ]]; then
     if ! mokutil --test-key "${_mok_pub}" 2>/dev/null | grep -qi 'already enrolled'; then
@@ -1254,6 +1296,8 @@ _enroll_mok_if_needed() {
     warning "Secure Boot is active but no MOK key found."
     warning "After building/installing DKMS, run:"
     warning "  sudo mokutil --import /var/lib/dkms/mok.pub"
+    warning "or, on Ubuntu systems:"
+    warning "  sudo mokutil --import /var/lib/shim-signed/mok/MOK.der"
   fi
 }
 
