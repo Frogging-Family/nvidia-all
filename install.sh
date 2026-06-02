@@ -670,7 +670,7 @@ _meta_nvidia_settings() {
   _NV_META[nvidia-settings-tkg_desc]="NVIDIA GPU configuration tool"
   _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1"
   _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
-  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, wayland"
+  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit)"
   _NV_META[nvidia-settings-tkg_suggests_rpm]="libXv, libvdpau"
   _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
   _NV_META[nvidia-settings-tkg_provides_rpm]="nvidia-settings = ${pkgver}"
