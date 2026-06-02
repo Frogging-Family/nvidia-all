@@ -555,7 +555,7 @@ _nv_download() {
     _url="${_source_name}"
   fi
   msg2 "Downloading ${_filename}..."
-  curl -Lfo "${srcdir}/${_filename}" "${_url}"
+  curl -Lfo "${srcdir}/${_filename}" --retry 5 --retry-delay 3 --continue-at - "${_url}"
 
   if [[ "${_open_source_modules:-}" = "true" && -n "${_source_open:-}" ]]; then
     local _open_file _open_url
@@ -567,7 +567,7 @@ _nv_download() {
       _open_url="${_source_open}"
     fi
     msg2 "Downloading ${_open_file}..."
-    curl -Lfo "${srcdir}/${_open_file}" "${_open_url}"
+    curl -Lfo "${srcdir}/${_open_file}" --retry 5 --retry-delay 3 --continue-at - "${_open_url}"
     bsdtar -xf "${srcdir}/${_open_file}" -C "$srcdir"
   fi
 
@@ -581,7 +581,7 @@ _nv_download() {
       _lx_url="${_source_libxnvctrl}"
     fi
     msg2 "Downloading ${_lx_file}..."
-    curl -Lfo "${srcdir}/${_lx_file}" "${_lx_url}"
+    curl -Lfo "${srcdir}/${_lx_file}" --retry 5 --retry-delay 3 --continue-at - "${_lx_url}"
     bsdtar -xf "${srcdir}/${_lx_file}" -C "${srcdir}"
   fi
 }

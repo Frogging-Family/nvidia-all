@@ -26,7 +26,7 @@ _where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
-trap _exit_cleanup EXIT
+trap _exit_cleanup EXIT SIGTERM SIGHUP SIGINT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
@@ -400,7 +400,8 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       fi
-      find "$pkgdir" -name '*.ko' -exec gzip -n {} +
+      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec gzip -n {} + 2>/dev/null || \
+        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
     done
 
     # Enable nvidia-uvm autoload at boot

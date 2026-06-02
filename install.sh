@@ -68,7 +68,8 @@ for _required in "${_where}/customization.cfg" "${_where}/nvidia-all-config/prep
 done
 
 source "${_where}/nvidia-all-config/prepare"
-trap _exit_cleanup EXIT
+source "${_where}/nvidia-all-config/install-common"
+trap _exit_cleanup EXIT SIGTERM SIGHUP SIGINT
 
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
   _nv_reset_logs
