@@ -69,33 +69,33 @@ done
 
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
-trap _exit_cleanup EXIT SIGTERM SIGHUP SIGINT
+trap _exit_cleanup EXIT
 
+# Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
   _nv_reset_logs
   aggregate_user_config
   echo "_where=\"${_where}\"" >> "${_where}/BIG_UGLY_FROGMINER"
 
   source "${_where}/BIG_UGLY_FROGMINER"
-
-  # curl + bsdtar are needed by _nv_initscript
-  if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
-    if command -v apt-get &>/dev/null; then
-      apt-get install -q curl libarchive-tools
-    elif command -v dnf &>/dev/null; then
-      dnf install curl bsdtar
-    elif command -v zypper &>/dev/null; then
-      zypper install curl libarchive-tools
-    else
-      error "curl/bsdtar not found and no known package manager to install them."
-      exit 1
-    fi
-  fi
-
   _nv_initscript
 fi
 
 source "${_where}/BIG_UGLY_FROGMINER"
+
+# curl + bsdtar are needed by _nv_initscript
+if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
+  if command -v apt-get &>/dev/null; then
+    apt-get install -q curl libarchive-tools
+  elif command -v dnf &>/dev/null; then
+    dnf install curl bsdtar
+  elif command -v zypper &>/dev/null; then
+    zypper install curl libarchive-tools
+  else
+    error "curl/bsdtar not found and no known package manager to install them."
+    exit 1
+  fi
+fi
 
 if which script &> /dev/null && [[ "${_logging_use_script:-}" =~ ^(Y|y|Yes|yes|true|1)$ && -z "${SCRIPT:-}" ]]; then
   export SCRIPT=1
@@ -680,7 +680,7 @@ _meta_nvidia_settings() {
 }
 
 _build_metadata() {
-  local _rpm_pkgver_epoch="3:${pkgver}"
+  local _rpm_pkgver_epoch="300:${pkgver}"
 
   _meta_nvidia_utils "${_rpm_pkgver_epoch}"
   _meta_nvidia_dkms "${_rpm_pkgver_epoch}"
@@ -952,7 +952,9 @@ POSTRM
 _deb_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
   local _debdir="${_outdir}/${_pkgname}_${pkgver}_amd64"
+  local _packlog="${_where}/logs/prepare.log.txt"
   mkdir -p "${_debdir}/DEBIAN"
+  mkdir -p "${_where}/logs"
   cp -a "${_stagedir}/." "${_debdir}/"
   local _inst_size
   _inst_size=$(du -sk "${_stagedir}" | cut -f1)
@@ -988,7 +990,13 @@ EOF
   _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
   _deb_postrm "${_debdir}"
 
-  fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+  {
+    echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
+    fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+  } >> "${_packlog}" 2>&1 || {
+    error "Packaging failed for ${_pkgname}. See ${_packlog}"
+    return 1
+  }
   rm -rf "${_debdir}"
   msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
 }
@@ -1010,8 +1018,10 @@ _rpm_spec_field() {
 _rpm_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
   local _specfile="${_outdir}/${_pkgname}.spec"
+  local _packlog="${_where}/logs/prepare.log.txt"
   local _is_fedora=false
   local _dracutopts="rd.driver.blacklist=nouveau,nova_core,nova_drm modprobe.blacklist=nouveau,nova_core,nova_drm"
+  mkdir -p "${_where}/logs"
   if (( ${pkgver%%.*} >= 470 && ${pkgver%%.*} < 580 )); then
     _dracutopts+=" nvidia-drm.modeset=1"
     if (( ${pkgver%%.*} >= 520 )); then
@@ -1023,19 +1033,15 @@ _rpm_builder() {
 
   cat > "${_specfile}" <<SPEC
 Name: ${_pkgname}
-Epoch: 3
+Epoch: 300
 Version: ${pkgver}
 Release: 1%{?dist}
 Summary: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
 License: custom:NVIDIA
 URL: https://github.com/Frogging-Family/nvidia-all
 AutoReqProv: no
+BuildArch: x86_64
 SPEC
-
-  # Suppress the architecture-mismatch check that would otherwise terminate the build.
-  if [[ "${_pkgname}" == lib32-* ]]; then
-    echo "%define __arch_install_post %{nil}" >> "${_specfile}"
-  fi
 
   _rpm_spec_field "${_specfile}" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"
   _rpm_spec_field "${_specfile}" Provides "${_NV_META[${_pkgname}_provides_rpm]:-}"
@@ -1206,14 +1212,20 @@ SPEC
     echo "- Automated build of NVIDIA ${pkgver}"
   } >> "${_specfile}"
 
-  rpmbuild -bb \
-    --define "_rpmdir ${_outdir}" \
-    --define "_build_name_fmt ${_pkgname}-${pkgver}-1.x86_64.rpm" \
-    --define "debug_package %{nil}" \
-    --define "__os_install_post %{nil}" \
-    --define "_build_id_links none" \
-    --define "_unpackaged_files_terminate_build 0" \
-    "${_specfile}"
+  {
+    echo "[PACKAGING] rpmbuild: ${_pkgname} ${pkgver}"
+    rpmbuild -bb \
+      --define "_rpmdir ${_outdir}" \
+      --define "_build_name_fmt ${_pkgname}-${pkgver}-1.x86_64.rpm" \
+      --define "debug_package %{nil}" \
+      --define "__os_install_post %{nil}" \
+      --define "_build_id_links none" \
+      --define "_unpackaged_files_terminate_build 0" \
+      "${_specfile}"
+  } >> "${_packlog}" 2>&1 || {
+    error "Packaging failed for ${_pkgname}. See ${_packlog}"
+    return 1
+  }
   msg2 "Built: ${_outdir}/${_pkgname}-${pkgver}-1.x86_64.rpm"
 }
 

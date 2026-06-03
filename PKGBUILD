@@ -26,7 +26,7 @@ _where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
-trap _exit_cleanup EXIT SIGTERM SIGHUP SIGINT
+trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
@@ -145,8 +145,6 @@ if [[ -n "${_source_libxnvctrl:-}" ]]; then
   source+=("${_source_libxnvctrl}")
   md5sums+=('SKIP')
 fi
-
-# _create_links, _detect_kernels, _build_flags are defined in prepare
 
 prepare() {
   source "${_where}/BIG_UGLY_FROGMINER"
