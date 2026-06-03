@@ -24,7 +24,7 @@ _find_sign_file() {
 }
 
 _sign_module() {
-  local _mod="$1" _sign_file="$2" _hash_algo="$3" _sign_key="$4" _sign_cert="$5" _root_mode="${6:-false}"
+  local _mod="$1" _file="$2" _hash_algo="$3" _key="$4" _cert="$5" _root_mode="${6:-false}"
   local _plain_mod="${_mod}" _compression=""
   local -a _run=()
 
@@ -45,7 +45,7 @@ _sign_module() {
       ;;
   esac
 
-  "${_run[@]}" "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}" "${_plain_mod}"
+  "${_run[@]}" "${_file}" "${_hash_algo}" "${_key}" "${_cert}" "${_plain_mod}"
 
   case "${_compression}" in
     xz) "${_run[@]}" xz -f "${_plain_mod}" ;;
@@ -63,7 +63,7 @@ _sign_generic_kmods() {
     return 0
   }
 
-  local _mok_key _mok_der _sign_file
+  local _mok_key _mok_der _file
   if [[ -f /var/lib/dkms/mok.key && -f /var/lib/dkms/mok.pub ]]; then
     _mok_key="/var/lib/dkms/mok.key"
     _mok_der="/var/lib/dkms/mok.pub"
@@ -96,8 +96,8 @@ _sign_generic_kmods() {
     [[ -f /var/lib/dkms/mok.pub ]] || _runas_root cp "${_mok_der}" /var/lib/dkms/mok.pub
   fi
 
-  _sign_file="$(_find_sign_file)"
-  if [[ -z "${_sign_file}" ]]; then
+  _file="$(_find_sign_file)"
+  if [[ -z "${_file}" ]]; then
     echo ":: nvidia-sign-modules: sign-file not found — install kernel-devel/linux-kbuild and retry." >&2
     return 1
   fi
@@ -117,7 +117,7 @@ _sign_generic_kmods() {
 
   if ((${#_module_roots[@]})); then
     while IFS= read -r -d '' _mod; do
-      _sign_module "${_mod}" "${_sign_file}" sha256 "${_mok_key}" "${_mok_der}" true
+      _sign_module "${_mod}" "${_file}" sha256 "${_mok_key}" "${_mok_der}" true
       _signed_any=1
     done < <(find "${_module_roots[@]}" -type f \
       \( -name 'nvidia*.ko' -o -name 'nvidia*.ko.xz' -o -name 'nvidia*.ko.gz' \) \
@@ -136,24 +136,24 @@ _sign_arch_kmods() {
   while IFS= read -r -d '' _kbuild; do
     local _kernel="${_kbuild%/build}"
     _kernel="${_kernel##*/}"
-    local _sign_file="${_kbuild}/scripts/sign-file"
+    local _file="${_kbuild}/scripts/sign-file"
     local _config="${_kbuild}/.config"
 
-    if [[ ! -x "${_sign_file}" ]] || [[ ! -r "${_config}" ]]; then
+    if [[ ! -x "${_file}" ]] || [[ ! -r "${_config}" ]]; then
       echo ":: nvidia-sign-modules: skipped ${_kernel}: build metadata missing"
       continue
     fi
 
-    local _sign_key
-    _sign_key=$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_config}" 2>/dev/null || true)
-    [[ -n "${_sign_key}" ]] || _sign_key="certs/signing_key.pem"
-    [[ "${_sign_key}" =~ ^/ ]] || _sign_key="${_kbuild}/${_sign_key}"
-    local _sign_cert="${_kbuild}/certs/signing_key.x509"
+    local _key
+    _key=$(grep -Po 'CONFIG_MODULE_SIG_KEY="\K[^"]*' "${_config}" 2>/dev/null || true)
+    [[ -n "${_key}" ]] || _key="certs/signing_key.pem"
+    [[ "${_key}" =~ ^/ ]] || _key="${_kbuild}/${_key}"
+    local _cert="${_kbuild}/certs/signing_key.x509"
     local _hash_algo
     _hash_algo=$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_config}" 2>/dev/null \
       || echo sha256)
 
-    if [[ ! -r "${_sign_key}" ]] || [[ ! -r "${_sign_cert}" ]]; then
+    if [[ ! -r "${_key}" ]] || [[ ! -r "${_cert}" ]]; then
       echo ":: nvidia-sign-modules: skipped ${_kernel}: signing key not readable"
       continue
     fi
@@ -161,7 +161,7 @@ _sign_arch_kmods() {
     local _changed=0
 
     while IFS= read -r -d '' _mod; do
-      _sign_module "${_mod}" "${_sign_file}" "${_hash_algo}" "${_sign_key}" "${_sign_cert}"
+      _sign_module "${_mod}" "${_file}" "${_hash_algo}" "${_key}" "${_cert}"
       _changed=1
       _signed_any=1
     done < <(find "/usr/lib/modules/${_kernel}" -type f \
