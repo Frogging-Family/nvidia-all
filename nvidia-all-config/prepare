@@ -110,6 +110,7 @@ _prompt_from_array() {
   local _natural_index=$((_selected_index + 1))
   _selected_value="${!_natural_index}"
   plain "Selected: ${_selected_value}"
+  plain ""
 }
 
 # Interactive prompts for configurable NVIDIA options
@@ -599,8 +600,11 @@ aggregate_user_config() {
     _EXT_CONFIG_PATH="${_raw/#\~/$HOME}"
   fi
 
-  [[ -f "${_EXT_CONFIG_PATH}" ]] && \
+  if [[ -f "${_EXT_CONFIG_PATH}" ]]; then
     msg2 "External configuration file ${_EXT_CONFIG_PATH} will be used and will override customization.cfg values."
+  else
+    msg2 "External configuration file ${_EXT_CONFIG_PATH} not found; using customization.cfg only."
+  fi
 
   # Collect valid cfg keys to filter env overrides against
   local -A _keys=()
@@ -1372,6 +1376,7 @@ _exit_cleanup() {
     fi
   fi
 
+  plain "\n"
   msg2 'exit cleanup done\n'
   if [ -n "${_runtime}" ]; then
     msg2 "compilation time: ${_runtime}"
