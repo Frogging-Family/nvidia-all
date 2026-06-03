@@ -325,11 +325,14 @@ _install_utils() {
   if [[ "${_modprobe}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters..."
     install -Dm644 "${_where}/nvidia-all-config/system/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+    # NVreg_UsePageAttributeTable was removed in driver 610
+    if (( ${pkgver%%.*} < 610 )); then
+      echo "options nvidia NVreg_UsePageAttributeTable=1" >> "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+    fi
   fi
-
   if [[ "${_modprobe_mobile}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-modprobe-mobile.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe-mobile.conf"
+    echo "options nvidia NVreg_DynamicPowerManagement=0x02" >> "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
   fi
 
   # Install nvidia-patch from https://github.com/keylase/nvidia-patch
