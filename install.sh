@@ -143,25 +143,24 @@ _distro_prompt() {
   esac
 
   msg2 "Which Linux distribution are you running?"
-  local _detected_label
-  local _default_index
+  local _label
   case "${_NV_DISTRO_FAMILY}" in
     arch)
-      _default_index=0 ; _detected_label="Arch" ;;
+      _label="Arch" ;;
     debian)
       case "${_NV_DISTRO_ID:-}" in
         ubuntu|linuxmint|pop|elementary|zorin)
-          _default_index=2 ; _detected_label="Ubuntu" ;;
+          _label="Ubuntu" ;;
         *)
-          _default_index=1 ; _detected_label="Debian" ;;
+          _label="Debian" ;;
       esac
       ;;
     fedora)
-      _default_index=3 ; _detected_label="Fedora" ;;
+      _label="Fedora" ;;
     suse)
-      _default_index=4 ; _detected_label="Suse" ;;
+      _label="Suse" ;;
   esac
-  msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_detected_label}"
+  msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
   _prompt_from_array "Arch" "Debian" "Ubuntu" "Fedora" "Suse"
   case "${_selected_value}" in
     "Arch")
@@ -213,7 +212,6 @@ _install_dependencies() {
 
       sudo DEBIAN_FRONTEND=noninteractive apt-get install -y dkms build-essential gcc-multilib dwarves libarchive-tools patchelf libglvnd-dev libvulkan-dev curl pciutils mokutil
       ;;
-
     fedora)
       local _kver
       for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
@@ -222,7 +220,6 @@ _install_dependencies() {
 
       sudo dnf install -y kernel-headers dkms gcc gcc-c++ make bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
       ;;
-
     suse)
       local _kver
       for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
@@ -293,55 +290,50 @@ _install_mode
 # Relocate ELF shared libraries to the distribution-canonical library prefix
 _relocate_elfs() {
   local _pkgdir="$1"
-  local _lib="${_pkgdir}/usr/lib"
-  local _lib32="${_pkgdir}/usr/lib32"
 
   case "${_NV_PKG_TARGET:-}" in
     fedora)
       # 64-bit ELF
-      local _lib64="${_pkgdir}/usr/lib64"
-      if [[ -d "${_lib}" ]]; then
-        mkdir -p "${_lib64}"
+      if [[ -d "${_pkgdir}/usr/lib" ]]; then
+        mkdir -p "${_pkgdir}/usr/lib64"
         # Move ELF-containing subdirectories
         # non-ELF config dirs remain in usr/lib
         local _dir
         for _dir in gbm nvidia vdpau xorg tls; do
-          [[ -d "${_lib}/${_dir}" ]] && mv "${_lib}/${_dir}" "${_lib64}/"
+          [[ -d "${_pkgdir}/usr/lib/${_dir}" ]] && mv "${_pkgdir}/usr/lib/${_dir}" "${_pkgdir}/usr/lib64/"
         done
         # Move root-level shared libraries (.so / .so.N / .so.N.N.N …).
-        find "${_lib}" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
-          -exec mv {} "${_lib64}/" \;
+        find "${_pkgdir}/usr/lib" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
+          -exec mv {} "${_pkgdir}/usr/lib64/" \;
       fi
 
       # 32-bit ELF
-      if [[ -d "${_lib32}" ]]; then
-        mkdir -p "${_lib}"
-        cp -a "${_lib32}/." "${_lib}/"
-        rm -rf "${_lib32}"
+      if [[ -d "${_pkgdir}/usr/lib32" ]]; then
+        mkdir -p "${_pkgdir}/usr/lib"
+        cp -a "${_pkgdir}/usr/lib32/." "${_pkgdir}/usr/lib/"
+        rm -rf "${_pkgdir}/usr/lib32"
       fi
       ;;
 
     debian|ubuntu)
       # 64-bit ELF
-      local _libma="${_pkgdir}/usr/lib/x86_64-linux-gnu"
-      if [[ -d "${_lib}" ]]; then
-        mkdir -p "${_libma}"
+      if [[ -d "${_pkgdir}/usr/lib" ]]; then
+        mkdir -p "${_pkgdir}/usr/lib/x86_64-linux-gnu"
         # Move ELF-containing subdirectories
         local _dir
         for _dir in gbm vdpau tls; do
-          [[ -d "${_lib}/${_dir}" ]] && mv "${_lib}/${_dir}" "${_libma}/"
+          [[ -d "${_pkgdir}/usr/lib/${_dir}" ]] && mv "${_pkgdir}/usr/lib/${_dir}" "${_pkgdir}/usr/lib/x86_64-linux-gnu/"
         done
         # Move root-level shared libraries (.so / .so.N / .so.N.N.N …).
-        find "${_lib}" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
-          -exec mv {} "${_libma}/" \;
+        find "${_pkgdir}/usr/lib" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
+          -exec mv {} "${_pkgdir}/usr/lib/x86_64-linux-gnu/" \;
       fi
 
       # 32-bit ELF
-      if [[ -d "${_lib32}" ]]; then
-        local _libma32="${_pkgdir}/usr/lib/i386-linux-gnu"
-        mkdir -p "${_libma32}"
-        cp -a "${_lib32}/." "${_libma32}/"
-        rm -rf "${_lib32}"
+      if [[ -d "${_pkgdir}/usr/lib32" ]]; then
+        mkdir -p "${_pkgdir}/usr/lib/i386-linux-gnu"
+        cp -a "${_pkgdir}/usr/lib32/." "${_pkgdir}/usr/lib/i386-linux-gnu/"
+        rm -rf "${_pkgdir}/usr/lib32"
       fi
       ;;
 
@@ -438,10 +430,9 @@ _stage_kmod() {
 
     # Open-source modules.
     if [[ "${_open_source_modules:-}" = "true" ]]; then
-      local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
-      [[ -d "${_open_kmods_dir}" ]] || { error "Missing open kmods for ${_kernel}"; return 1; }
+      [[ -d "${srcdir}/open-kmods/${_kernel}" ]] || { error "Missing open kmods for ${_kernel}"; return 1; }
 
-      install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${_open_kmods_dir}"/*.ko
+      install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${srcdir}/open-kmods/${_kernel}"/*.ko
 
       # Force module to load even on unsupported GPUs
       mkdir -p "${pkgdir}/usr/lib/modprobe.d"
@@ -460,8 +451,7 @@ _stage_kmod() {
       _stage_uvm_load
     fi
 
-    find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec gzip -n {} + 2>/dev/null || \
-      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
+    find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
   done
 
   # Configure dracut for nvidia kernel modules
@@ -479,20 +469,14 @@ _stage_kmod() {
 
 # Staging the DKMS source tree for the DKMS package variant
 _stage_dkms() {
-  local _dkms_src
-  local _source_conf _dkms_name _dkms_version _dkms_dest
-
   # Open-source DKMS modules.
   if [[ "${_open_source_modules:-}" = "true" ]]; then
-    _dkms_src="${srcdir}/open-gpu-kernel-modules-dkms"
-    _source_conf="${_dkms_src}/kernel-open/dkms.conf"
-    _dkms_name="$(_dkms_conf_value "${_source_conf}" PACKAGE_NAME "nvidia")"
-    _dkms_version="$(_dkms_conf_value "${_source_conf}" PACKAGE_VERSION "${pkgver}")"
-    _dkms_dest="${pkgdir}/usr/src/${_dkms_name}-${_dkms_version}"
-
     install -dm755 "${pkgdir}/usr/src"
-    cp -dr --no-preserve='ownership' "${_dkms_src}" "${_dkms_dest}"
-    mv "${_dkms_dest}/kernel-open/dkms.conf" "${_dkms_dest}/dkms.conf"
+    cp -dr --no-preserve='ownership' "${srcdir}/open-gpu-kernel-modules-dkms" \
+      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")"
+    mv \
+      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")/kernel-open/dkms.conf" \
+      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")/dkms.conf"
 
     # Force module to load even on unsupported GPUs
     mkdir -p "${pkgdir}/usr/lib/modprobe.d"
@@ -504,17 +488,12 @@ _stage_dkms() {
       _stage_modules_load
     fi
 
-    install -Dm644 "${_dkms_src}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+    install -Dm644 "${srcdir}/open-gpu-kernel-modules-dkms/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
   # Closed-source DKMS modules
   else
-    _dkms_src="${srcdir}/${_pkg}/kernel-dkms"
-    _source_conf="${_dkms_src}/dkms.conf"
-    _dkms_name="$(_dkms_conf_value "${_source_conf}" PACKAGE_NAME "nvidia")"
-    _dkms_version="$(_dkms_conf_value "${_source_conf}" PACKAGE_VERSION "${pkgver}")"
-    _dkms_dest="${pkgdir}/usr/src/${_dkms_name}-${_dkms_version}"
-
     install -dm755 "${pkgdir}/usr/src"
-    cp -dr --no-preserve='ownership' "${_dkms_src}" "${_dkms_dest}"
+    cp -dr --no-preserve='ownership' "${srcdir}/${_pkg}/kernel-dkms" \
+      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/${_pkg}/kernel-dkms/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/${_pkg}/kernel-dkms/dkms.conf" PACKAGE_VERSION "${pkgver}")"
 
     install -Dm644 "${srcdir}/${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   fi
@@ -537,16 +516,14 @@ _stage_dkms() {
 
 # main staging function
 _stage_package() {
-  local _pkgname="$1" _stagedir="$2"
-  pkgdir="${_stagedir}"
-  pkgname="${_pkgname}"
+  pkgdir="$2"
+  pkgname="$1"
 
-  export pkgdir
   source "${_where}/BIG_UGLY_FROGMINER"
   source "${_where}/nvidia-all-config/prepare"
   source "${_where}/nvidia-all-config/install-common"
 
-  case "${_pkgname}" in
+  case "${pkgname}" in
     nvidia-dkms-tkg|nvidia-open-dkms-tkg) _stage_dkms ;;
     nvidia-utils-tkg) _stage_utils ;;
     opencl-nvidia-tkg) [[ "${_opencl:-true}" == "true" ]] && _stage_opencl ;;
@@ -554,7 +531,7 @@ _stage_package() {
     lib32-nvidia-utils-tkg) [[ "${_lib32:-true}" == "true" ]] && _stage_lib32_utils ;;
     lib32-opencl-nvidia-tkg) [[ "${_opencl:-true}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_opencl ;;
     nvidia-tkg|nvidia-open-tkg) _stage_kmod ;;
-    *) warning "No staging function for ${_pkgname} — skipping." ;;
+    *) warning "No staging function for ${pkgname} — skipping." ;;
   esac
 }
 
@@ -566,14 +543,11 @@ _dkms_conf_value() {
 }
 
 _staged_dkms_conf() {
-  local _stagedir="$1"
-  find "${_stagedir}/usr/src" -mindepth 2 -maxdepth 2 -name dkms.conf -print -quit 2>/dev/null
+  find "$1/usr/src" -mindepth 2 -maxdepth 2 -name dkms.conf -print -quit 2>/dev/null
 }
 
 _staged_dkms_name() {
-  local _stagedir="$1" _conf
-  _conf="$(_staged_dkms_conf "${_stagedir}")"
-  _dkms_conf_value "${_conf}" PACKAGE_NAME "nvidia"
+  _dkms_conf_value "$(_staged_dkms_conf "$1")" PACKAGE_NAME "nvidia"
 }
 
 # package metadata
@@ -646,7 +620,7 @@ _meta_nvidia_kmod() {
   _NV_META[nvidia-open-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-open-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}"
 }
 
-_meta_opencl() {
+_meta_nvidia_opencl() {
   _NV_META[opencl-nvidia-tkg_desc]="NVIDIA OpenCL implementation"
   _NV_META[opencl-nvidia-tkg_depends_deb]="zlib1g, nvidia-utils-tkg (= ${pkgver})"
   _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, (ocl-icd or OpenCL-ICD-Loader)"
@@ -685,7 +659,7 @@ _build_metadata() {
   _meta_nvidia_utils "${_rpm_pkgver_epoch}"
   _meta_nvidia_dkms "${_rpm_pkgver_epoch}"
   _meta_nvidia_kmod "${_rpm_pkgver_epoch}"
-  _meta_opencl
+  _meta_nvidia_opencl
   _meta_nvidia_settings "${_rpm_pkgver_epoch}"
 
   if (( ${pkgver%%.*} >= 465 )); then
@@ -758,23 +732,17 @@ _build_metadata() {
       'xserver-xorg-video-nvidia-[0-9]*:nvidia-utils-tkg'
     )
 
-    local _entry _pat _key _pkgs
     for _entry in "${_cr_map[@]}"; do
-      _pat="${_entry%%:*}"
-      _key="${_entry##*:}"
-      _pkgs=$(dpkg -l "${_pat}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')
-      if [[ -n "${_pkgs}" ]]; then
-        _NV_META[${_key}_conflicts_deb]+=", ${_pkgs}"
-        _NV_META[${_key}_replaces_deb]+=", ${_pkgs}"
+      if [[ -n "$(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')" ]]; then
+        _NV_META[${_entry##*:}_conflicts_deb]+=", $(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
+        _NV_META[${_entry##*:}_replaces_deb]+=", $(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
       fi
     done
 
     # Special case two packages, no replaces
-    local _u_nvdkms_open
-    _u_nvdkms_open=$(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')
-    if [[ -n "${_u_nvdkms_open}" ]]; then
-      _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", ${_u_nvdkms_open}"
-      _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", ${_u_nvdkms_open}"
+    if [[ -n "$(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')" ]]; then
+      _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", $(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
+      _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", $(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
     fi
   fi
 }
@@ -798,8 +766,7 @@ _build_pkg_list() {
 }
 
 _append_secure_boot_postinst_snippet() {
-  local _script="$1"
-  cat >> "${_script}" <<'POSTINST'
+  cat >> "$1" <<'POSTINST'
 if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
   if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
     /usr/lib/nvidia-tkg/module-signing --sign || true
@@ -959,31 +926,23 @@ POSTRM
 # .deb builder
 _deb_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
-  local _debdir="${_outdir}/${_pkgname}_${pkgver}_amd64"
-  local _packlog="${_where}/logs/prepare.log.txt"
-  mkdir -p "${_debdir}/DEBIAN"
+
+  mkdir -p "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
   mkdir -p "${_where}/logs"
-  cp -a "${_stagedir}/." "${_debdir}/"
-  local _inst_size
-  _inst_size=$(du -sk "${_stagedir}" | cut -f1)
-  cat > "${_debdir}/DEBIAN/control" <<EOF
+  cp -a "${_stagedir}/." "${_outdir}/${_pkgname}_${pkgver}_amd64/"
+  cat > "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control" <<EOF
 Package: ${_pkgname}
 Version: ${pkgver}
 Architecture: amd64
 Maintainer: nvidia-all-tkg <https://github.com/Frogging-Family/nvidia-all>
-Installed-Size: ${_inst_size}
+Installed-Size: $(du -sk "${_stagedir}" | cut -f1)
 Description: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
 EOF
-  local _deps="${_NV_META[${_pkgname}_depends_deb]:-}"
-  [[ -n "${_deps}" ]] && echo "Depends: ${_deps}" >> "${_debdir}/DEBIAN/control"
-  local _recs="${_NV_META[${_pkgname}_recommends_deb]:-}"
-  [[ -n "${_recs}" ]] && echo "Recommends: ${_recs}" >> "${_debdir}/DEBIAN/control"
-  local _prov="${_NV_META[${_pkgname}_provides_deb]:-}"
-  [[ -n "${_prov}" ]] && echo "Provides: ${_prov}" >> "${_debdir}/DEBIAN/control"
-  local _conf="${_NV_META[${_pkgname}_conflicts_deb]:-}"
-  [[ -n "${_conf}" ]] && echo "Conflicts: ${_conf}" >> "${_debdir}/DEBIAN/control"
-  local _repl="${_NV_META[${_pkgname}_replaces_deb]:-}"
-  [[ -n "${_repl}" ]] && echo "Replaces: ${_repl}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
 
   local _mode=""
   if [[ "${_pkgname}" == *dkms* ]]; then
@@ -994,24 +953,25 @@ EOF
     _mode=initramfs
   fi
 
-  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
-  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
-  _deb_postrm "${_debdir}"
+  _deb_postinst "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}" "${_pkgname}"
+  _deb_prerm "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}"
+  _deb_postrm "${_outdir}/${_pkgname}_${pkgver}_amd64"
 
   {
     echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
-    fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
-  } >> "${_packlog}" 2>&1 || {
-    error "Packaging failed for ${_pkgname}. See ${_packlog}"
+    fakeroot dpkg-deb --build "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+  } >> "${_where}/logs/prepare.log.txt" 2>&1 || {
+    error "Packaging failed for ${_pkgname}. See ${_where}/logs/prepare.log.txt"
     return 1
   }
-  rm -rf "${_debdir}"
+  rm -rf "${_outdir}/${_pkgname}_${pkgver}_amd64"
   msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
 }
 
 _rpm_spec_field() {
-  local _specfile="$1" _field="$2" _value="$3" _entry
+  local _specfile="$1" _field="$2" _value="$3"
   local -a _entries=()
+  local _entry
   [[ -n "${_value}" ]] || return 0
 
   IFS=',' read -ra _entries <<< "${_value}"
@@ -1025,8 +985,6 @@ _rpm_spec_field() {
 # .rpm builder
 _rpm_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
-  local _specfile="${_outdir}/${_pkgname}.spec"
-  local _packlog="${_where}/logs/prepare.log.txt"
   local _is_fedora=false
   local _dracutopts="rd.driver.blacklist=nouveau,nova_core,nova_drm modprobe.blacklist=nouveau,nova_core,nova_drm"
   mkdir -p "${_where}/logs"
@@ -1039,7 +997,7 @@ _rpm_builder() {
 
   [[ "${_NV_PKG_TARGET:-}" == "fedora" ]] && _is_fedora=true
 
-  cat > "${_specfile}" <<SPEC
+  cat > "${_outdir}/${_pkgname}.spec" <<SPEC
 Name: ${_pkgname}
 Epoch: 300
 Version: ${pkgver}
@@ -1051,14 +1009,14 @@ AutoReqProv: no
 BuildArch: x86_64
 SPEC
 
-  _rpm_spec_field "${_specfile}" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"
-  _rpm_spec_field "${_specfile}" Provides "${_NV_META[${_pkgname}_provides_rpm]:-}"
-  _rpm_spec_field "${_specfile}" Conflicts "${_NV_META[${_pkgname}_conflicts_rpm]:-}"
-  _rpm_spec_field "${_specfile}" Obsoletes "${_NV_META[${_pkgname}_obsoletes_rpm]:-}"
-  _rpm_spec_field "${_specfile}" Suggests "${_NV_META[${_pkgname}_suggests_rpm]:-}"
-  _rpm_spec_field "${_specfile}" Recommends "${_NV_META[${_pkgname}_recommends_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Provides "${_NV_META[${_pkgname}_provides_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Conflicts "${_NV_META[${_pkgname}_conflicts_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Obsoletes "${_NV_META[${_pkgname}_obsoletes_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Suggests "${_NV_META[${_pkgname}_suggests_rpm]:-}"
+  _rpm_spec_field "${_outdir}/${_pkgname}.spec" Recommends "${_NV_META[${_pkgname}_recommends_rpm]:-}"
 
-  cat >> "${_specfile}" <<SPEC
+  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 
 %description
 ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package} version ${pkgver}.
@@ -1071,14 +1029,12 @@ SPEC
   # DKMS packages need dkms add/build/install in %post and dkms remove in %preun
   # All other packages only need ldconfig + depmod
   if [[ "${_pkgname}" == *dkms* ]]; then
-    local _nv_dkms_name
-    _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
-    cat >> "${_specfile}" <<SPEC
+    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %post
 if command -v dkms >/dev/null 2>&1; then
-  dkms add -m ${_nv_dkms_name} -v ${pkgver} || true
-  dkms build -m ${_nv_dkms_name} -v ${pkgver} || true
-  dkms install -m ${_nv_dkms_name} -v ${pkgver} || true
+  dkms add -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
+  dkms build -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
+  dkms install -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
 fi
 if command -v dracut >/dev/null 2>&1; then
   dracut --force 2>/dev/null || true
@@ -1090,7 +1046,7 @@ exit 0
 
 SPEC
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_specfile}" <<SPEC
+  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %posttrans
 if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
   echo 'WARNING: Fedora Secure Boot with nvidia-all DKMS uses DKMS MOK signing, not RPM Fusion akmods signing.' >&2
@@ -1103,22 +1059,22 @@ exit 0
 
 SPEC
     fi
-    cat >> "${_specfile}" <<SPEC
+  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %preun
 if command -v dkms >/dev/null 2>&1; then
-  if dkms status -m ${_nv_dkms_name} -v ${pkgver} 2>/dev/null | grep -q .; then
-    dkms remove -m ${_nv_dkms_name} -v ${pkgver} --all || true
+  if dkms status -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} 2>/dev/null | grep -q .; then
+    dkms remove -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} --all || true
   fi
 fi
 SPEC
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_specfile}" <<SPEC
+      cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 if [ "\${1:-0}" -eq "0" ] && command -v grubby >/dev/null 2>&1; then
   grubby --update-kernel=ALL --remove-args='${_dracutopts}' >/dev/null 2>&1 || true
 fi
 SPEC
     fi
-    cat >> "${_specfile}" <<SPEC
+    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 exit 0
 
 %postun
@@ -1132,7 +1088,7 @@ exit 0
 
 SPEC
   elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    cat >> "${_specfile}" <<SPEC
+    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %post
 if command -v ldconfig >/dev/null 2>&1; then
   ldconfig
@@ -1145,8 +1101,8 @@ for moddir in /lib/modules/*; do
   fi
 done
 SPEC
-    _append_secure_boot_postinst_snippet "${_specfile}"
-    cat >> "${_specfile}" <<SPEC
+    _append_secure_boot_postinst_snippet "${_outdir}/${_pkgname}.spec"
+    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 if command -v dracut >/dev/null 2>&1; then
   dracut --force 2>/dev/null || true
 fi
@@ -1163,7 +1119,7 @@ exit 0
 
 SPEC
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_specfile}" <<SPEC
+  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %posttrans
 if [ "\${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
   grubby --update-kernel=ALL --remove-args='nomodeset' --args='${_dracutopts}' >/dev/null 2>&1 || true
@@ -1179,21 +1135,21 @@ exit 0
 SPEC
     fi
   else
-    cat >> "${_specfile}" <<SPEC
+    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %post
 if command -v ldconfig >/dev/null 2>&1; then
   ldconfig
 fi
 SPEC
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_specfile}" <<'SPEC'
+      cat >> "${_outdir}/${_pkgname}.spec" <<'SPEC'
 # Restore SELinux file contexts for NVIDIA shared libraries.
 if command -v restorecon >/dev/null 2>&1; then
   restorecon -Rv /usr/lib64/ /usr/lib/ /usr/share/glvnd/ 2>/dev/null || true
 fi
 SPEC
     fi
-    cat >> "${_specfile}" <<'SPEC'
+    cat >> "${_outdir}/${_pkgname}.spec" <<'SPEC'
 exit 0
 
 %postun
@@ -1205,12 +1161,12 @@ exit 0
 SPEC
   fi
 
-  cat >> "${_specfile}" <<SPEC
+  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
 %files
 SPEC
 
   # %files list: one path per line, appended directly under the %files header
-  find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_specfile}"
+  find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_outdir}/${_pkgname}.spec"
 
   # Minimal %changelog entry to suppress the Fedora RPM macro warning.
   {
@@ -1218,7 +1174,7 @@ SPEC
     echo "%changelog"
     echo "* $(LC_ALL=C date +'%a %b %d %Y') nvidia-all-tkg <build@nvidia-all> - ${pkgver}-1"
     echo "- Automated build of NVIDIA ${pkgver}"
-  } >> "${_specfile}"
+  } >> "${_outdir}/${_pkgname}.spec"
 
   {
     echo "[PACKAGING] rpmbuild: ${_pkgname} ${pkgver}"
@@ -1229,9 +1185,9 @@ SPEC
       --define "__os_install_post %{nil}" \
       --define "_build_id_links none" \
       --define "_unpackaged_files_terminate_build 0" \
-      "${_specfile}"
-  } >> "${_packlog}" 2>&1 || {
-    error "Packaging failed for ${_pkgname}. See ${_packlog}"
+      "${_outdir}/${_pkgname}.spec"
+  } >> "${_where}/logs/prepare.log.txt" 2>&1 || {
+    error "Packaging failed for ${_pkgname}. See ${_where}/logs/prepare.log.txt"
     return 1
   }
   msg2 "Built: ${_outdir}/${_pkgname}-${pkgver}-1.x86_64.rpm"

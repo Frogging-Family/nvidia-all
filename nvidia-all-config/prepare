@@ -727,7 +727,7 @@ _detect_kernels() {
       find /usr/lib/modules/*/extramodules/version -exec cat {} + 2>/dev/null
     )
 
-    # RPM-based distros (Fedora, SUSE): kernel-devel packages have no pkgbase/version
+    # RPM-based distros
     if command -v rpm &>/dev/null; then
       while IFS= read -r _kver; do
         [[ -n "${_kver}" ]] && _candidates+=("${_kver}")
@@ -746,23 +746,17 @@ _detect_kernels() {
       _result+=("${_kver}")
       echo "[INFO] _detect_kernels: found buildable kernel: ${_kver}" >> "${_where}/logs/prepare.log.txt"
     else
-      warning "Skipping ${_kver}: missing /usr/lib/modules/${_kver}/build" >&2
-      echo "[WARNING] _detect_kernels: skipping ${_kver} — missing /usr/lib/modules/${_kver}/build" >> "${_where}/logs/prepare.log.txt"
+      echo "[INFO] _detect_kernels: skipping ${_kver} — missing /usr/lib/modules/${_kver}/build" >> "${_where}/logs/prepare.log.txt"
     fi
   done
 
   if [[ ${#_result[@]} -eq 0 ]]; then
-    # Last-resort fallback to running kernel
-    local _uname_r
-    _uname_r="$(uname -r)"
-    if [[ -d "/usr/lib/modules/${_uname_r}/build" ]]; then
-      warning "Could not detect kernel via pkgbase — falling back to running kernel: ${_uname_r}" >&2
-      echo "[WARNING] _detect_kernels: falling back to running kernel: ${_uname_r}" >> "${_where}/logs/prepare.log.txt"
-      _result+=("${_uname_r}")
+    # fallback to running kernel
+    if [[ -d "/usr/lib/modules/$(uname -r)/build" ]]; then
+      echo "[INFO] _detect_kernels: falling back to running kernel: $(uname -r)" >> "${_where}/logs/prepare.log.txt"
+      _result+=("$(uname -r)")
     else
       if [[ "${_dkms:-false}" == "true" ]]; then
-        # DKMS mode: kernel headers are not required at packaging time.
-        # The module will be built by DKMS on first boot against the running kernel.
         echo "[INFO] _detect_kernels: DKMS mode — skipping kernel header check" >> "${_where}/logs/prepare.log.txt"
         return 0
       fi
@@ -858,8 +852,8 @@ _apply_patches() {
 
     local _patch_file="${_where}/nvidia-all-patches/${_file}"
     if [[ ! -f "${_patch_file}" ]]; then
-      warning "Patch not found: ${_patch_file}"
-      echo "[WARNING] Patch not found: ${_patch_file}" >> "${_where}/logs/prepare.log.txt"
+      warning "Patch file not found: ${_patch_file}"
+      echo "[WARNING] Patch file not found: ${_patch_file}" >> "${_where}/logs/prepare.log.txt"
       continue
     fi
 
@@ -919,7 +913,7 @@ _user_patcher() {
       warning "Found userpatch file ${_f##*/} in the PKGBUILD directory."
       warning "Userpatches must now be placed in version-specific subdirectories (${_nv_userpatch_dir##*/} for this driver series)."
       warning "The patch will not be applied."
-      echo "### WARNING: misplaced userpatch ignored: ${_f##*/}" >> "${_where}"/logs/prepare.log.txt
+      echo "[WARNING] misplaced userpatch ignored: ${_f##*/}" >> "${_where}"/logs/prepare.log.txt
     fi
   done
 
@@ -1042,19 +1036,19 @@ _dkms_prep() {
 
 _nv_srcprep() {
   local _system_gcc _kernel_gcc _system_clang _kernel_clang _continue
-  local _repro_hostname="linux" _repro_whoami="builder"
+  local _hostname="linux" _whoami="builder"
 
   # Ensure distro family is available for reproducible metadata tagging.
   if [[ -z "${_NV_DISTRO_FAMILY:-}" ]]; then
     _detect_distro
   fi
   if [[ -n "${_NV_DISTRO_FAMILY:-}" ]] && [[ "${_NV_DISTRO_FAMILY}" != "generic" ]]; then
-    _repro_hostname="${_NV_DISTRO_FAMILY}"
-    _repro_whoami="${_NV_DISTRO_FAMILY}-builder"
+    _hostname="${_NV_DISTRO_FAMILY}"
+    _whoami="${_NV_DISTRO_FAMILY}-builder"
   fi
   if [[ "${_NV_DISTRO_FAMILY}" = "arch" ]]; then
-    _repro_hostname="archlinux"
-    _repro_whoami="archlinux-builder"
+    _hostname="archlinux"
+    _whoami="archlinux-builder"
   fi
 
   # remove previous build dir
@@ -1146,7 +1140,7 @@ _nv_srcprep() {
     # static open patches
     _apply_patches "open" || return 1
 
-    # per-kernel open patches
+    # open patches
     local -a _kernels
     mapfile -t _kernels < <(_detect_kernels)
 
@@ -1165,8 +1159,8 @@ _nv_srcprep() {
     _apply_user_patches "${srcdir}/${_srcbase}-${pkgver}" "nvidia-open-${pkgver}"
 
     # open DKMS confs
-    sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_repro_hostname}"/ utils.mk
-    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_repro_whoami}"/ utils.mk
+    sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}"/ utils.mk
+    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}"/ utils.mk
     sed -i "s/^DATE.*/DATE = date -r version.mk/" utils.mk
 
     shopt -s globstar

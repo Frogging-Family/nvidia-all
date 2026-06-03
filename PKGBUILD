@@ -174,6 +174,7 @@ opencl-nvidia-tkg() {
   conflicts=('opencl-nvidia')
 
   cd "${_pkg}"
+
   _install_opencl
 }
 source /dev/stdin <<EOF
@@ -232,6 +233,7 @@ nvidia-egl-x11-tkg() {
   conflicts=('egl-x11')
 
   cd "${_pkg}"
+
   _install_egl_x11
 }
 if [[ "${_eglx11}" = "true" ]]; then
@@ -271,6 +273,7 @@ nvidia-utils-tkg() {
   install=nvidia-all-config/system/nvidia-utils-tkg.install
 
   cd "${_pkg}"
+
   # Arch-only: skip nvidia-patch if conflicting AUR package is installed
   if [[ "${_nvidia_patch_enc_fbc:-false}" == "true" ]]; then
     if pacman -Q nvidia-patch &>/dev/null || pacman -Q nvidia-patch-git &>/dev/null; then
@@ -279,6 +282,7 @@ nvidia-utils-tkg() {
       _nvidia_patch_enc_fbc="false"
     fi
   fi
+
   _install_utils
 }
 source /dev/stdin <<EOF
@@ -300,6 +304,7 @@ nvidia-settings-tkg() {
   options=('staticlibs')
 
   cd "${_pkg}"
+
   _install_settings
 }
 source /dev/stdin <<EOF
@@ -319,7 +324,6 @@ libxnvctrl-tkg() {
 
   install -Dm644 doc/{NV-CONTROL-API.txt,FRAMELOCK.txt} -t "${pkgdir}/usr/share/doc/${pkgname}"
   install -Dm644 samples/{Makefile,README,*.c,*.h,*.mk} -t "${pkgdir}/usr/share/doc/${pkgname}/samples"
-
   install -Dm644 src/libXNVCtrl/*.h -t "${pkgdir}/usr/include/NVCtrl"
   install -d "${pkgdir}/usr/lib"
   cp -Pr src/out/libXNVCtrl.* -t "${pkgdir}/usr/lib"
@@ -348,20 +352,18 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
 
     for _kernel in "${_kernels[@]}"; do
       msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
-      local _extradir="/usr/lib/modules/${_kernel}/extramodules"
-      local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
-      if [[ ! -d "${_open_kmods_dir}" ]]; then
-        error "Missing staged open kernel modules for ${_kernel} in ${_open_kmods_dir}"
+      if [[ ! -d "${srcdir}/open-kmods/${_kernel}" ]]; then
+        error "Missing staged open kernel modules for ${_kernel} in ${srcdir}/open-kmods/${_kernel}"
         return 1
       fi
-      install -Dt "${pkgdir}${_extradir}" -m644 "${_open_kmods_dir}"/*.ko
+      install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${srcdir}/open-kmods/${_kernel}"/*.ko
       # Strip debug symbols per-kernel
       if grep -q "CONFIG_CC_IS_CLANG=y" /usr/lib/modules/${_kernel}/build/.config 2>/dev/null; then
-        find "${pkgdir}${_extradir}" -name '*.ko' -exec llvm-strip --strip-debug {} +
+        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec llvm-strip --strip-debug {} +
       else
-        find "${pkgdir}${_extradir}" -name '*.ko' -exec strip --strip-debug {} +
+        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec strip --strip-debug {} +
       fi
-      find "${pkgdir}${_extradir}" -name '*.ko' -exec xz {} +
+      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
     done
 
     # Force module to load even on unsupported GPUs
@@ -398,8 +400,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       fi
-      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec gzip -n {} + 2>/dev/null || \
-        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
+      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
     done
 
     # Enable nvidia-uvm autoload at boot
@@ -436,6 +437,7 @@ lib32-opencl-nvidia-tkg() {
   conflicts=('lib32-opencl-nvidia')
 
   cd "${_pkg}/32"
+
   _install_lib32_opencl
 }
 source /dev/stdin <<EOF
@@ -452,6 +454,7 @@ lib32-nvidia-utils-tkg() {
   conflicts=('lib32-nvidia-utils' 'lib32-nvidia-libgl')
 
   cd "${_pkg}/32"
+
   _install_lib32_utils
   rm -rf "${pkgdir}"/usr/{include,share,bin}
 }
