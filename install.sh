@@ -720,9 +720,17 @@ _build_metadata() {
   # detect .deb versioned NVIDIA packages
   if command -v dpkg &>/dev/null && [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu)$ ]]; then
     if (( ${pkgver%%.*} >= 470 )); then
-      # EGL libraries from distro packages
-      _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1, libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
-      _NV_META[lib32-nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
+      _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1"
+      if [[ -n "${_NV_META[nvidia-utils-tkg_recommends_deb]:-}" ]]; then
+        _NV_META[nvidia-utils-tkg_recommends_deb]+=", libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
+      else
+        _NV_META[nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
+      fi
+      if [[ -n "${_NV_META[lib32-nvidia-utils-tkg_recommends_deb]:-}" ]]; then
+        _NV_META[lib32-nvidia-utils-tkg_recommends_deb]+=", libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
+      else
+        _NV_META[lib32-nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
+      fi
     fi
 
     # libxnvctrl
@@ -1268,7 +1276,6 @@ for _pkgname in "${_packages[@]}"; do
 done
 
 msg2 "All packages written to: ${_distdir}"
-ls -lh "${_distdir}"/*.${PKG_FORMAT}
 msg2 "Packages from current run:"
 printf '  %s\n' "${_built_pkg_files[@]}"
 plain ""
