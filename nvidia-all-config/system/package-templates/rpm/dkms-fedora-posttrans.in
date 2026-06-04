@@ -2,4 +2,13 @@
 if [ "${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
   grubby --update-kernel=ALL --remove-args='nomodeset' --args='@DRACUTOPTS@' >/dev/null 2>&1 || true
 fi
+if command -v restorecon >/dev/null 2>&1; then
+  restorecon \
+    /usr/lib/modprobe.d/*nvidia* \
+    /usr/lib/modules-load.d/*nvidia* \
+    /usr/lib/dracut/dracut.conf.d/*nvidia* \
+    /usr/src/nvidia-* \
+    /usr/src/nvidia-*/dkms.conf \
+    2>/dev/null || true
+fi
 exit 0

@@ -397,7 +397,7 @@ _stage_initramfs() {
     install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
 
   install -Dm755 \
-    "${_where}/nvidia-all-config/package-templates/deb/initramfs-hook.nvidia-tkg.in" \
+    "${_where}/nvidia-all-config/system/package-templates/deb/initramfs-hook.nvidia-tkg.in" \
     "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
   chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
 }
@@ -767,7 +767,7 @@ _build_pkg_list() {
 
 _pkg_template_path() {
   local _template="$1"
-  printf '%s\n' "${_where}/nvidia-all-config/package-templates/${_template}"
+  printf '%s\n' "${_where}/nvidia-all-config/system/package-templates/${_template}"
 }
 
 _render_pkg_template() {
@@ -1048,18 +1048,23 @@ plain ""
 
 case "$PKG_FORMAT" in
   rpm)
-    _rpm_install_hint="sudo rpm -Uvh --force --nodeps '${_distdir}'/*.rpm"
-    _rpm_install_cmd=(sudo rpm -Uvh --force --nodeps "${_distdir}"/*.rpm)
+    _rpm_install_cmd=(sudo rpm -Uvh --force --nodeps "${_built_pkg_files[@]}")
     case "${_NV_PKG_TARGET:-}" in
       fedora)
-        _rpm_install_hint="sudo dnf install --nogpgcheck --allowerasing '${_distdir}'/*.rpm"
-        _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_distdir}"/*.rpm)
+        _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_built_pkg_files[@]}")
         ;;
       suse)
-        _rpm_install_hint="sudo zypper install --no-gpg-checks --force '${_distdir}'/*.rpm"
-        _rpm_install_cmd=(sudo zypper install --no-gpg-checks --force -y "${_distdir}"/*.rpm)
+        _rpm_install_cmd=(sudo zypper install --no-gpg-checks --force -y "${_built_pkg_files[@]}")
         ;;
     esac
+
+    _rpm_install_hint=""
+    _arg=""
+    _arg_quoted=""
+    for _arg in "${_rpm_install_cmd[@]}"; do
+      printf -v _arg_quoted '%q' "${_arg}"
+      _rpm_install_hint+="${_rpm_install_hint:+ }${_arg_quoted}"
+    done
 
     msg2 "To install manually:"
     msg2 "  ${_rpm_install_hint}"
@@ -1085,19 +1090,23 @@ case "$PKG_FORMAT" in
           ;;
       esac
       "${_rpm_install_cmd[@]}"
-      # On Fedora (SELinux Enforcing), restore library file contexts
-      if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]] && command -v restorecon &>/dev/null; then
-        msg2 "Restoring SELinux file contexts for NVIDIA libraries..."
-        sudo restorecon -Rv /usr/lib64/ /usr/lib/ || true
-      fi
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"
     fi
     ;;
   deb)
+    _deb_install_cmd=(sudo apt-get install -y --reinstall "${_built_pkg_files[@]}")
+    _deb_install_hint=""
+    _arg=""
+    _arg_quoted=""
+    for _arg in "${_deb_install_cmd[@]}"; do
+      printf -v _arg_quoted '%q' "${_arg}"
+      _deb_install_hint+="${_deb_install_hint:+ }${_arg_quoted}"
+    done
+
     msg2 "To install manually:"
-    msg2 "  sudo apt-get install '${_distdir}'/*.deb"
+    msg2 "  ${_deb_install_hint}"
     plain ""
 
     if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ ]]; then
@@ -1109,7 +1118,7 @@ case "$PKG_FORMAT" in
 
     if [[ -z "${_install_ans}" || "${_install_ans}" =~ ^[Yy] ]]; then
       msg2 "Installing packages via apt..."
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall "${_built_pkg_files[@]}"
+      DEBIAN_FRONTEND=noninteractive "${_deb_install_cmd[@]}"
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"
