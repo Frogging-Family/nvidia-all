@@ -1,0 +1,12 @@
+#!/bin/sh
+ldconfig
+for moddir in /lib/modules/*; do
+  [ -d "$moddir" ] || continue
+  kver=${moddir##*/}
+  depmod -a "$kver" 2>/dev/null
+done
+if command -v update-initramfs >/dev/null 2>&1; then
+  update-initramfs -u -k all 2>/dev/null || true
+elif command -v dracut >/dev/null 2>&1; then
+  dracut --force 2>/dev/null || true
+fi

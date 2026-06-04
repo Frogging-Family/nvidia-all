@@ -146,19 +146,29 @@ _distro_prompt() {
   local _label
   case "${_NV_DISTRO_FAMILY}" in
     arch)
-      _label="Arch" ;;
+      _label="Arch"
+      _default_index=0
+      ;;
     debian)
       case "${_NV_DISTRO_ID:-}" in
         ubuntu|linuxmint|pop|elementary|zorin)
-          _label="Ubuntu" ;;
+          _label="Ubuntu"
+          _default_index=2
+          ;;
         *)
-          _label="Debian" ;;
+          _label="Debian"
+          _default_index=1
+          ;;
       esac
       ;;
     fedora)
-      _label="Fedora" ;;
+      _label="Fedora"
+      _default_index=3
+      ;;
     suse)
-      _label="Suse" ;;
+      _label="Suse"
+      _default_index=4
+      ;;
   esac
   msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
   _prompt_from_array "Arch" "Debian" "Ubuntu" "Fedora" "Suse"
@@ -386,19 +396,9 @@ _stage_initramfs() {
   printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
     install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
 
-  install -dm755 "${pkgdir}/usr/share/initramfs-tools/hooks"
-  cat > "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg" <<'HOOK'
-#!/bin/sh
-PREREQ=""
-prereqs() { echo "$PREREQ"; }
-case $1 in
-prereqs) prereqs; exit 0 ;;
-esac
-. /usr/share/initramfs-tools/hook-functions
-for mod in nvidia nvidia-modeset nvidia-uvm nvidia-drm; do
-  manual_add_modules "$mod" || true
-done
-HOOK
+  install -Dm755 \
+    "${_where}/nvidia-all-config/package-templates/deb/initramfs-hook.nvidia-tkg.in" \
+    "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
   chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
 }
 
@@ -451,7 +451,7 @@ _stage_kmod() {
       _stage_uvm_load
     fi
 
-    find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
+    _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
   done
 
   # Configure dracut for nvidia kernel modules
@@ -765,94 +765,65 @@ _build_pkg_list() {
   echo "${_list[@]}"
 }
 
+_pkg_template_path() {
+  local _template="$1"
+  printf '%s\n' "${_where}/nvidia-all-config/package-templates/${_template}"
+}
+
+_render_pkg_template() {
+  local _template="$1" _content
+  _content="$(<"$(_pkg_template_path "${_template}")")"
+  _content="${_content//@PKGNAME@/${_tmpl_pkgname:-}}"
+  _content="${_content//@PKGVER@/${pkgver}}"
+  _content="${_content//@DESCRIPTION@/${_tmpl_description:-NVIDIA driver package}}"
+  _content="${_content//@INSTALLED_SIZE@/${_tmpl_installed_size:-}}"
+  _content="${_content//@DKMS_NAME@/${_tmpl_dkms_name:-}}"
+  _content="${_content//@STAGEDIR@/${_tmpl_stagedir:-}}"
+  _content="${_content//@DRACUTOPTS@/${_tmpl_dracutopts:-}}"
+  printf '%s\n' "${_content}"
+}
+
+_write_pkg_template() {
+  local _dest="$1" _template="$2"
+  _render_pkg_template "${_template}" > "${_dest}"
+}
+
+_append_pkg_template() {
+  local _dest="$1" _template="$2"
+  _render_pkg_template "${_template}" >> "${_dest}"
+}
+
 _append_secure_boot_postinst_snippet() {
-  cat >> "$1" <<'POSTINST'
-if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
-  if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
-    /usr/lib/nvidia-tkg/module-signing --sign || true
-  else
-    echo "WARNING: Secure Boot is active but the NVIDIA module signing helper is missing." >&2
-  fi
-fi
-POSTINST
+  case "${_module_signing:-autodetect}" in
+    false) return 0 ;;
+    true)
+      _append_pkg_template "$1" "common/secure-boot-forced.in"
+      return 0
+      ;;
+  esac
+
+  _append_pkg_template "$1" "common/secure-boot-autodetect.in"
 }
 
 _deb_postinst() {
   local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
 
   if [[ "${_mode}" == "dkms" ]]; then
-    local _nv_dkms_name
-    _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
-    cat > "${_debdir}/DEBIAN/postinst" <<POSTINST
-#!/bin/sh
-set -e
-DKMS_NAME=${_nv_dkms_name}
-DKMS_VERSION=${pkgver}
-DKMS_PACKAGE_NAME=${_pkgname}
-
-case "\$1" in
-  configure)
-    # Update initramfs first so the nouveau blacklist ends up in the initramfs
-    if command -v update-initramfs >/dev/null 2>&1; then
-      update-initramfs -u
-    fi
-    postinst_found=0
-    # Prefer Debian/Ubuntu standard DKMS helper
-    for DKMS_POSTINST in /usr/lib/dkms/common.postinst /usr/share/\$DKMS_PACKAGE_NAME/postinst; do
-      if [ -f "\$DKMS_POSTINST" ]; then
-        "\$DKMS_POSTINST" "\$DKMS_NAME" "\$DKMS_VERSION" "/usr/share/\$DKMS_PACKAGE_NAME" "" "\$2"
-        postinst_found=1
-        break
-      fi
-    done
-    if [ "\$postinst_found" -eq 0 ]; then
-      # Manual DKMS steps if common.postinst is missing.
-      echo "WARNING: /usr/lib/dkms/common.postinst not found — using manual DKMS fallback." >&2
-      dkms add -m "\$DKMS_NAME" -v "\$DKMS_VERSION" || true
-      dkms build -m "\$DKMS_NAME" -v "\$DKMS_VERSION"
-      dkms install -m "\$DKMS_NAME" -v "\$DKMS_VERSION"
-    fi
-    if command -v update-initramfs >/dev/null 2>&1; then
-      update-initramfs -u -k all
-    elif command -v dracut >/dev/null 2>&1; then
-      dracut --force
-    fi
-    systemctl daemon-reload 2>/dev/null || true
-    ;;
-esac
-POSTINST
+    _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" _tmpl_pkgname="${_pkgname}" \
+      _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.dkms.in"
     chmod 755 "${_debdir}/DEBIAN/postinst"
     return 0
   fi
 
-  cat > "${_debdir}/DEBIAN/postinst" <<POSTINST
-#!/bin/sh
-set -e
-ldconfig
-POSTINST
+  _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.base.in"
 
   if [[ "${_mode}" == "kmod" ]]; then
-    cat >> "${_debdir}/DEBIAN/postinst" <<'POSTINST'
-for moddir in /lib/modules/*; do
-  [ -d "$moddir" ] || continue
-  kver=${moddir##*/}
-  depmod -a "$kver" 2>/dev/null || true
-done
-POSTINST
+    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.depmod.in"
     _append_secure_boot_postinst_snippet "${_debdir}/DEBIAN/postinst"
   fi
 
   if [[ "${_mode}" == "kmod" || "${_mode}" == "initramfs" ]]; then
-    cat >> "${_debdir}/DEBIAN/postinst" <<'POSTINST'
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force
-fi
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl daemon-reload 2>/dev/null || true
-fi
-POSTINST
+    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.initramfs.in"
   fi
 
   chmod 755 "${_debdir}/DEBIAN/postinst"
@@ -863,37 +834,11 @@ _deb_prerm() {
 
   case "${_mode}" in
     dkms)
-      local _nv_dkms_name
-      _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
-      cat > "${_debdir}/DEBIAN/prerm" <<PRERM
-#!/bin/sh
-set -e
-DKMS_NAME=${_nv_dkms_name}
-DKMS_VERSION=${pkgver}
-
-case "\$1" in
-  remove|upgrade|deconfigure)
-    if [ "\$(dkms status -m "\$DKMS_NAME" -v "\$DKMS_VERSION" 2>/dev/null)" ]; then
-      dkms remove -m "\$DKMS_NAME" -v "\$DKMS_VERSION" --all
-    fi
-    ;;
-esac
-PRERM
+      _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" \
+        _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.dkms.in"
       ;;
     kmod)
-      cat > "${_debdir}/DEBIAN/prerm" <<'PRERM'
-#!/bin/sh
-set -e
-case "$1" in
-  remove|upgrade|deconfigure)
-    for moddir in /lib/modules/*; do
-      [ -d "$moddir" ] || continue
-      kver=${moddir##*/}
-      depmod -a "$kver" 2>/dev/null || true
-    done
-    ;;
-esac
-PRERM
+      _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.kmod.in"
       ;;
     *)
       return 0
@@ -905,21 +850,7 @@ PRERM
 
 _deb_postrm() {
   local _debdir="$1"
-  cat > "${_debdir}/DEBIAN/postrm" <<'POSTRM'
-#!/bin/sh
-ldconfig
-for moddir in /lib/modules/*; do
-  [ -d "$moddir" ] || continue
-  kver=${moddir##*/}
-  depmod -a "$kver" 2>/dev/null
-done
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all 2>/dev/null || true
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-POSTRM
-
+  _write_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.in"
   chmod 755 "${_debdir}/DEBIAN/postrm"
 }
 
@@ -930,14 +861,10 @@ _deb_builder() {
   mkdir -p "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
   mkdir -p "${_where}/logs"
   cp -a "${_stagedir}/." "${_outdir}/${_pkgname}_${pkgver}_amd64/"
-  cat > "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control" <<EOF
-Package: ${_pkgname}
-Version: ${pkgver}
-Architecture: amd64
-Maintainer: nvidia-all-tkg <https://github.com/Frogging-Family/nvidia-all>
-Installed-Size: $(du -sk "${_stagedir}" | cut -f1)
-Description: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
-EOF
+  _tmpl_pkgname="${_pkgname}" \
+    _tmpl_installed_size="$(du -sk "${_stagedir}" | cut -f1)" \
+    _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
+    _write_pkg_template "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control" "deb/control.in"
   [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
   [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
   [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
@@ -997,17 +924,9 @@ _rpm_builder() {
 
   [[ "${_NV_PKG_TARGET:-}" == "fedora" ]] && _is_fedora=true
 
-  cat > "${_outdir}/${_pkgname}.spec" <<SPEC
-Name: ${_pkgname}
-Epoch: 300
-Version: ${pkgver}
-Release: 1%{?dist}
-Summary: ${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}
-License: custom:NVIDIA
-URL: https://github.com/Frogging-Family/nvidia-all
-AutoReqProv: no
-BuildArch: x86_64
-SPEC
+  _tmpl_pkgname="${_pkgname}" \
+    _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
+    _write_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/spec-preamble.in"
 
   _rpm_spec_field "${_outdir}/${_pkgname}.spec" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"
   _rpm_spec_field "${_outdir}/${_pkgname}.spec" Provides "${_NV_META[${_pkgname}_provides_rpm]:-}"
@@ -1016,154 +935,45 @@ SPEC
   _rpm_spec_field "${_outdir}/${_pkgname}.spec" Suggests "${_NV_META[${_pkgname}_suggests_rpm]:-}"
   _rpm_spec_field "${_outdir}/${_pkgname}.spec" Recommends "${_NV_META[${_pkgname}_recommends_rpm]:-}"
 
-  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-
-%description
-${_NV_META[${_pkgname}_desc]:-NVIDIA driver package} version ${pkgver}.
-
-%install
-cp -a ${_stagedir}/. %{buildroot}/
-
-SPEC
+  _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
+    _tmpl_stagedir="${_stagedir}" \
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/spec-install.in"
 
   # DKMS packages need dkms add/build/install in %post and dkms remove in %preun
   # All other packages only need ldconfig + depmod
   if [[ "${_pkgname}" == *dkms* ]]; then
-    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%post
-if command -v dkms >/dev/null 2>&1; then
-  dkms add -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
-  dkms build -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
-  dkms install -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} || true
-fi
-if command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl daemon-reload || true
-fi
-exit 0
-
-SPEC
+    local _nv_dkms_name
+    _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
+    _tmpl_dkms_name="${_nv_dkms_name}" \
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-post.in"
     if [[ "${_is_fedora}" == true ]]; then
-  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%posttrans
-if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
-  echo 'WARNING: Fedora Secure Boot with nvidia-all DKMS uses DKMS MOK signing, not RPM Fusion akmods signing.' >&2
-  echo 'WARNING: Ensure the DKMS MOK public key is enrolled after DKMS generates it.' >&2
-fi
-if [ "\${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
-  grubby --update-kernel=ALL --remove-args='nomodeset' --args='${_dracutopts}' >/dev/null 2>&1 || true
-fi
-exit 0
-
-SPEC
+      _tmpl_dracutopts="${_dracutopts}" \
+        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-posttrans.in"
     fi
-  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%preun
-if command -v dkms >/dev/null 2>&1; then
-  if dkms status -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} 2>/dev/null | grep -q .; then
-    dkms remove -m $(_staged_dkms_name "${_stagedir}") -v ${pkgver} --all || true
-  fi
-fi
-SPEC
+    _tmpl_dkms_name="${_nv_dkms_name}" \
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-preun.in"
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-if [ "\${1:-0}" -eq "0" ] && command -v grubby >/dev/null 2>&1; then
-  grubby --update-kernel=ALL --remove-args='${_dracutopts}' >/dev/null 2>&1 || true
-fi
-SPEC
+      _tmpl_dracutopts="${_dracutopts}" \
+        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-preun.in"
     fi
-    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-exit 0
-
-%postun
-if command -v ldconfig >/dev/null 2>&1; then
-  ldconfig
-fi
-if command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-exit 0
-
-SPEC
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-postun.in"
   elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%post
-if command -v ldconfig >/dev/null 2>&1; then
-  ldconfig
-fi
-for moddir in /lib/modules/*; do
-  [ -d "\$moddir" ] || continue
-  kver=\${moddir##*/}
-  if command -v depmod >/dev/null 2>&1; then
-    depmod -a "\$kver" || true
-  fi
-done
-SPEC
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-head.in"
     _append_secure_boot_postinst_snippet "${_outdir}/${_pkgname}.spec"
-    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-if command -v dracut >/dev/null 2>&1; then
-  dracut --force 2>/dev/null || true
-fi
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl daemon-reload || true
-fi
-exit 0
-
-%postun
-if command -v ldconfig >/dev/null 2>&1; then
-  ldconfig
-fi
-exit 0
-
-SPEC
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-tail.in"
     if [[ "${_is_fedora}" == true ]]; then
-  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%posttrans
-if [ "\${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
-  grubby --update-kernel=ALL --remove-args='nomodeset' --args='${_dracutopts}' >/dev/null 2>&1 || true
-fi
-exit 0
-
-%preun
-if [ "\${1:-0}" -eq "0" ] && command -v grubby >/dev/null 2>&1; then
-  grubby --update-kernel=ALL --remove-args='${_dracutopts}' >/dev/null 2>&1 || true
-fi
-exit 0
-
-SPEC
+      _tmpl_dracutopts="${_dracutopts}" \
+        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-fedora-scriptlets.in"
     fi
   else
-    cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%post
-if command -v ldconfig >/dev/null 2>&1; then
-  ldconfig
-fi
-SPEC
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-post.in"
     if [[ "${_is_fedora}" == true ]]; then
-      cat >> "${_outdir}/${_pkgname}.spec" <<'SPEC'
-# Restore SELinux file contexts for NVIDIA shared libraries.
-if command -v restorecon >/dev/null 2>&1; then
-  restorecon -Rv /usr/lib64/ /usr/lib/ /usr/share/glvnd/ 2>/dev/null || true
-fi
-SPEC
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-fedora-restorecon.in"
     fi
-    cat >> "${_outdir}/${_pkgname}.spec" <<'SPEC'
-exit 0
-
-%postun
-if command -v ldconfig >/dev/null 2>&1; then
-  ldconfig
-fi
-exit 0
-
-SPEC
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-postun.in"
   fi
 
-  cat >> "${_outdir}/${_pkgname}.spec" <<SPEC
-%files
-SPEC
+  _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/files-header.in"
 
   # %files list: one path per line, appended directly under the %files header
   find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_outdir}/${_pkgname}.spec"
@@ -1236,47 +1046,6 @@ msg2 "Packages from current run:"
 printf '  %s\n' "${_built_pkg_files[@]}"
 plain ""
 
-# Shared helper: check and enroll the MOK signing key if Secure Boot is active
-_enroll_mok_if_needed() {
-  if ! command -v mokutil &>/dev/null; then
-    warning "Secure Boot is active, but mokutil is not installed. Cannot verify or enroll the MOK key."
-    warning "Install mokutil and rerun the installer, or disable Secure Boot."
-    return 0
-  fi
-
-  mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled' || return 0
-  msg2 "Secure Boot is active — checking MOK key enrollment..."
-
-  local _mok_pub="" _candidate
-  for _candidate in \
-    /var/lib/dkms/mok.pub \
-    /var/lib/shim-signed/mok/MOK.der \
-    /var/lib/nvidia-all/mok/mok.der; do
-    if [[ -f "${_candidate}" ]]; then
-      _mok_pub="${_candidate}"
-      break
-    fi
-  done
-
-  if [[ -n "${_mok_pub}" ]]; then
-    if ! mokutil --test-key "${_mok_pub}" 2>/dev/null | grep -qi 'already enrolled'; then
-      msg2 "Enrolling MOK signing key. Enter a one-time password when prompted."
-      msg2 "At the next reboot, select 'Enroll MOK' and enter that password."
-      sudo mokutil --import "${_mok_pub}"
-      warning "REBOOT REQUIRED to complete MOK enrollment."
-      warning "Without this, kernel modules will not load under Secure Boot."
-    else
-      msg2 "MOK key already enrolled — Secure Boot is OK."
-    fi
-  else
-    warning "Secure Boot is active but no MOK key found."
-    warning "After building/installing DKMS, run:"
-    warning "  sudo mokutil --import /var/lib/dkms/mok.pub"
-    warning "or, on Ubuntu systems:"
-    warning "  sudo mokutil --import /var/lib/shim-signed/mok/MOK.der"
-  fi
-}
-
 case "$PKG_FORMAT" in
   rpm)
     _rpm_install_hint="sudo rpm -Uvh --force --nodeps '${_distdir}'/*.rpm"
@@ -1321,8 +1090,6 @@ case "$PKG_FORMAT" in
         msg2 "Restoring SELinux file contexts for NVIDIA libraries..."
         sudo restorecon -Rv /usr/lib64/ /usr/lib/ || true
       fi
-      # Secure Boot: enroll the signing key if needed.
-      _enroll_mok_if_needed
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"
@@ -1343,8 +1110,6 @@ case "$PKG_FORMAT" in
     if [[ -z "${_install_ans}" || "${_install_ans}" =~ ^[Yy] ]]; then
       msg2 "Installing packages via apt..."
       sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall "${_built_pkg_files[@]}"
-      # Debian/Ubuntu + Secure Boot: enroll the signing key so kernel modules load.
-      _enroll_mok_if_needed
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"

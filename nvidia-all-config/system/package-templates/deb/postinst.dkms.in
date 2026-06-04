@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+DKMS_NAME=@DKMS_NAME@
+DKMS_VERSION=@PKGVER@
+DKMS_PACKAGE_NAME=@PKGNAME@
+
+case "$1" in
+  configure)
+    # Update initramfs first so the nouveau blacklist ends up in the initramfs
+    if command -v update-initramfs >/dev/null 2>&1; then
+      update-initramfs -u
+    fi
+    postinst_found=0
+    # Prefer Debian/Ubuntu standard DKMS helper
+    for DKMS_POSTINST in /usr/lib/dkms/common.postinst /usr/share/$DKMS_PACKAGE_NAME/postinst; do
+      if [ -f "$DKMS_POSTINST" ]; then
+        "$DKMS_POSTINST" "$DKMS_NAME" "$DKMS_VERSION" "/usr/share/$DKMS_PACKAGE_NAME" "" "$2"
+        postinst_found=1
+        break
+      fi
+    done
+    if [ "$postinst_found" -eq 0 ]; then
+      # Manual DKMS steps if common.postinst is missing.
+      echo "WARNING: /usr/lib/dkms/common.postinst not found - using manual DKMS fallback." >&2
+      dkms add -m "$DKMS_NAME" -v "$DKMS_VERSION" || true
+      dkms build -m "$DKMS_NAME" -v "$DKMS_VERSION"
+      dkms install -m "$DKMS_NAME" -v "$DKMS_VERSION"
+    fi
+    if command -v update-initramfs >/dev/null 2>&1; then
+      update-initramfs -u -k all
+    elif command -v dracut >/dev/null 2>&1; then
+      dracut --force
+    fi
+    systemctl daemon-reload 2>/dev/null || true
+    ;;
+esac

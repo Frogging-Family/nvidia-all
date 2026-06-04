@@ -1,0 +1,3 @@
+if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
+  /usr/lib/nvidia-tkg/module-signing || true
+fi

@@ -1,0 +1,7 @@
+
+%description
+@DESCRIPTION@ version @PKGVER@.
+
+%install
+cp -a @STAGEDIR@/. %{buildroot}/
+

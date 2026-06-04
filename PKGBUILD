@@ -363,7 +363,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
       else
         find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec strip --strip-debug {} +
       fi
-      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
+      _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
     done
 
     # Force module to load even on unsupported GPUs
@@ -373,14 +373,20 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}"
 
     if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-      if [[ "${_module_signing:-false}" = "true" ]]; then
+      if [[ "${_module_signing:-autodetect}" = "true" ]] ||
+        {
+          [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
+            command -v mokutil >/dev/null 2>&1 &&
+            mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
+        }; then
+        msg2 "Secure Boot is active or module signing is enabled — installing mkinitcpio signing hook"
         install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
-      echo "Skipping mkinitcpio hook due to user config"
+      msg2 "Skipping mkinitcpio hook due to user config"
     fi
   else
     pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
@@ -400,7 +406,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
         install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       fi
-      find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec xz {} +
+      _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
     done
 
     # Enable nvidia-uvm autoload at boot
@@ -411,14 +417,20 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     fi
 
     if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-      if [[ "${_module_signing:-false}" = "true" ]]; then
+      if [[ "${_module_signing:-autodetect}" = "true" ]] ||
+        {
+          [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
+            command -v mokutil >/dev/null 2>&1 &&
+            mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
+        }; then
+        msg2 "Secure Boot is active or module signing is enabled — installing mkinitcpio signing hook"
         install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
-      echo "Skipping mkinitcpio hook due to user config"
+      msg2 "Skipping mkinitcpio hook due to user config"
     fi
   fi
 }
@@ -495,7 +507,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
-        echo "Skipping mkinitcpio hook due to user config"
+        msg2 "Skipping mkinitcpio hook due to user config"
       fi
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
