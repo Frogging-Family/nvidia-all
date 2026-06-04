@@ -1,0 +1,9 @@
+Name: @PKGNAME@
+Epoch: 300
+Version: @PKGVER@
+Release: 1%{?dist}
+Summary: @DESCRIPTION@
+License: custom:NVIDIA
+URL: https://github.com/Frogging-Family/nvidia-all
+AutoReqProv: no
+BuildArch: x86_64

@@ -1,0 +1,5 @@
+for moddir in /lib/modules/*; do
+  [ -d "$moddir" ] || continue
+  kver=${moddir##*/}
+  depmod -a "$kver" 2>/dev/null || true
+done

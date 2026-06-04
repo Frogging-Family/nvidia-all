@@ -1,0 +1,13 @@
+%post
+if command -v dkms >/dev/null 2>&1; then
+  dkms add -m @DKMS_NAME@ -v @PKGVER@ || true
+  dkms build -m @DKMS_NAME@ -v @PKGVER@ || true
+  dkms install -m @DKMS_NAME@ -v @PKGVER@ || true
+fi
+if command -v dracut >/dev/null 2>&1; then
+  dracut --force 2>/dev/null || true
+fi
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl daemon-reload || true
+fi
+exit 0

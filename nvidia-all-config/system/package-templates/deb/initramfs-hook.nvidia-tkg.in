@@ -1,0 +1,10 @@
+#!/bin/sh
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case $1 in
+prereqs) prereqs; exit 0 ;;
+esac
+. /usr/share/initramfs-tools/hook-functions
+for mod in nvidia nvidia-modeset nvidia-uvm nvidia-drm; do
+  manual_add_modules "$mod" || true
+done

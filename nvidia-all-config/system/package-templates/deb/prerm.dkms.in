@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+DKMS_NAME=@DKMS_NAME@
+DKMS_VERSION=@PKGVER@
+
+case "$1" in
+  remove|upgrade|deconfigure)
+    if [ "$(dkms status -m "$DKMS_NAME" -v "$DKMS_VERSION" 2>/dev/null)" ]; then
+      dkms remove -m "$DKMS_NAME" -v "$DKMS_VERSION" --all
+    fi
+    ;;
+esac

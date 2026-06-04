@@ -1,0 +1,11 @@
+%post
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+for moddir in /lib/modules/*; do
+  [ -d "$moddir" ] || continue
+  kver=${moddir##*/}
+  if command -v depmod >/dev/null 2>&1; then
+    depmod -a "$kver" || true
+  fi
+done

@@ -74,6 +74,32 @@ _nv_normalize_bool() {
   fi
 }
 
+_compress_modules_for_kernel() {
+  local _kernel="$1" _moddir="$2"
+  local _config="/usr/lib/modules/${_kernel}/build/.config"
+  local -a _compress_cmd=()
+
+  if [[ -r "${_config}" ]]; then
+    if grep -q '^CONFIG_MODULE_COMPRESS_ZSTD=y' "${_config}"; then
+      _compress_cmd=(zstd -19 --rm -f -q)
+    elif grep -q '^CONFIG_MODULE_COMPRESS_XZ=y' "${_config}"; then
+      _compress_cmd=(xz)
+    elif grep -q '^CONFIG_MODULE_COMPRESS_GZIP=y' "${_config}"; then
+      _compress_cmd=(gzip -n)
+    elif ! grep -q '^CONFIG_MODULE_COMPRESS=y' "${_config}"; then
+      return 0
+    fi
+  fi
+
+  if ((${#_compress_cmd[@]})); then
+    find "${_moddir}" -name '*.ko' -exec "${_compress_cmd[@]}" {} + && return 0
+  fi
+
+  find "${_moddir}" -name '*.ko' -exec zstd -19 --rm -f -q {} + 2>/dev/null ||
+    find "${_moddir}" -name '*.ko' -exec xz {} + 2>/dev/null ||
+    find "${_moddir}" -name '*.ko' -exec gzip -n {} +
+}
+
 _prompt_from_array() {
   # Prompt from array; set _default_index for default on empty input.
   # If _set_default="true", auto-selects _default_index without user interaction.

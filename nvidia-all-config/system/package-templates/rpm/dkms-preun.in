@@ -1,0 +1,6 @@
+%preun
+if command -v dkms >/dev/null 2>&1; then
+  if dkms status -m @DKMS_NAME@ -v @PKGVER@ 2>/dev/null | grep -q .; then
+    dkms remove -m @DKMS_NAME@ -v @PKGVER@ --all || true
+  fi
+fi

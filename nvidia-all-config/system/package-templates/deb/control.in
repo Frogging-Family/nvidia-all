@@ -1,0 +1,6 @@
+Package: @PKGNAME@
+Version: @PKGVER@
+Architecture: amd64
+Maintainer: nvidia-all-tkg <https://github.com/Frogging-Family/nvidia-all>
+Installed-Size: @INSTALLED_SIZE@
+Description: @DESCRIPTION@

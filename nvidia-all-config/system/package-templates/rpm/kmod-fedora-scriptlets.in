@@ -1,0 +1,11 @@
+%posttrans
+if [ "${1:-0}" -eq "1" ] && command -v grubby >/dev/null 2>&1; then
+  grubby --update-kernel=ALL --remove-args='nomodeset' --args='@DRACUTOPTS@' >/dev/null 2>&1 || true
+fi
+exit 0
+
+%preun
+if [ "${1:-0}" -eq "0" ] && command -v grubby >/dev/null 2>&1; then
+  grubby --update-kernel=ALL --remove-args='@DRACUTOPTS@' >/dev/null 2>&1 || true
+fi
+exit 0
