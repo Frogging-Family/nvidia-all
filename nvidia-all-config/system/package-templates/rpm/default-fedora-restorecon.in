@@ -1,3 +1,16 @@
 if command -v restorecon >/dev/null 2>&1; then
-  restorecon -Rv /usr/lib64/ /usr/lib/ /usr/share/glvnd/ 2>/dev/null || true
+  restorecon \
+    /usr/lib64/nvidia/* \
+    /usr/lib64/vdpau/*nvidia* \
+    /usr/lib64/gbm/*nvidia* \
+    /usr/lib64/xorg/modules/drivers/*nvidia* \
+    /usr/lib64/xorg/modules/extensions/*nvidia* \
+    /usr/lib64/tls/*nvidia* \
+    /usr/lib/nvidia/* \
+    /usr/lib/nvidia-tkg/* \
+    /usr/lib/modprobe.d/*nvidia* \
+    /usr/lib/modules-load.d/*nvidia* \
+    /usr/lib/dracut/dracut.conf.d/*nvidia* \
+    /usr/share/glvnd/egl_vendor.d/*nvidia* \
+    2>/dev/null || true
 fi

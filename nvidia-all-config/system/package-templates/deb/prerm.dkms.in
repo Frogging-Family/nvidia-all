@@ -5,8 +5,13 @@ DKMS_VERSION=@PKGVER@
 
 case "$1" in
   remove|upgrade|deconfigure)
+    # Do not block package remove/upgrade when DKMS is unavailable or inconsistent.
+    if ! command -v dkms >/dev/null 2>&1; then
+      exit 0
+    fi
+
     if [ "$(dkms status -m "$DKMS_NAME" -v "$DKMS_VERSION" 2>/dev/null)" ]; then
-      dkms remove -m "$DKMS_NAME" -v "$DKMS_VERSION" --all
+      dkms remove -m "$DKMS_NAME" -v "$DKMS_VERSION" --all 2>/dev/null || true
     fi
     ;;
 esac
