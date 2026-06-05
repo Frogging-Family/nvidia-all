@@ -4,10 +4,9 @@ We've added installer support for multiple distributions, but it is still in an 
 
 Tested:
 - Fedora 44 - kernel 7.x, NVIDIA 610 series (DKMS)
-- Ubuntu 26.04 - kernel 7.x, NVIDIA 610 series (DKMS, Secure Boot disabled)
+- Ubuntu 26.04 - kernel 7.x, NVIDIA 610 series (DKMS)
 
 Caveats:
-- Secure Boot on Ubuntu: modules failed to load with SB enabled. This may be system-specific and is not yet confirmed broadly.
 - Standard (non-DKMS) build path is currently untested.
 
 KISS! 🐸 damachine
@@ -225,8 +224,8 @@ Hardware and OEM implementations vary. If needed, use dedicated hybrid tooling
 and consult NVIDIA PRIME render offload documentation.
 
 ### Secure Boot enabled
-
-If driver loading fails, test once with Secure Boot disabled.
+Secure Boot must be configured on your system. See your distribution’s documentation for setup instructions.
+If the driver fails to load, test once with Secure Boot disabled.
 
 ### Download fails
 
