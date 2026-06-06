@@ -24,21 +24,13 @@ plain '             `.-:///////:-.`'
 
 _where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
 trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
-if [[ ! -e "${_where}/BIG_UGLY_FROGMINER" ]]; then
-  _nv_reset_logs
-  aggregate_user_config
-  echo "_where=\"${_where}\"" >> "${_where}/BIG_UGLY_FROGMINER"
-
-  source "${_where}/BIG_UGLY_FROGMINER"
-  _nv_initscript
-fi
-
-source "${_where}/BIG_UGLY_FROGMINER"
+_frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
 
 _autoaddpatch="false"
 
