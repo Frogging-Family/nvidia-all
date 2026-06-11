@@ -26,6 +26,25 @@ _sign_module() {
     _hash_algo=$(grep -Po 'CONFIG_MODULE_SIG_HASH="\K[^"]*' "${_config}" 2>/dev/null \
       || echo sha256)
 
+    if [[ -n "${NVIDIA_TKG_MODULE_SIGN_KEY:-}" && -n "${NVIDIA_TKG_MODULE_SIGN_CERT:-}" ]]; then
+      _key="${NVIDIA_TKG_MODULE_SIGN_KEY}"
+      _cert="${NVIDIA_TKG_MODULE_SIGN_CERT}"
+    elif [[ ! -r "${_key}" || ! -r "${_cert}" ]]; then
+      local -a _fallback_pairs=(
+        "/etc/pki/akmods/private/private_key.priv:/etc/pki/akmods/certs/public_key.der"
+        "/var/lib/dkms/mok.key:/var/lib/dkms/mok.pub"
+        "/var/lib/shim-signed/mok/MOK.priv:/var/lib/shim-signed/mok/MOK.der"
+      )
+      local _pair
+      for _pair in "${_fallback_pairs[@]}"; do
+        if [[ -r "${_pair%%:*}" && -r "${_pair#*:}" ]]; then
+          _key="${_pair%%:*}"
+          _cert="${_pair#*:}"
+          break
+        fi
+      done
+    fi
+
     if [[ ! -r "${_key}" ]] || [[ ! -r "${_cert}" ]]; then
       echo ":: module-signing: skipped ${_kernel}: signing key not readable"
       continue
@@ -71,7 +90,7 @@ _sign_module() {
     if (( _changed )); then
       depmod "${_kernel}"
     fi
-  done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type d -name build -print0)
+  done < <(find -L /usr/lib/modules -mindepth 2 -maxdepth 2 -name build -print0)
 
   if (( _signed_any == 0 )); then
     echo ":: module-signing: skipped — no installed NVIDIA modules found"
