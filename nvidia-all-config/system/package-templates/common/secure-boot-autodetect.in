@@ -1,4 +1,4 @@
-if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'; then
+if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -Eqi 'secure[[:space:]]*boot[[:space:]]+enabled'; then
   if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
     /usr/lib/nvidia-tkg/module-signing || true
   fi
