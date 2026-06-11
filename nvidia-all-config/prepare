@@ -464,8 +464,8 @@ _detect_open_modules() {
   local -a _gpu_names=()
   local _id _line _gpu_name
   while IFS= read -r _line; do
-    _id="$(printf '%s' "${_line}" | grep -oP '10de:[0-9a-fA-F]+')"
-    [[ -z "${_id}" ]] && continue
+    [[ "${_line}" =~ (10de:[0-9a-fA-F]+) ]] || continue
+    _id="${BASH_REMATCH[1]}"
     # Prefer the model token in brackets right before the PCI ID, e.g. [GeForce RTX 3090].
     _gpu_name="$(printf '%s' "${_line}" | sed -nE 's/.*\[([^][]+)\][[:space:]]+\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\].*/\1/p')"
     if [[ -z "${_gpu_name}" ]]; then
@@ -474,7 +474,7 @@ _detect_open_modules() {
     [[ -z "${_gpu_name}" ]] && _gpu_name="NVIDIA (${_id,,})"
     _gpu_ids+=("${_id,,}")
     _gpu_names+=("${_gpu_name}")
-  done < <(lspci -nn 2>/dev/null | grep -Ei 'VGA compatible controller|3D controller|Display controller')
+  done < <(lspci -nn 2>/dev/null | grep -Ei 'VGA compatible controller|3D controller|Display controller' || true)
 
   if [[ ${#_gpu_ids[@]} -eq 0 ]]; then
     echo "[INFO] _detect_open_modules: no NVIDIA GPU found via lspci — skipping" >> "${_where}/logs/prepare.log.txt"
