@@ -1447,8 +1447,8 @@ _exit_cleanup() {
   mkdir -p "${_where}/logs"
 
   # Move BIG_UGLY_FROGMINER into the logs, since it has the actual final customization state
-  [[ -f "$_where"/BIG_UGLY_FROGMINER ]] && mv "$_where"/BIG_UGLY_FROGMINER "$_where"/logs/customization.cfg.txt
-  rm -f "$_where"/BIG_UGLY_FROGMINER.pending
+  [[ -f "${_where}/BIG_UGLY_FROGMINER" ]] && mv "${_where}/BIG_UGLY_FROGMINER" "${_where}/logs/customization.cfg.txt"
+  rm -f "${_where}/BIG_UGLY_FROGMINER.pending"
 
   # Move eventual shell-output.log file to logs folder
   if [[ -f "${_where}/shell-output.log" ]]; then
