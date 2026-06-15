@@ -70,6 +70,8 @@ done
 # Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
+
+_pkg_tmpdir=""
 trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
@@ -569,18 +571,18 @@ _meta_nvidia_utils() {
   _NV_META[nvidia-utils-tkg_depends_rpm]="libglvnd >= 1.3, mesa-libGL, vulkan-loader"
   _NV_META[nvidia-utils-tkg_provides_deb]="nvidia-utils (= ${pkgver}), libgl1-nvidia-glvnd-glx, nvidia-libgl, vulkan-driver, opengl-driver"
   _NV_META[nvidia-utils-tkg_provides_rpm]="nvidia-utils = ${pkgver}, nvidia-libgl, vulkan-driver, opengl-driver"
-  _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, nvidia-vulkan-icd"
+  _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
   _NV_META[nvidia-utils-tkg_conflicts_rpm]="nvidia-utils, xorg-x11-drv-nvidia, xorg-x11-drv-nvidia-libs, xorg-x11-drv-nvidia-470xx, xorg-x11-drv-nvidia-580xx, nvidia-modprobe, nvidia-persistenced"
-  _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, nvidia-vulkan-icd"
+  _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
 
   _NV_META[lib32-nvidia-utils-tkg_desc]="NVIDIA driver utilities and libraries (32-bit)"
   _NV_META[lib32-nvidia-utils-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), gcc-multilib, libglvnd0:i386, libvulkan1:i386, libnvidia-egl-wayland1:i386"
   _NV_META[lib32-nvidia-utils-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, glibc(x86-32), libglvnd(x86-32)"
   _NV_META[lib32-nvidia-utils-tkg_provides_deb]="lib32-nvidia-utils (= ${pkgver}), lib32-nvidia-libgl, lib32-vulkan-driver, lib32-opengl-driver"
   _NV_META[lib32-nvidia-utils-tkg_provides_rpm]="lib32-nvidia-utils = ${pkgver}"
-  _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386"
+  _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
   _NV_META[lib32-nvidia-utils-tkg_conflicts_rpm]="lib32-nvidia-utils, xorg-x11-drv-nvidia-libs-i686, xorg-x11-drv-nvidia-470xx-libs"
-  _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386"
+  _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
 }
 
 _meta_nvidia_dkms() {
@@ -1139,6 +1141,15 @@ case "$PKG_FORMAT" in
 
     if [[ -z "${_install_ans}" || "${_install_ans}" =~ ^[Yy] ]]; then
       msg2 "Installing packages via apt..."
+      _pkg_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/nvidia-all-pkg.XXXXXXXX")"
+      install -d -m 755 "${_pkg_tmpdir}"
+      _pkg_install_files=()
+      for _pkgfile in "${_built_pkg_files[@]}"; do
+        install -m 644 "${_pkgfile}" "${_pkg_tmpdir}/${_pkgfile##*/}"
+        _pkg_install_files+=("${_pkg_tmpdir}/${_pkgfile##*/}")
+      done
+
+      _deb_install_cmd=(sudo apt-get install -y --reinstall "${_pkg_install_files[@]}")
       DEBIAN_FRONTEND=noninteractive "${_deb_install_cmd[@]}"
       msg2 "Installation complete. A system reboot is recommended."
     else
