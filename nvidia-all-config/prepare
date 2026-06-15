@@ -582,6 +582,24 @@ _set_open_modules() {
   } >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
 }
 
+_validate_open_modules() {
+  local _recommended_legacy="${_nvidia_ver_map[580]:-580.159.04}"
+
+  if [[ "${_open_source_modules:-}" != "false" ]]; then
+    return 0
+  fi
+
+  if (( ${_driver_version%%.*} < 590 )); then
+    return 0
+  fi
+
+  error "Driver ${_driver_version} is not compatible with proprietary kernel modules."
+  error "For Turing or newer GPUs, use open source modules. For Pascal/Maxwell/no-open-module GPUs, use the 580 legacy/proprietary branch."
+  error "Set _driver_version='${_recommended_legacy}' and _driver_branch='regular', or choose the 580 series from the menu."
+  echo "[ERROR] _validate_open_modules: driver ${_driver_version} with proprietary modules is unsupported for noopen hardware" >> "${_where}/logs/prepare.log.txt"
+  exit 1
+}
+
 # Check installed version is newer
 _check_only_update() {
   # pacman is Arch-only; skip this check on other distros
@@ -704,6 +722,7 @@ _nv_initscript() {
   _set_driver_version
   _set_dkms
   _set_open_modules
+  _validate_open_modules
   _check_only_update
   _set_source_name
   _prompt_nvidia_options
