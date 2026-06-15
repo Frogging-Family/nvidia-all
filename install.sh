@@ -409,6 +409,17 @@ _stage_uvm_load() {
   fi
 }
 
+# Enable NVIDIA DRM KMS for proprietary modules.
+_stage_closed_drm_kms() {
+  local _opts="options nvidia-drm modeset=1"
+
+  if (( ${pkgver%%.*} >= 520 )); then
+    _opts+=" fbdev=1"
+  fi
+
+  echo "${_opts}" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-tkg-drm-kms.conf"
+}
+
 # This function is used for the non-DKMS package variant, where we stage precompiled kernel modules directly
 _stage_kmod() {
   local -a _kernels
@@ -438,6 +449,9 @@ _stage_kmod() {
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+
+      # Enable NVIDIA DRM KMS for proprietary modules.
+      _stage_closed_drm_kms
 
       # Enable nvidia-uvm autoload at boot
       _stage_uvm_load
@@ -486,6 +500,9 @@ _stage_dkms() {
     install -dm755 "${pkgdir}/usr/src"
     cp -dr --no-preserve='ownership' "${srcdir}/${_pkg}/kernel-dkms" \
       "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/${_pkg}/kernel-dkms/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/${_pkg}/kernel-dkms/dkms.conf" PACKAGE_VERSION "${pkgver}")"
+
+    # Enable NVIDIA DRM KMS for proprietary modules.
+    _stage_closed_drm_kms
 
     install -Dm644 "${srcdir}/${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   fi
@@ -645,8 +662,18 @@ _meta_nvidia_settings() {
   _NV_META[nvidia-settings-tkg_conflicts_rpm]="nvidia-settings"
 }
 
+_dpkg_installed_pkg_csv() {
+  dpkg-query -W -f=$'${db:Status-Abbrev}\t${binary:Package}\n' "$1" 2>/dev/null | awk '
+    $1 == "ii" {
+      printf "%s%s", sep, $2
+      sep = ", "
+    }
+  '
+}
+
 _build_metadata() {
   local _rpm_pkgver_epoch="300:${pkgver}"
+  local _installed_pkgs=""
 
   _meta_nvidia_utils "${_rpm_pkgver_epoch}"
   _meta_nvidia_dkms "${_rpm_pkgver_epoch}"
@@ -725,16 +752,18 @@ _build_metadata() {
     )
 
     for _entry in "${_cr_map[@]}"; do
-      if [[ -n "$(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')" ]]; then
-        _NV_META[${_entry##*:}_conflicts_deb]+=", $(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
-        _NV_META[${_entry##*:}_replaces_deb]+=", $(dpkg -l "${_entry%%:*}" 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
+      _installed_pkgs="$(_dpkg_installed_pkg_csv "${_entry%%:*}")"
+      if [[ -n "${_installed_pkgs}" ]]; then
+        _NV_META[${_entry##*:}_conflicts_deb]+=", ${_installed_pkgs}"
+        _NV_META[${_entry##*:}_replaces_deb]+=", ${_installed_pkgs}"
       fi
     done
 
     # Special case two packages, no replaces
-    if [[ -n "$(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')" ]]; then
-      _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", $(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
-      _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", $(dpkg -l 'nvidia-dkms-[0-9]*-open' 2>/dev/null | awk '/^ii/ {print $2}' | paste -sd', ')"
+    _installed_pkgs="$(_dpkg_installed_pkg_csv 'nvidia-dkms-[0-9]*-open')"
+    if [[ -n "${_installed_pkgs}" ]]; then
+      _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", ${_installed_pkgs}"
+      _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", ${_installed_pkgs}"
     fi
   fi
 }
