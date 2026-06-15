@@ -1436,6 +1436,8 @@ _nv_build() {
 
 # Clean on exit
 _exit_cleanup() {
+  [[ -n "${_pkg_tmpdir:-}" && -d "${_pkg_tmpdir}" ]] && rm -rf "${_pkg_tmpdir}"
+
   # Remove install.sh's temporary srcdir; makepkg owns its own srcdir.
   [[ "${srcdir:-}" == /tmp/nvidia-install-* && -d "${srcdir}" ]] && rm -rf "${srcdir}"
 
