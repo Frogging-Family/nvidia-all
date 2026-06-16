@@ -1075,11 +1075,11 @@ _dkms_prep() {
   case "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" in
     debian|ubuntu)
       _dest="/updates/dkms"
-      [[ "${_flavor}" == "open" ]] && _pkg_name="nvidia-current-open" || _pkg_name="nvidia-current"
+      [[ "${_flavor}" == "open" ]] && _pkg_name="nvidia-open-tkg" || _pkg_name="nvidia-tkg"
       ;;
     *)
       _dest="/kernel/drivers/video"
-      _pkg_name="nvidia"
+      [[ "${_flavor}" == "open" ]] && _pkg_name="nvidia-open-tkg" || _pkg_name="nvidia-tkg"
       ;;
   esac
 
