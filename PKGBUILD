@@ -262,6 +262,10 @@ nvidia-utils-tkg() {
               'egl-wayland-git: for alternative, more advanced Wayland library (libnvidia-egl-wayland.so)')
   provides=("nvidia-utils=${pkgver}" "nvidia-utils-tkg=${pkgver}" 'vulkan-driver' 'opengl-driver' 'nvidia-libgl')
   conflicts=('nvidia-utils' 'nvidia-libgl')
+  if [[ ! -d /run/systemd/system ]] && { [[ -d /run/dinit ]] || command -v dinitctl &>/dev/null; }; then
+    provides+=('nvidia-utils-dinit')
+    conflicts+=('nvidia-utils-dinit')
+  fi
   install=nvidia-all-config/system/nvidia-utils-tkg.install
 
   cd "${_pkg}"
