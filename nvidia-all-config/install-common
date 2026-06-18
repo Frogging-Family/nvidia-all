@@ -1,5 +1,8 @@
 # Shared install functions sourced by both install.sh and PKGBUILD.
 
+# Check http://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/README/installedcomponents.html
+# for hints on what needs to be installed where.
+
 # Detect version string from a shared-library filename glob.
 _eglw_so_ver() { ls "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1; }
 _sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse|debian|ubuntu)$ ]]; }

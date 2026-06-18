@@ -35,9 +35,16 @@ _eol_nvidia=(
   "396 series: 396.54   (kernel 5.3 or lower, 5.1 or lower recommended)"
 )
 
+# Check if the driver version supports open source modules.
+_driver_supports_open_modules() {
+  local _ver="$1"
+  (( ${_ver%%.*} >= 515 ))
+}
+
 # Extract the version number from an EOL label
 _ver_from_entry() {
-  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "$1" | tail -1
+  local _version_field="${1#*:}"
+  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "${_version_field}" | head -1
 }
 
 # Fetch latest driver version per active series, populates _nvidia_ver_map.
@@ -45,21 +52,34 @@ _define_nvidia_versions() {
   [[ -v _nvidia_ver_map ]] && return 0
 
   typeset -gA _nvidia_ver_map
-  local _listing _series _latest
+  local _drv_fetch _drv_open_fetch _series _latest
 
   msg2 "Please make sure you have the corresponding kernel headers installed for each kernel on your system!\n"
   msg2 "Fetching latest NVIDIA driver versions..."
-  _listing=$(curl -s --max-time 15 https://download.nvidia.com/XFree86/Linux-x86_64/ | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?/' | tr -d '/')
+  _drv_fetch=$(curl -fsSL --max-time 15 https://download.nvidia.com/XFree86/Linux-x86_64/ 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?/' | tr -d '/' | sort -Vu)
 
-  if [[ -z "${_listing}" ]]; then
+  if [[ -z "${_drv_fetch}" ]]; then
     error "Could not fetch NVIDIA driver listing (network error or timeout)."
     exit 1
   fi
 
+  _drv_open_fetch=$(curl -fsSL --max-time 15 https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/ 2>/dev/null | grep -oE 'NVIDIA-kernel-module-source-[0-9]+\.[0-9]+(\.[0-9]+)?\.tar\.xz' | sed -E 's/NVIDIA-kernel-module-source-//;s/\.tar\.xz//' | sort -Vu)
+
   for _series in "${_current_nvidia[@]}"; do
-    _latest=$(echo "${_listing}" | grep -E "^${_series}\." | sort -V | tail -1)
+    _latest=""
+    if [[ -n "${_drv_open_fetch}" ]] && _driver_supports_open_modules "${_series}"; then
+      _latest=$(printf '%s\n' "${_drv_open_fetch}" | grep -E "^${_series}\." | sort -Vr | grep -Fx -m1 -f <(printf '%s\n' "${_drv_fetch}" | grep -E "^${_series}\.") || true)
+    fi
+    if [[ -z "${_latest}" ]] && { [[ -z "${_drv_open_fetch}" ]] || (( _series < 515 )); }; then
+      _latest=$(printf '%s\n' "${_drv_fetch}" | grep -E "^${_series}\." | sort -V | tail -1)
+    fi
     [[ -n "${_latest}" ]] && _nvidia_ver_map[${_series}]="${_latest}"
   done
+
+  if [[ ${#_nvidia_ver_map[@]} -eq 0 ]]; then
+    error "Could not resolve NVIDIA driver versions."
+    exit 1
+  fi
 }
 
 # Normalize a boolean config variable
@@ -149,6 +169,7 @@ _frogminer_bootstrap() {
   source "${1:-${_where}/BIG_UGLY_FROGMINER}"
 }
 
+# Compress .ko modules in-place according to kernel config. Uses zstd by default if supported, then falls back to xz or gzip.
 _compress_modules_for_kernel() {
   local _kernel="$1" _moddir="$2"
   local _config="/usr/lib/modules/${_kernel}/build/.config"
@@ -300,19 +321,14 @@ _detect_distro() {
 
 # Older driver series
 _select_older_driver() {
-  local -a _labels=()
-  local -a _versions=()
-  local _e
-
-  for _e in "${_eol_nvidia[@]}"; do
-    _labels+=( "${_e}" )
-    _versions+=( "$(_ver_from_entry "${_e}")" )
-  done
-
   plain "Which legacy driver version do you want?"
   _default_index=0
-  _prompt_from_array "${_labels[@]}"
-  _driver_version="${_versions[${_selected_index}]}"
+  _prompt_from_array "${_eol_nvidia[@]}"
+  _driver_version="$(_ver_from_entry "${_selected_value}" || true)"
+  if [[ -z "${_driver_version}" ]]; then
+    error "Could not parse driver version from selection: ${_selected_value}"
+    return 1
+  fi
   _driver_branch="regular"
 }
 
@@ -341,7 +357,6 @@ _set_driver_version() {
 
   # Build driver menu
   local -a _DRIVERS=()
-  local _DRIVER_VULKAN_IDX=0
   local _DRIVER_LATEST_IDX=1
 
   _DRIVERS+=( "Vulkan dev: ${_vulkandev_nvidia}|vulkandev" )
@@ -523,9 +538,53 @@ _detect_open_modules() {
   fi
 }
 
-# Resolve open modules
+# Resolve NVIDIA .run URL
+_runfile_source() {
+  local _ver="$1" _branch="$2"
+
+  if [[ "${_branch}" = "vulkandev" ]]; then
+    if (( ${_ver%%.*} >= 525 )); then
+      echo "https://developer.nvidia.com/downloads/vulkan-beta-${_ver//.}-linux"
+    elif [[ "${_ver}" = 396* ]]; then
+      echo "https://developer.nvidia.com/linux-${_ver//.}"
+    else
+      echo "https://developer.nvidia.com/vulkan-beta-${_ver//.}-linux"
+    fi
+  else
+    echo "https://us.download.nvidia.com/XFree86/Linux-x86_64/${_ver}/NVIDIA-Linux-x86_64-${_ver}.run"
+  fi
+}
+
+# Resolve open kernel module source name and URL
+_tarball_source() {
+  local _ver="$1" _srcbase="$2"
+
+  case "${_srcbase}" in
+    NVIDIA-kernel-module-source)
+      echo "${_srcbase}-${_ver}.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/${_srcbase}-${_ver}.tar.xz"
+      ;;
+    open-gpu-kernel-modules)
+      echo "${_srcbase}-${_ver}.tar.gz::https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/${_ver}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+_url_status() {
+  local _headers _status
+
+  _headers="$(curl -ILsS --max-time 15 "$1" 2>/dev/null)" || return 1
+  _status="$(printf '%s\n' "${_headers}" | awk '/^HTTP\// { status=$2 } END { print status }')"
+  [[ -n "${_status}" ]] || return 1
+  printf '%s\n' "${_status}"
+}
+
+# Resolve open module availability and select the source in priority order:
+# NVIDIA source archive, then the matching GitHub source archive.
 _set_open_modules() {
-  local _autodetect_open_modules=false
+  local _autodetect_open_modules=false _candidate _candidate_source
 
   if [[ "${_open_source_modules:-}" = "autodetect" ]]; then
     _autodetect_open_modules=true
@@ -537,17 +596,21 @@ _set_open_modules() {
     return 0
   fi
 
-  msg2 "Checking open driver availability..."
-  local _xfree_url="https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${_driver_version}.tar.xz"
-  local _github_url="https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/${_driver_version}"
-  local _xfree_status _github_status
-  _xfree_status="$(curl -Is "${_xfree_url}"  | head -n1)"
-  _github_status="$(curl -Is "${_github_url}" | head -n1)"
+  unset _srcbase
 
-  if [[ "${_xfree_status}" = *200* ]] || [[ "${_github_status}" = *200* ]]; then
+  # Check availability of open module sources in priority order, and set _srcbase to the first available source.
+  msg2 "Checking open driver availability..."
+  for _candidate in NVIDIA-kernel-module-source open-gpu-kernel-modules; do
+    _candidate_source="$(_tarball_source "${_driver_version}" "${_candidate}")" || continue
+    if [[ "$(_url_status "${_candidate_source##*::}" || true)" = 2* ]]; then
+      _srcbase="${_candidate}"
+      break
+    fi
+  done
+
+  if [[ -n "${_srcbase:-}" ]]; then
     if [[ "${_autodetect_open_modules}" = "true" ]]; then
       _detect_open_modules
-      [[ "${_open_source_modules:-}" = "autodetect" ]] && _open_source_modules=""
     fi
 
     if [[ -z "${_open_source_modules:-}" ]]; then
@@ -561,17 +624,18 @@ _set_open_modules() {
       msg2 "Do you want to use the proprietary driver to have support for older hardware?"
       local _prop_text=("No (recommended)" "Yes")
       local _prop_vals=("true" "false")
-      local _prop_driver
       _default_index="0"
       _prompt_from_array "${_prop_text[@]}"
       _open_source_modules="${_prop_vals[${_selected_index}]}"
     fi
-    if [[ "${_xfree_status}" = *200* ]]; then
-      _srcbase="NVIDIA-kernel-module-source"
-    else
-      _srcbase="open-gpu-kernel-modules"
-    fi
   else
+    if [[ "${_open_source_modules:-}" = "true" ]] || _driver_supports_open_modules "${_driver_version}"; then
+      error "No usable open module source was found for driver ${_driver_version}."
+      error "NVIDIA archive and GitHub tag are unavailable."
+      error "Choose a listed driver version, or retry after NVIDIA publishes the open module source."
+      exit 1
+    fi
+
     msg2 "No open source kernel module available"
     _open_source_modules="false"
   fi
@@ -636,30 +700,32 @@ _check_only_update() {
 _set_source_name() {
   local _ver="${_driver_version}"
   if [[ "${_driver_branch}" = "vulkandev" ]]; then
-    if (( ${_ver%%.*} >= 525 )); then
-      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/downloads/vulkan-beta-${_ver//.}-linux"
-    elif [[ "${_ver}" = 396* ]]; then
-      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/linux-${_ver//.}"
-    else
-      _source_name="NVIDIA-Linux-x86_64-${_ver}.run::https://developer.nvidia.com/vulkan-beta-${_ver//.}-linux"
-    fi
+    _source_name="NVIDIA-Linux-x86_64-${_ver}.run::$(_runfile_source "${_ver}" "${_driver_branch}")"
   else
-    _source_name="https://us.download.nvidia.com/XFree86/Linux-x86_64/${_ver}/NVIDIA-Linux-x86_64-${_ver}.run"
+    _source_name="$(_runfile_source "${_ver}" "${_driver_branch}")"
   fi
   echo "_source_name='${_source_name}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
 
   if [[ "${_open_source_modules}" = "true" ]]; then
-    if [[ "${_srcbase}" = "NVIDIA-kernel-module-source" ]]; then
-      _source_open="NVIDIA-kernel-module-source-${_ver}.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/NVIDIA-kernel-module-source-${_ver}.tar.xz"
-    elif [[ "${_srcbase}" = "open-gpu-kernel-modules" ]]; then
-      _source_open="open-gpu-kernel-modules-${_ver}.tar.gz::https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${_ver}.tar.gz"
+    if ! _source_open="$(_tarball_source "${_ver}" "${_srcbase:-}")"; then
+      error "Unknown open module source: ${_srcbase:-unset}"
+      exit 1
     fi
     echo "_source_open='${_source_open}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
   fi
 
   if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
-    _source_libxnvctrl="nvidia-settings-${_ver}.tar.gz::https://github.com/NVIDIA/nvidia-settings/archive/refs/tags/${_ver}.tar.gz"
-    echo "_source_libxnvctrl='${_source_libxnvctrl}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
+    local _libxnvctrl_url="https://codeload.github.com/NVIDIA/nvidia-settings/tar.gz/refs/tags/${_ver}"
+    local _libxnvctrl_status
+    _libxnvctrl_status="$(_url_status "${_libxnvctrl_url}" || true)"
+    if [[ "${_libxnvctrl_status}" = 2* ]]; then
+      _source_libxnvctrl="nvidia-settings-${_ver}.tar.gz::https://github.com/NVIDIA/nvidia-settings/archive/refs/tags/${_ver}.tar.gz"
+      echo "_source_libxnvctrl='${_source_libxnvctrl}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
+    else
+      warning "nvidia-settings tag ${_ver} is unavailable; falling back to external libxnvctrl."
+      _libxnvctrl="external"
+      echo "_libxnvctrl='external'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
+    fi
   fi
 }
 
@@ -930,6 +996,15 @@ _apply_patches() {
       continue
     fi
 
+    # Open modules share one prepared source tree across all target kernels.
+    # Process each matching kernel patch once even when several kernels select it.
+    if [[ "${_type}" = "open" && -n "${_kernel}" ]]; then
+      if [[ ":${_open_kernel_patches_done:-}:" = *":${_file}:"* ]]; then
+        continue
+      fi
+      _open_kernel_patches_done+="${_open_kernel_patches_done:+:}${_file}"
+    fi
+
     local _msg
     if [[ -n "${_kernel}" ]]; then
       _msg="Applying ${_file} (${_type}, kernel ${_kernel}, driver ${pkgver})..."
@@ -1068,18 +1143,16 @@ _apply_user_patches() {
 
 # Prepare a dkms.conf: distro-aware package name/dest, placeholder substitution, module entries
 _dkms_prep() {
-  local _conf="$1" _flavor="$2" _module_count="$3"
+  local _conf="$1" _module_count="$2" _module_location="${3:-}"
   local -a _modules=("nvidia" "nvidia-uvm" "nvidia-modeset" "nvidia-drm" "nvidia-peermem" "nvidia-ib-peermem-stub")
-  local _dest _pkg_name _idx
+  local _pkg_name="nvidia" _dest _idx
 
   case "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" in
     debian|ubuntu)
       _dest="/updates/dkms"
-      [[ "${_flavor}" == "open" ]] && _pkg_name="nvidia-open-tkg" || _pkg_name="nvidia-tkg"
       ;;
     *)
       _dest="/kernel/drivers/video"
-      [[ "${_flavor}" == "open" ]] && _pkg_name="nvidia-open-tkg" || _pkg_name="nvidia-tkg"
       ;;
   esac
 
@@ -1098,12 +1171,16 @@ _dkms_prep() {
   sed -i 's/__VERSION_STRING/'"${pkgver}"'/' "${_conf}"
   sed -i 's/__JOBS/`nproc`/' "${_conf}"
   sed -i 's/__EXCLUDE_MODULES//' "${_conf}"
+  sed -i 's/__IGNORE_CC_MISMATCH/1/' "${_conf}"
   sed -i 's/__DKMS_MODULES//' "${_conf}"
   sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' "${_conf}"
 
   for ((_idx = 0; _idx < _module_count; _idx++)); do
     printf 'BUILT_MODULE_NAME[%s]="%s"\n'    "${_idx}" "${_modules[${_idx}]}" >> "${_conf}"
     printf 'DEST_MODULE_LOCATION[%s]="%s"\n' "${_idx}" "${_dest}"             >> "${_conf}"
+    if [[ -n "${_module_location}" ]]; then
+      printf 'BUILT_MODULE_LOCATION[%s]="%s"\n' "${_idx}" "${_module_location}" >> "${_conf}"
+    fi
   done
 }
 
@@ -1211,15 +1288,13 @@ _nv_srcprep() {
 
   if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
     msg2 "_build_utils_package_only=true - skipping kernel module prepare steps."
-    cd "${srcdir}/${_pkg}"
-    if [[ -f nvidia-persistenced-init.tar.bz2 ]]; then
-      bsdtar -xf nvidia-persistenced-init.tar.bz2
-    fi
     return 0
   fi
 
   # ! open-source module prep
   if [[ "${_open_source_modules}" = "true" ]]; then
+    local _open_kernel_patches_done=""
+
     cd "${srcdir}/${_srcbase}-${pkgver}"
 
     # static open patches
@@ -1243,28 +1318,29 @@ _nv_srcprep() {
     # user patches to open modules
     _apply_user_patches "${srcdir}/${_srcbase}-${pkgver}" "nvidia-open-${pkgver}"
 
-    # open DKMS confs
-    sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}"/ utils.mk
-    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}"/ utils.mk
-    sed -i "s/^DATE.*/DATE = date -r version.mk/" utils.mk
+    # populate utils.mk build metadata
+    if grep -q '^NV_BUILD_USER' utils.mk; then
+      sed -i "s/^NV_BUILD_USER.*/NV_BUILD_USER := ${_whoami}/" utils.mk
+      sed -i "s/^NV_BUILD_HOST.*/NV_BUILD_HOST := ${_hostname}/" utils.mk
+    else
+      sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}/" utils.mk
+      if grep -q '^HOSTNAME' utils.mk; then
+        sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}/" utils.mk
+      else
+        sed -i "s/^[[:space:]]*HOSTNAME[[:space:]]*=.*/  HOSTNAME = ${_hostname}/" utils.mk
+      fi
+    fi
+    sed -i 's/^DATE.*/DATE = date -r $(VERSION_MK)/' utils.mk
 
-    shopt -s globstar
-    for conf in "${srcdir}"/**/dkms.conf; do
-      _dkms_prep "$conf" "open" 5
-    done
-    shopt -u globstar
-
-    # kernel-open dkms.conf locations
-    cat <<EOF >>"${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf"
-BUILT_MODULE_LOCATION[0]="kernel-open"
-BUILT_MODULE_LOCATION[1]="kernel-open"
-BUILT_MODULE_LOCATION[2]="kernel-open"
-BUILT_MODULE_LOCATION[3]="kernel-open"
-BUILT_MODULE_LOCATION[4]="kernel-open"
-EOF
+    if [[ ! -f "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" ]]; then
+      error "Open module DKMS configuration not found: ${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf"
+      return 1
+    fi
+    _dkms_prep "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" 5 "kernel-open"
 
     # copy for DKMS
-    cp -r "../${_srcbase}-${pkgver}" "${srcdir}/open-gpu-kernel-modules-dkms"
+    rm -rf -- "${srcdir}/open-gpu-kernel-modules-dkms"
+    cp -r "${srcdir}/${_srcbase}-${pkgver}" "${srcdir}/open-gpu-kernel-modules-dkms"
 
   # ! closed-source module prep
   else
@@ -1287,15 +1363,14 @@ EOF
     cp -a kernel kernel-dkms
     cd kernel-dkms
     if (( ${pkgver%%.*} >= 470 )); then
-      _dkms_prep dkms.conf "closed" 5
+      _dkms_prep dkms.conf 5
     elif (( ${pkgver%%.*} = 465 )); then
-      _dkms_prep dkms.conf "closed" 6
+      _dkms_prep dkms.conf 6
     else
-      _dkms_prep dkms.conf "closed" 4
+      _dkms_prep dkms.conf 4
     fi
 
     cd ../
-    bsdtar -xf nvidia-persistenced-init.tar.bz2
 
     if [[ $pkgver = 396* ]] || [[ $pkgver = 410* ]] || [[ $pkgver = 415* ]] || [[ $pkgver = 418* ]] || [[ $pkgver = 430* ]]; then
       sed -i 's/__NV_VK_ICD__/libGLX_nvidia.so.0/' nvidia_icd.json.template
@@ -1436,6 +1511,8 @@ _nv_build() {
 
 # Clean on exit
 _exit_cleanup() {
+  local _exit_status="$?"
+
   [[ -n "${_pkg_tmpdir:-}" && -d "${_pkg_tmpdir}" ]] && rm -rf "${_pkg_tmpdir}"
 
   # Remove install.sh's temporary srcdir; makepkg owns its own srcdir.
@@ -1467,8 +1544,15 @@ _exit_cleanup() {
   # ensure logs dir exists
   mkdir -p "${_where}/logs"
 
-  # Move BIG_UGLY_FROGMINER into the logs, since it has the actual final customization state
-  [[ -f "${_where}/BIG_UGLY_FROGMINER" ]] && mv "${_where}/BIG_UGLY_FROGMINER" "${_where}/logs/customization.cfg.txt"
+  # Keep BIG_UGLY_FROGMINER only after successful early makepkg phases. On
+  # failure, final fakeroot/package, or direct install, archive and remove it.
+  if [[ -f "${_where}/BIG_UGLY_FROGMINER" ]]; then
+    if (( _exit_status != 0 )) || [[ -n "${FAKEROOTKEY:-}" || "${srcdir:-}" == /tmp/nvidia-install-* ]]; then
+      mv -f "${_where}/BIG_UGLY_FROGMINER" "${_where}/logs/customization.cfg.txt"
+    else
+      cp -f "${_where}/BIG_UGLY_FROGMINER" "${_where}/logs/customization.cfg.txt"
+    fi
+  fi
   rm -f "${_where}/BIG_UGLY_FROGMINER.pending"
 
   # Move eventual shell-output.log file to logs folder

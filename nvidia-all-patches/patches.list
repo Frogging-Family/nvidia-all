@@ -363,9 +363,9 @@ closed   580/kernel-7.0.patch                                                   
 # ══════════════════════════════════════════════════════════════════════════════
 
 # open + dkms: DSC + DP fixes (595–595.x)
-open     595/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -        595          595.80       1      .
-open     595/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch           -        -        595          595.80       1      .
-open     595/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -        595          595.80       1      .
+open     595/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -        595          595.9999     1      .
+open     595/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch           -        -        595          595.9999     1      .
+open     595/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -        595          595.9999     1      .
 
 # open: kernel 6.19+ (590)
 open     all/kernel-6.19.patch                                                         6.19     -        590          590.9999     2      kernel-open
