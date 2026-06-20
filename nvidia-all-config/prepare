@@ -43,8 +43,7 @@ _driver_supports_open_modules() {
 
 # Extract the version number from an EOL label
 _ver_from_entry() {
-  local _version_field="${1#*:}"
-  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "${_version_field}" | head -1
+  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "${1#*:}" | head -1
 }
 
 # Fetch latest driver version per active series, populates _nvidia_ver_map.
@@ -171,29 +170,25 @@ _frogminer_bootstrap() {
 
 # Compress .ko modules in-place according to kernel config. Uses zstd by default if supported, then falls back to xz or gzip.
 _compress_modules_for_kernel() {
-  local _kernel="$1" _moddir="$2"
-  local _config="/usr/lib/modules/${_kernel}/build/.config"
   local -a _compress_cmd=()
 
-  if [[ -r "${_config}" ]]; then
-    if grep -q '^CONFIG_MODULE_COMPRESS_ZSTD=y' "${_config}"; then
+  if [[ -r "/usr/lib/modules/$1/build/.config" ]]; then
+    if grep -q '^CONFIG_MODULE_COMPRESS_ZSTD=y' "/usr/lib/modules/$1/build/.config"; then
       _compress_cmd=(zstd -19 --rm -f -q)
-    elif grep -q '^CONFIG_MODULE_COMPRESS_XZ=y' "${_config}"; then
+    elif grep -q '^CONFIG_MODULE_COMPRESS_XZ=y' "/usr/lib/modules/$1/build/.config"; then
       _compress_cmd=(xz)
-    elif grep -q '^CONFIG_MODULE_COMPRESS_GZIP=y' "${_config}"; then
+    elif grep -q '^CONFIG_MODULE_COMPRESS_GZIP=y' "/usr/lib/modules/$1/build/.config"; then
       _compress_cmd=(gzip -n)
-    elif ! grep -q '^CONFIG_MODULE_COMPRESS=y' "${_config}"; then
+    elif ! grep -q '^CONFIG_MODULE_COMPRESS=y' "/usr/lib/modules/$1/build/.config"; then
       return 0
     fi
   fi
 
   if ((${#_compress_cmd[@]})); then
-    find "${_moddir}" -name '*.ko' -exec "${_compress_cmd[@]}" {} + && return 0
+    find "$2" -name '*.ko' -exec "${_compress_cmd[@]}" {} + && return 0
   fi
 
-  find "${_moddir}" -name '*.ko' -exec zstd -19 --rm -f -q {} + 2>/dev/null ||
-    find "${_moddir}" -name '*.ko' -exec xz {} + 2>/dev/null ||
-    find "${_moddir}" -name '*.ko' -exec gzip -n {} +
+  find "$2" -name '*.ko' -exec zstd -19 --rm -f -q {} + 2>/dev/null || find "$2" -name '*.ko' -exec xz {} + 2>/dev/null || find "$2" -name '*.ko' -exec gzip -n {} +
 }
 
 _prompt_from_array() {

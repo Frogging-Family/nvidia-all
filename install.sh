@@ -296,7 +296,7 @@ _relocate_elfs() {
   local _pkgdir="$1"
 
   case "${_NV_PKG_TARGET:-}" in
-    fedora)
+    fedora|suse)
       # 64-bit ELF
       if [[ -d "${_pkgdir}/usr/lib" ]]; then
         mkdir -p "${_pkgdir}/usr/lib64"
@@ -451,6 +451,9 @@ _stage_kmod() {
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+      if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" ]]; then
+        install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+      fi
 
       # Enable NVIDIA DRM KMS for proprietary modules.
       _stage_closed_drm_kms

@@ -398,10 +398,11 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     for _kernel in "${_kernels[@]}"; do
       msg2 "Installing NVIDIA modules for kernel: ${_kernel}"
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      if [[ ${pkgver%%.*} = 465 ]]; then
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-peermem.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-        install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia-ib-peermem-stub.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      fi
+      local _peer_module
+      for _peer_module in nvidia-peermem nvidia-ib-peermem-stub; do
+        [[ -e "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]] && \
+          install -D -m644 "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+      done
       _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
     done
 

@@ -2,13 +2,21 @@
 
 # Check http://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/README/installedcomponents.html
 # for hints on what needs to be installed where.
+# run: "cat NVIDIA-Linux-x86_64-xxx/sandboxutils-filelist.json | python3 -m json.tool | less"
 
-# Detect version string from a shared-library filename glob.
-_eglw_so_ver() { ls "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1; }
-_sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse|debian|ubuntu)$ ]]; }
-_sys_pkg_rpm() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|suse)$ ]]; }
+# Return the newest path matching a shell pattern, or an empty string if no matches
+_latest_matching_file() { compgen -G "$1" | sort -V | tail -1; }
 
-# _install_utils – core utilities and libraries
+# Detect the version suffix from a shared-library filename glob
+_eglw_so_ver() {
+  local _file
+  _file="$(_latest_matching_file "$1")"
+  [[ -n "${_file}" ]] && printf '%s\n' "${_file##*.so.}"
+}
+_sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|debian|ubuntu)$ ]]; }
+_sys_pkg_rpm() { [[ "${_NV_PKG_TARGET:-}" = "fedora" ]]; }
+
+# utilities and libraries package
 _install_utils() {
   # X driver
   install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
@@ -274,32 +282,31 @@ _install_utils() {
     fi
   fi
 
-  # gsp firmware
-  if (( ${pkgver%%.*} >= 530 )); then
-    install -D -m644 firmware/gsp_ga10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ga10x.bin"
-    install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-  elif (( ${pkgver%%.*} >= 525 )); then
-    install -D -m644 firmware/gsp_ad10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_ad10x.bin"
-    install -D -m644 firmware/gsp_tu10x.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp_tu10x.bin"
-  elif (( ${pkgver%%.*} >= 465 )); then
-    install -D -m644 firmware/gsp.bin "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}/gsp.bin"
+  # Firmware files for supported NVIDIA GPUs
+  if (( ${pkgver%%.*} >= 465 )); then
+    _firmware_files=($(compgen -G 'firmware/*.bin' | sort -V))
+    if ((${#_firmware_files[@]} == 0)); then
+      error "No firmware files found for NVIDIA driver ${pkgver}."
+      return 1
+    fi
+    install -Dm644 "${_firmware_files[@]}" -t "${pkgdir}/usr/lib/firmware/nvidia/${pkgver}"
+    unset _firmware_files
   fi
 
   # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
-  install -Dm644 "${_where}/nvidia-all-config/system/10-nvidia-drm-outputclass.conf" "$pkgdir"/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
+  install -Dm644 "${_where}/nvidia-all-config/system/10-nvidia-drm-outputclass.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
 
-  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils-tkg.sysusers" "$pkgdir"/usr/lib/sysusers.d/$pkgname.conf
-
-  install -Dm644 "${_where}/nvidia-all-config/system/60-nvidia.rules" "$pkgdir"/usr/lib/udev/rules.d/60-nvidia.rules
+  # System configuration files udev rules, sysusers
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils-tkg.sysusers" "${pkgdir}/usr/lib/sysusers.d/${pkgname}.conf"
+  install -Dm644 "${_where}/nvidia-all-config/system/60-nvidia.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia.rules"
 
   if (( ${pkgver%%.*} >= 595 )); then
     # 595+ open modules use kernel suspend notifiers for video memory preservation
-    echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | \
-      install -Dm644 /dev/stdin "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-sleep.conf"
   else
     # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
     # Fixes Wayland Sleep, when restoring the session
-    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sleep.conf" "$pkgdir"/usr/lib/modprobe.d/nvidia-sleep.conf
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sleep.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-sleep.conf"
   fi
 
   # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
@@ -384,8 +391,9 @@ EOF
   fi
 }
 
-# _install_lib32_utils – 32-bit utilities and libraries
+# 32-bit utilities and libraries package
 _install_lib32_utils() {
+  # GLX extension module
   install -D -m755 "libGLX_nvidia.so.${pkgver}" "${pkgdir}/usr/lib32/libGLX_nvidia.so.${pkgver}"
 
   # OpenGL libraries
@@ -417,18 +425,12 @@ _install_lib32_utils() {
   install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-ml.so.${pkgver}"
   install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-glvkspirv.so.${pkgver}"
 
-  # egl-xlib/xcb: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle only on Arch.
+  # Use distro packages on Debian/Ubuntu/Fedora; bundle on Arch/SUSE/others.
   if ! _sys_pkg_all && [[ "${_eglx11:-external}" != "false" ]]; then
-    if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1"
-    elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xlib.so.1.0.0"
-    fi
-    if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1"
-    elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-      install -D -m755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib32/libnvidia-egl-xcb.so.1.0.0"
-    fi
+    [[ -n "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')" ]] && \
+      install -Dm755 "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')" "${pkgdir}/usr/lib32/$(basename "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')")"
+    [[ -n "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')" ]] && \
+      install -Dm755 "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')" "${pkgdir}/usr/lib32/$(basename "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')")"
   fi
 
   # VDPAU
@@ -476,13 +478,13 @@ _install_lib32_utils() {
   ln -s nvidia-utils/ "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
-# _install_egl_wayland – EGL Wayland + GBM platform libraries
+# EGL Wayland + GBM platform libraries package
 _install_egl_wayland() {
   local _eglwver _eglwver2
   _eglwver=$(_eglw_so_ver "libnvidia-egl-wayland.so.*.*.*")
   _eglwver2=$(_eglw_so_ver "libnvidia-egl-wayland2.so.*.*.*")
 
-  # wayland1: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle otherwise.
+  # wayland1: use distro packages on Debian/Ubuntu/Fedora; bundle otherwise.
   if ! _sys_pkg_all; then
     if [[ -n "${_eglwver}" ]] && [[ -e "libnvidia-egl-wayland.so.${_eglwver}" ]]; then
       install -Dm755 "libnvidia-egl-wayland.so.${_eglwver}" "${pkgdir}/usr/lib/libnvidia-egl-wayland.so.${_eglwver}"
@@ -494,19 +496,18 @@ _install_egl_wayland() {
     fi
   fi
 
-  # wayland2 (driver >= 590): use Fedora/Suse packages; bundle on Debian/Ubuntu if present.
+  # wayland2 (driver >= 590): use Fedora packages; bundle elsewhere if present.
   if ! _sys_pkg_rpm; then
     if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
       install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}"
       ln -s "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.1"
       ln -s "libnvidia-egl-wayland2.so.1" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so"
     fi
-    if [[ -e 99_nvidia_wayland2.json ]]; then
-      install -Dm644 "99_nvidia_wayland2.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/99_nvidia_wayland2.json"
-    fi
+    [[ -n "$(_latest_matching_file '[0-9][0-9]_nvidia_wayland2.json')" ]] && \
+      install -Dm644 "$(_latest_matching_file '[0-9][0-9]_nvidia_wayland2.json')" "${pkgdir}/usr/share/egl/egl_external_platform.d/$(basename "$(_latest_matching_file '[0-9][0-9]_nvidia_wayland2.json')")"
   fi
 
-  # gbm: use distro packages on Debian/Ubuntu/Fedora/Suse; bundle on Arch and others.
+  # gbm: use distro packages on Debian/Ubuntu/Fedora; bundle on Arch/SUSE/others.
   if ! _sys_pkg_all; then
     local _eglgver
     _eglgver=$(_eglw_so_ver "libnvidia-egl-gbm.so.*.*.*")
@@ -521,7 +522,7 @@ _install_egl_wayland() {
   fi
 }
 
-# _install_lib32_egl_wayland – 32-bit EGL Wayland + GBM platform libraries
+# 32-bit EGL Wayland + GBM platform libraries package
 _install_lib32_egl_wayland() {
   local _eglwver _eglwver2
   _eglwver=$(_eglw_so_ver  "libnvidia-egl-wayland.so.*.*.*")
@@ -554,41 +555,27 @@ _install_lib32_egl_wayland() {
   fi
 }
 
-# _install_egl_x11 – EGL X11 platform libraries
+# EGL X11 platform libraries package
 _install_egl_x11() {
   _sys_pkg_all && return 0
   [[ "${_eglx11:-external}" = "false" ]] && return 0
 
   # egl-xlib
-  if [[ -e libnvidia-egl-xlib.so.1 ]]; then
-    install -Dm755 "libnvidia-egl-xlib.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1"
-  elif [[ -e libnvidia-egl-xlib.so.1.0.0 ]]; then
-    install -Dm755 "libnvidia-egl-xlib.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.0"
-  elif [[ -e libnvidia-egl-xlib.so.1.0.1 ]]; then
-    install -Dm755 "libnvidia-egl-xlib.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.1"
-  elif [[ -e libnvidia-egl-xlib.so.1.0.3 ]]; then
-    install -Dm755 "libnvidia-egl-xlib.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xlib.so.1.0.3"
-  fi
+  [[ -n "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')" ]] && \
+    install -Dm755 "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')" "${pkgdir}/usr/lib/$(basename "$(_latest_matching_file 'libnvidia-egl-xlib.so.*')")"
   if [[ -e 20_nvidia_xlib.json ]]; then
     install -Dm644 "20_nvidia_xlib.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xlib.json"
   fi
 
   # egl-xcb
-  if [[ -e libnvidia-egl-xcb.so.1 ]]; then
-    install -Dm755 "libnvidia-egl-xcb.so.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1"
-  elif [[ -e libnvidia-egl-xcb.so.1.0.0 ]]; then
-    install -Dm755 "libnvidia-egl-xcb.so.1.0.0" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.0"
-  elif [[ -e libnvidia-egl-xcb.so.1.0.1 ]]; then
-    install -Dm755 "libnvidia-egl-xcb.so.1.0.1" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.1"
-  elif [[ -e libnvidia-egl-xcb.so.1.0.3 ]]; then
-    install -Dm755 "libnvidia-egl-xcb.so.1.0.3" "${pkgdir}/usr/lib/libnvidia-egl-xcb.so.1.0.3"
-  fi
+  [[ -n "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')" ]] && \
+    install -Dm755 "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')" "${pkgdir}/usr/lib/$(basename "$(_latest_matching_file 'libnvidia-egl-xcb.so.*')")"
   if [[ -e 20_nvidia_xcb.json ]]; then
     install -Dm644 "20_nvidia_xcb.json" "${pkgdir}/usr/share/egl/egl_external_platform.d/20_nvidia_xcb.json"
   fi
 }
 
-# _install_opencl – 64-bit OpenCL ICD and libraries
+# 64-bit OpenCL ICD and libraries package
 _install_opencl() {
   install -Dm644 nvidia.icd "${pkgdir}"/etc/OpenCL/vendors/nvidia.icd
   if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
@@ -605,7 +592,7 @@ _install_opencl() {
   ln -s nvidia-utils "${pkgdir}/usr/share/licenses/opencl-nvidia"
 }
 
-# _install_lib32_opencl – 32-bit OpenCL libraries
+# 32-bit OpenCL libraries package
 _install_lib32_opencl() {
   if [[ -e libnvidia-compiler.so.${pkgver} ]]; then
     install -D -m755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib32/libnvidia-compiler.so.${pkgver}"
@@ -618,7 +605,7 @@ _install_lib32_opencl() {
   ln -s nvidia-utils/ "${pkgdir}/usr/share/licenses/lib32-opencl-nvidia"
 }
 
-# _install_settings – nvidia-settings binary
+# nvidia-settings binary package
 _install_settings() {
   install -D -m755 nvidia-settings -t "${pkgdir}/usr/bin"
   install -D -m644 nvidia-settings.1.gz -t "${pkgdir}/usr/share/man/man1"
