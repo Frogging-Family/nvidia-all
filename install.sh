@@ -50,25 +50,9 @@ plain '        `:sdNNNNNNNNNNNNNNNNNNNNNNNNNds:`'
 plain '           `-+shdNNNNNNNNNNNNNNNdhs+-`'
 plain '                 `.-:///////:-.`'
 
-if ! command -v vercmp &>/dev/null; then
-  vercmp() {
-    [[ "$1" == "$2" ]] && { echo 0; return; }
-    local _newer
-    _newer="$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -1)"
-    [[ "${_newer}" == "$1" ]] && echo 1 || echo -1
-  }
-fi
-
-for _required in "${_where}/customization.cfg" "${_where}/nvidia-all-config/prepare"; do
-  if [[ ! -f "${_required}" ]]; then
-    error "Required file not found: ${_required}"
-    error "Run install.sh from the nvidia-all project root."
-    exit 1
-  fi
-done
-
 # Set up environment and trap cleanup
-source "${_where}/nvidia-all-config/prepare"
+source "${_where}/nvidia-all-config/prepare" || { error "Required file not found: ${_where}/nvidia-all-config/prepare. Run from the nvidia-all project root."; exit 1; }
+_nv_require_project_files "${_where}/customization.cfg" "${_where}/nvidia-all-config/install-common"
 source "${_where}/nvidia-all-config/install-common"
 
 _pkg_tmpdir=""
@@ -86,8 +70,7 @@ if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
   elif command -v zypper &>/dev/null; then
     zypper install curl libarchive-tools
   else
-    error "curl/bsdtar not found and no known package manager to install them."
-    exit 1
+    _die "curl/bsdtar not found and no known package manager to install them."
   fi
 fi
 
@@ -130,9 +113,7 @@ _distro_prompt() {
   # Unknown distros are not supported
   case "${_NV_DISTRO_FAMILY}" in
     generic|"")
-      error "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
-      plain ""
-      exit 1
+      _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
       ;;
   esac
 
@@ -181,8 +162,7 @@ _distro_prompt() {
     "Suse")
       _NV_PKG_TARGET="suse" ;;
     *)
-      error "Unsupported distribution. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
-      exit 1
+      _die "Unsupported distribution. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
       ;;
   esac
 }
@@ -190,8 +170,7 @@ _distro_prompt
 
 # Package targets disallow building/installing DKMS and prebuilt module variants together
 if [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu|fedora|suse)$ ]] && [[ "${_dkms:-false}" == "full" ]]; then
-  error "_dkms=full is not supported on ${_NV_PKG_TARGET}. Choose exactly one module variant: _dkms=true (DKMS) or _dkms=false (prebuilt)."
-  exit 1
+  _die "_dkms=full is not supported on ${_NV_PKG_TARGET}. Choose exactly one module variant: _dkms=true (DKMS) or _dkms=false (prebuilt)."
 fi
 
 # Install build dependencies
@@ -233,8 +212,7 @@ _install_dependencies() {
       sudo zypper install -y dkms gcc gcc-c++ make libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
       ;;
     *)
-      error "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported."
-      exit 1
+      _die "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported."
       ;;
   esac
 }
@@ -284,8 +262,7 @@ _install_mode() {
       suse)
         sudo zypper install rpm-build ;;
       *)
-        error "Don't know how to install rpmbuild on this system."
-        exit 1 ;;
+        _die "Don't know how to install rpmbuild on this system." ;;
     esac
   fi
 }

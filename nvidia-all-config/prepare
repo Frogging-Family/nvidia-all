@@ -46,6 +46,27 @@ _ver_from_entry() {
   grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<< "${1#*:}" | head -1
 }
 
+if ! command -v vercmp &>/dev/null; then
+  vercmp() {
+    [[ "$1" == "$2" ]] && { echo 0; return; }
+    local _newer
+    _newer="$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -1)"
+    [[ "${_newer}" == "$1" ]] && echo 1 || echo -1
+  }
+fi
+
+_die() {
+  error "$@"
+  exit 1
+}
+
+_nv_require_project_files() {
+  local _required
+  for _required in "$@"; do
+    [[ -f "${_required}" ]] || _die "Required file not found: ${_required}. Run from the nvidia-all project root."
+  done
+}
+
 # Fetch latest driver version per active series, populates _nvidia_ver_map.
 _define_nvidia_versions() {
   [[ -v _nvidia_ver_map ]] && return 0
@@ -58,8 +79,7 @@ _define_nvidia_versions() {
   _drv_fetch=$(curl -fsSL --max-time 15 https://download.nvidia.com/XFree86/Linux-x86_64/ 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?/' | tr -d '/' | sort -Vu)
 
   if [[ -z "${_drv_fetch}" ]]; then
-    error "Could not fetch NVIDIA driver listing (network error or timeout)."
-    exit 1
+    _die "Could not fetch NVIDIA driver listing (network error or timeout)."
   fi
 
   _drv_open_fetch=$(curl -fsSL --max-time 15 https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/ 2>/dev/null | grep -oE 'NVIDIA-kernel-module-source-[0-9]+\.[0-9]+(\.[0-9]+)?\.tar\.xz' | sed -E 's/NVIDIA-kernel-module-source-//;s/\.tar\.xz//' | sort -Vu)
@@ -76,8 +96,7 @@ _define_nvidia_versions() {
   done
 
   if [[ ${#_nvidia_ver_map[@]} -eq 0 ]]; then
-    error "Could not resolve NVIDIA driver versions."
-    exit 1
+    _die "Could not resolve NVIDIA driver versions."
   fi
 }
 
@@ -321,8 +340,7 @@ _select_older_driver() {
   _prompt_from_array "${_eol_nvidia[@]}"
   _driver_version="$(_ver_from_entry "${_selected_value}" || true)"
   if [[ -z "${_driver_version}" ]]; then
-    error "Could not parse driver version from selection: ${_selected_value}"
-    return 1
+    _die "Could not parse driver version from selection: ${_selected_value}"
   fi
   _driver_branch="regular"
 }
@@ -510,11 +528,8 @@ _detect_open_modules() {
   done
 
   if [[ "${_incompatible}" = "true" && "${_requires_open}" = "true" ]]; then
-    error "Mixed NVIDIA GPUs detected: at least one GPU needs proprietary modules, while another appears to require open modules."
-    error "nvidia-all cannot safely auto-select one kernel module flavor for this system."
-    error "Use a single compatible NVIDIA generation, disable one GPU in firmware, or set _open_source_modules explicitly after verifying hardware support."
     echo "[ERROR] _detect_open_modules: mixed open-required and noopen GPUs detected" >> "${_where}/logs/prepare.log.txt"
-    exit 1
+    _die "Aborting due to mixed NVIDIA GPU module requirements."
   elif [[ "${_incompatible}" = "true" ]]; then
     _open_source_modules="false"
     msg2 "Auto-selecting closed source modules (GPU not compatible with open modules)."
@@ -625,10 +640,7 @@ _set_open_modules() {
     fi
   else
     if [[ "${_open_source_modules:-}" = "true" ]] || _driver_supports_open_modules "${_driver_version}"; then
-      error "No usable open module source was found for driver ${_driver_version}."
-      error "NVIDIA archive and GitHub tag are unavailable."
-      error "Choose a listed driver version, or retry after NVIDIA publishes the open module source."
-      exit 1
+      _die "Choose a listed driver version, or retry after NVIDIA publishes the open module source."
     fi
 
     msg2 "No open source kernel module available"
@@ -652,11 +664,8 @@ _validate_open_modules() {
     return 0
   fi
 
-  error "Driver ${_driver_version} is not compatible with proprietary kernel modules."
-  error "For Turing or newer GPUs, use open source modules. For Pascal/Maxwell/no-open-module GPUs, use the 580 legacy/proprietary branch."
-  error "Set _driver_version='${_recommended_legacy}' and _driver_branch='regular', or choose the 580 series from the menu."
   echo "[ERROR] _validate_open_modules: driver ${_driver_version} with proprietary modules is unsupported for noopen hardware" >> "${_where}/logs/prepare.log.txt"
-  exit 1
+  _die "Aborting due to unsupported proprietary module selection."
 }
 
 # Check installed version is newer
@@ -703,8 +712,7 @@ _set_source_name() {
 
   if [[ "${_open_source_modules}" = "true" ]]; then
     if ! _source_open="$(_tarball_source "${_ver}" "${_srcbase:-}")"; then
-      error "Unknown open module source: ${_srcbase:-unset}"
-      exit 1
+      _die "Unknown open module source: ${_srcbase:-unset}"
     fi
     echo "_source_open='${_source_open}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
   fi
@@ -1241,8 +1249,7 @@ _nv_srcprep() {
     plain ""
     read -p "    Continue anyway? [y/N] " _continue
     if [[ ! "${_continue}" =~ [yY] ]]; then
-      error "Aborted by user due to GCC mismatch."
-      exit 1
+      _die "Aborted by user due to GCC mismatch."
     fi
   fi
 
@@ -1265,8 +1272,7 @@ _nv_srcprep() {
     plain ""
     read -p "    Continue anyway? [y/N] " _continue
     if [[ ! "${_continue}" =~ [yY] ]]; then
-      error "Aborted by user due to Clang mismatch."
-      exit 1
+      _die "Aborted by user due to Clang mismatch."
     fi
   fi
 

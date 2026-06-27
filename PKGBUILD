@@ -25,7 +25,8 @@ plain '             `.-:///////:-.`'
 _where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # Set up environment and trap cleanup
-source "${_where}/nvidia-all-config/prepare"
+source "${_where}/nvidia-all-config/prepare" || { error "Required file not found: ${_where}/nvidia-all-config/prepare. Run from the nvidia-all project root."; return 1; }
+_nv_require_project_files "${_where}/customization.cfg" "${_where}/nvidia-all-config/install-common"
 source "${_where}/nvidia-all-config/install-common"
 trap _exit_cleanup EXIT
 
