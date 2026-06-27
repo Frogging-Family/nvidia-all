@@ -67,6 +67,27 @@ _nv_require_project_files() {
   done
 }
 
+_frog_banner() {
+  plain '       .---.`               `.---.'
+  plain '    `/syhhhyso-           -osyhhhys/`'
+  plain '   .syNMdhNNhss/``.---.``/sshNNhdMNys.'
+  plain '   +sdMh.`+MNsssssssssssssssNM+`.hMds+'
+  plain '   :syNNdhNNhssssssssssssssshNNhdNNys:'
+  plain '    /ssyhhhysssssssssssssssssyhhhyss/'
+  plain '    .ossssssssssssssssssssssssssssso.'
+  plain '   :sssssssssssssssssssssssssssssssss:'
+  plain '  /sssssssssssssssssssssssssssssssssss/   nvidia-all'
+  plain ' :sssssssssssssoosssssssoosssssssssssss:        AIO drivers'
+  plain ' osssssssssssssoosssssssoossssssssssssso'
+  plain ' osssssssssssyyyyhhhhhhhyyyyssssssssssso'
+  plain ' /yyyyyyhhdmmmmNNNNNNNNNNNmmmmdhhyyyyyy/'
+  plain '  smmmNNNNNNNNNNNNNNNNNNNNNNNNNNNNNmmms'
+  plain '   /dNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNd/'
+  plain '    `:sdNNNNNNNNNNNNNNNNNNNNNNNNNds:`'
+  plain '       `-+shdNNNNNNNNNNNNNNNdhs+-`'
+  plain '             `.-:///////:-.`'
+}
+
 # Fetch latest driver version per active series, populates _nvidia_ver_map.
 _define_nvidia_versions() {
   [[ -v _nvidia_ver_map ]] && return 0
@@ -1512,6 +1533,7 @@ _nv_build() {
 
 # Clean on exit
 _exit_cleanup() {
+  plain ""
   local _exit_status="$?"
 
   [[ -n "${_pkg_tmpdir:-}" && -d "${_pkg_tmpdir}" ]] && rm -rf "${_pkg_tmpdir}"

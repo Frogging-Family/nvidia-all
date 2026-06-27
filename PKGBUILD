@@ -3,29 +3,11 @@
 
 # Includes DKMS support, libglvnd compat, 32-bit libs and building for all kernels currently installed
 
-plain '       .---.`               `.---.'
-plain '    `/syhhhyso-           -osyhhhys/`'
-plain '   .syNMdhNNhss/``.---.``/sshNNhdMNys.'
-plain '   +sdMh.`+MNsssssssssssssssNM+`.hMds+'
-plain '   :syNNdhNNhssssssssssssssshNNhdNNys:'
-plain '    /ssyhhhysssssssssssssssssyhhhyss/'
-plain '    .ossssssssssssssssssssssssssssso.'
-plain '   :sssssssssssssssssssssssssssssssss:'
-plain '  /sssssssssssssssssssssssssssssssssss/   nvidia-all'
-plain ' :sssssssssssssoosssssssoosssssssssssss:        AIO drivers'
-plain ' osssssssssssssoosssssssoossssssssssssso'
-plain ' osssssssssssyyyyhhhhhhhyyyyssssssssssso'
-plain ' /yyyyyyhhdmmmmNNNNNNNNNNNmmmmdhhyyyyyy/'
-plain '  smmmNNNNNNNNNNNNNNNNNNNNNNNNNNNNNmmms'
-plain '   /dNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNd/'
-plain '    `:sdNNNNNNNNNNNNNNNNNNNNNNNNNds:`'
-plain '       `-+shdNNNNNNNNNNNNNNNdhs+-`'
-plain '             `.-:///////:-.`'
-
 _where=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare" || { error "Required file not found: ${_where}/nvidia-all-config/prepare. Run from the nvidia-all project root."; return 1; }
+_frog_banner
 _nv_require_project_files "${_where}/customization.cfg" "${_where}/nvidia-all-config/install-common"
 source "${_where}/nvidia-all-config/install-common"
 trap _exit_cleanup EXIT

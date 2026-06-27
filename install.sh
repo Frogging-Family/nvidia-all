@@ -31,27 +31,9 @@ plain() {
  echo -e "$1" >&2
 }
 
-plain '           .---.`               `.---.'
-plain '        `/syhhhyso-           -osyhhhys/`'
-plain '       .syNMdhNNhss/``.---.``/sshNNhdMNys.'
-plain '       +sdMh.`+MNsssssssssssssssNM+`.hMds+'
-plain '       :syNNdhNNhssssssssssssssshNNhdNNys:'
-plain '        /ssyhhhysssssssssssssssssyhhhyss/'
-plain '        .ossssssssssssssssssssssssssssssso.'
-plain '       :sssssssssssssssssssssssssssssssss:'
-plain '      /sssssssssssssssssssssssssssssssssss/   nvidia-all'
-plain '     :sssssssssssssoosssssssoosssssssssssss:        AIO drivers'
-plain '     osssssssssssssoosssssssoossssssssssssso'
-plain '     osssssssssssyyyyhhhhhhhyyyyssssssssssso'
-plain '     /yyyyyyhhdmmmmNNNNNNNNNNNmmmmdhhyyyyyy/'
-plain '      smmmNNNNNNNNNNNNNNNNNNNNNNNNNNNNNmmms'
-plain '       /dNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNd/'
-plain '        `:sdNNNNNNNNNNNNNNNNNNNNNNNNNds:`'
-plain '           `-+shdNNNNNNNNNNNNNNNdhs+-`'
-plain '                 `.-:///////:-.`'
-
 # Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare" || { error "Required file not found: ${_where}/nvidia-all-config/prepare. Run from the nvidia-all project root."; exit 1; }
+_frog_banner
 _nv_require_project_files "${_where}/customization.cfg" "${_where}/nvidia-all-config/install-common"
 source "${_where}/nvidia-all-config/install-common"
 
