@@ -32,10 +32,16 @@ plain() {
 }
 
 # Set up environment and trap cleanup
-source "${_where}/nvidia-all-config/prepare" || { error "Required file not found: ${_where}/nvidia-all-config/prepare. Run from the nvidia-all project root."; exit 1; }
-_frog_banner
-_nv_require_project_files "${_where}/customization.cfg" "${_where}/nvidia-all-config/install-common"
+source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
+
+_detect_distro
+if [[ "${_NV_DISTRO_FAMILY}" == "arch" ]]; then
+  cd "${_where}"
+  exec makepkg -si
+fi
+
+_frog_banner
 
 _pkg_tmpdir=""
 trap _exit_cleanup EXIT
@@ -69,8 +75,6 @@ _pkg="NVIDIA-Linux-x86_64-${pkgver}"
 srcdir="/tmp/nvidia-install-$$"
 pkgdir=""   # empty because we don't use makepkg, but some prepare functions expect it to exist
 
-# Distro detection
-_detect_distro
 msg2 "Detected distro family: ${_NV_DISTRO_FAMILY}"
 
 # Distro selection prompt
@@ -78,16 +82,12 @@ _distro_prompt() {
   # If _distro is already set in customization.cfg, skip the prompt
   if [[ -n "${_distro:-}" ]]; then
     case "${_distro}" in
-      Arch)
-        cd "${_where}"
-        exec makepkg -si
-        ;;
       Debian)  _NV_PKG_TARGET="debian" ; return 0 ;;
       Ubuntu)  _NV_PKG_TARGET="ubuntu" ; return 0 ;;
       Fedora)  _NV_PKG_TARGET="fedora" ; return 0 ;;
       Suse)    _NV_PKG_TARGET="suse"   ; return 0 ;;
       *)
-        warning "_distro='${_distro}' is not a valid value. Valid values: Arch, Debian, Ubuntu, Fedora, Suse — prompting..."
+        warning "_distro='${_distro}' is not a valid value. Valid values: Debian, Ubuntu, Fedora, Suse — prompting..."
         ;;
     esac
   fi
@@ -95,46 +95,37 @@ _distro_prompt() {
   # Unknown distros are not supported
   case "${_NV_DISTRO_FAMILY}" in
     generic|"")
-      _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
+      _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
       ;;
   esac
 
   msg2 "Which Linux distribution are you running?"
   local _label
   case "${_NV_DISTRO_FAMILY}" in
-    arch)
-      _label="Arch"
-      _default_index=0
-      ;;
     debian)
       case "${_NV_DISTRO_ID:-}" in
         ubuntu|linuxmint|pop|elementary|zorin)
           _label="Ubuntu"
-          _default_index=2
+          _default_index=1
           ;;
         *)
           _label="Debian"
-          _default_index=1
+          _default_index=0
           ;;
       esac
       ;;
     fedora)
       _label="Fedora"
-      _default_index=3
+      _default_index=2
       ;;
     suse)
       _label="Suse"
-      _default_index=4
+      _default_index=3
       ;;
   esac
   msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
-  _prompt_from_array "Arch" "Debian" "Ubuntu" "Fedora" "Suse"
+  _prompt_from_array "Debian" "Ubuntu" "Fedora" "Suse"
   case "${_selected_value}" in
-    "Arch")
-      msg2 "Arch Linux detected. Starting makepkg -si ..."
-      cd "${_where}"
-      exec makepkg -si
-      ;;
     "Debian")
       _NV_PKG_TARGET="debian" ;;
     "Ubuntu")
@@ -144,7 +135,7 @@ _distro_prompt() {
     "Suse")
       _NV_PKG_TARGET="suse" ;;
     *)
-      _die "Unsupported distribution. Only Arch, Debian, Ubuntu, Fedora and Suse are supported."
+      _die "Unsupported distribution. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
       ;;
   esac
 }

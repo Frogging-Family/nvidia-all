@@ -60,13 +60,6 @@ _die() {
   exit 1
 }
 
-_nv_require_project_files() {
-  local _required
-  for _required in "$@"; do
-    [[ -f "${_required}" ]] || _die "Required file not found: ${_required}. Run from the nvidia-all project root."
-  done
-}
-
 _frog_banner() {
   plain '       .---.`               `.---.'
   plain '    `/syhhhyso-           -osyhhhys/`'
