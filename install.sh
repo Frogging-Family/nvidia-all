@@ -35,16 +35,19 @@ plain() {
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
 
+_pkg_tmpdir=""
+trap _exit_cleanup EXIT
+trap 'trap - INT TERM; exit 130' INT
+trap 'trap - INT TERM; exit 143' TERM
+
 _detect_distro
 if [[ "${_NV_DISTRO_FAMILY}" == "arch" ]]; then
   cd "${_where}"
-  exec makepkg -si
+  makepkg -si
+  exit $?
 fi
 
 _frog_banner
-
-_pkg_tmpdir=""
-trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 _frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"

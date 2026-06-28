@@ -11,6 +11,7 @@ source "${_where}/nvidia-all-config/install-common"
 
 _frog_banner
 
+_makepkg_cleanup="true"
 trap _exit_cleanup EXIT
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
@@ -133,13 +134,7 @@ build() {
   source "${_where}/BIG_UGLY_FROGMINER"
   source "${_where}/nvidia-all-config/prepare"
 
-  local _build_start=$SECONDS
-  if _nv_build; then
-    _runtime="$((SECONDS - _build_start))s"
-  else
-    _runtime="$((SECONDS - _build_start))s (failed)"
-    return 1
-  fi
+  _nv_build
 }
 
 opencl-nvidia-tkg() {
