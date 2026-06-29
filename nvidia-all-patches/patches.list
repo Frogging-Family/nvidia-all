@@ -382,6 +382,7 @@ open     595/kernel-7.0.patch                                                   
 open     610/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -           610          -            1      .
 # open 610/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch is already upstream in 610.43.02+ (EvoSetDpDscParams uses bpc), skip.
 open     610/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -           610          -            1      .
+open     610/kernel-7.2.patch                                                          7.2      7.2.9999    610          -            1      .
 
 
 # ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

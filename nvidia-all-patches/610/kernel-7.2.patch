@@ -1,0 +1,121 @@
+From 1b4354094db6531dfd26774e7e7daa56e2850a23 Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Mon, 29 Jun 2026 21:30:49 +0200
+Subject: [PATCH] make: Add support for 7.2 Kernel
+
+Signed-off-by: Peter Jung <admin@ptr1337.dev>
+---
+ kernel-open/nvidia-drm/nvidia-drm-conftest.h   | 18 ++++++++++++++++++
+ .../nvidia-modeset/nvidia-modeset-linux.c      |  9 ++++++++-
+ kernel-open/nvidia-uvm/uvm_pmm_gpu.c           |  4 +++-
+ kernel-open/nvidia/linux_nvswitch.c            | 12 ++++++++++--
+ kernel-open/nvidia/os-interface.c              |  3 +--
+ 5 files changed, 40 insertions(+), 6 deletions(-)
+
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-conftest.h b/kernel-open/nvidia-drm/nvidia-drm-conftest.h
+index 57e70a81bf..cf2300876c 100644
+--- a/kernel-open/nvidia-drm/nvidia-drm-conftest.h
++++ b/kernel-open/nvidia-drm/nvidia-drm-conftest.h
+@@ -56,6 +56,24 @@
+ #endif
+
+ #include <linux/kconfig.h> // for IS_ENABLED()
++#include <linux/version.h>
++
++/*
++ * Linux v7.2 renamed DRM atomic state to DRM atomic commit. Keep the NVIDIA
++ * DRM sources on the old spelling until upstream compatibility tests grow a
++ * dedicated probe for this API transition.
++ */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
++#define drm_atomic_state                 drm_atomic_commit
++#define drm_atomic_state_alloc           drm_atomic_commit_alloc
++#define drm_atomic_state_init            drm_atomic_commit_init
++#define drm_atomic_state_clear           drm_atomic_commit_clear
++#define drm_atomic_state_default_clear   drm_atomic_commit_default_clear
++#define drm_atomic_state_default_release drm_atomic_commit_default_release
++#define drm_atomic_state_put             drm_atomic_commit_put
++#define NV_DRM_CRTC_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG
++#define NV_DRM_PLANE_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG
++#endif
+
+ #if (IS_ENABLED(CONFIG_DRM) && IS_ENABLED(CONFIG_DRM_KMS_HELPER)) ||           \
+     defined(__FreeBSD__)
+diff --git a/kernel-open/nvidia-modeset/nvidia-modeset-linux.c b/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+index 8c2cf3740b..35ba619ce4 100644
+--- a/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
++++ b/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+@@ -666,7 +666,14 @@ int nvkms_strcmp(const char *s1, const char *s2)
+
+ char* nvkms_strncpy(char *dest, const char *src, size_t n)
+ {
+-    return strncpy(dest, src, n);
++    size_t copied = strnlen(src, n);
++
++    memcpy(dest, src, copied);
++    if (copied < n) {
++        memset(dest + copied, 0, n - copied);
++    }
++
++    return dest;
+ }
+
+ void nvkms_usleep(NvU64 usec)
+diff --git a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+index 34e56f2272..23874da173 100644
+--- a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
++++ b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+@@ -2804,7 +2804,9 @@ static NV_STATUS init_chunk_split_cache_level(uvm_pmm_gpu_t *pmm, size_t level)
+             size_t size;
+             size_t align;
+             if (level == 0) {
+-                strncpy(chunk_split_cache[level].name, "uvm_gpu_chunk_t", sizeof(chunk_split_cache[level].name) - 1);
++                strscpy(chunk_split_cache[level].name,
++                        "uvm_gpu_chunk_t",
++                        sizeof(chunk_split_cache[level].name));
+                 size = sizeof(uvm_gpu_chunk_t);
+                 align = __alignof__(uvm_gpu_chunk_t);
+             } else {
+diff --git a/kernel-open/nvidia/linux_nvswitch.c b/kernel-open/nvidia/linux_nvswitch.c
+index 015de1ca66..8a0262b067 100644
+--- a/kernel-open/nvidia/linux_nvswitch.c
++++ b/kernel-open/nvidia/linux_nvswitch.c
+@@ -2059,7 +2059,7 @@ nvswitch_os_read_registry_dword
+         return -NVL_ERR_GENERIC;
+     }
+
+-    strncpy(regkey_val, regkey_val_start, regkey_val_len);
++    memcpy(regkey_val, regkey_val_start, regkey_val_len);
+     regkey_val[regkey_val_len] = '\0';
+
+     if (nvswitch_os_strtouint(regkey_val, data) != 0)
+@@ -2414,7 +2414,15 @@ nvswitch_os_strncpy
+     NvLength length
+ )
+ {
+-    return strncpy(dest, src, length);
++    size_t copied = strnlen(src, length);
++
++    memcpy(dest, src, copied);
++    if (copied < length)
++    {
++        memset(dest + copied, 0, length - copied);
++    }
++
++    return dest;
+ }
+
+ int
+diff --git a/kernel-open/nvidia/os-interface.c b/kernel-open/nvidia/os-interface.c
+index ebbd236ad9..7df5e59a51 100644
+--- a/kernel-open/nvidia/os-interface.c
++++ b/kernel-open/nvidia/os-interface.c
+@@ -770,8 +770,7 @@ NvU32 NV_API_CALL os_get_current_process(void)
+ void NV_API_CALL os_get_current_process_name(char *buf, NvU32 len)
+ {
+     task_lock(current);
+-    strncpy(buf, current->comm, len - 1);
+-    buf[len - 1] = '\0';
++    strscpy(buf, current->comm, len);
+     task_unlock(current);
+ }

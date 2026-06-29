@@ -29,3 +29,4 @@ release/
 logs/
 BIG_UGLY_FROGMINER
 BIG_UGLY_FROGMINER.pending
+*.code-workspace
