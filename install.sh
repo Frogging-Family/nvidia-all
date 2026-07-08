@@ -338,27 +338,10 @@ _stage_settings() {
   _relocate_elfs "${pkgdir}"
 }
 
-# Debian/Ubuntu initramfs-tools staging
-_stage_initramfs() {
-  printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-    install -Dm644 /dev/stdin "${pkgdir}/usr/share/initramfs-tools/modules.d/nvidia-tkg"
-
-  install -Dm755 \
-    "${_where}/nvidia-all-config/system/package-templates/deb/initramfs-hook.nvidia-tkg.in" \
-    "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
-  chmod 755 "${pkgdir}/usr/share/initramfs-tools/hooks/nvidia-tkg"
-}
-
-# Autoload nvidia modules at boot
-_stage_modules_load() {
-  printf 'nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm\n' | \
-    install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia.conf"
-}
-
 # Autoload nvidia-uvm at boot
 _stage_uvm_load() {
   if [[ "${_blacklist_nouveau}" != "false" ]]; then
-    echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/nvidia-uvm.conf"
+    echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
   else
     msg2 "Skipping nvidia-uvm autoload due to user config"
   fi
@@ -397,10 +380,8 @@ _stage_kmod() {
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
-      # Early KMS autoload for prebuilt package variant
-      if [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-        _stage_modules_load
-      fi
+      # Enable nvidia-uvm autoload at boot
+      _stage_uvm_load
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -417,18 +398,6 @@ _stage_kmod() {
 
     _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
   done
-
-  # Configure dracut for nvidia kernel modules
-  if command -v dracut &>/dev/null; then
-    if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
-      echo 'force_drivers+=" nvidia nvidia-modeset nvidia-uvm nvidia-drm "' | \
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    else
-      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-dracut.conf" "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    fi
-  elif [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-    _stage_initramfs
-  fi
 }
 
 # Staging the DKMS source tree for the DKMS package variant
@@ -447,11 +416,6 @@ _stage_dkms() {
     echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
-    # Debian for early KMS support.
-    if [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-      _stage_modules_load
-    fi
-
     install -Dm644 "${srcdir}/open-gpu-kernel-modules-dkms/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
   # Closed-source DKMS modules
   else
@@ -467,18 +431,6 @@ _stage_dkms() {
 
   # Enable nvidia-uvm autoload at boot
   _stage_uvm_load
-
-  # Configure dracut for nvidia kernel modules
-  if command -v dracut &>/dev/null; then
-    if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
-      echo 'omit_drivers+=" nvidia nvidia-modeset nvidia-uvm nvidia-drm "' | \
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    else
-      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-dracut.conf" "${pkgdir}/usr/lib/dracut/dracut.conf.d/nvidia-tkg.conf"
-    fi
-  elif [[ "${_NV_DISTRO_FAMILY:-}" == "debian" ]]; then
-    _stage_initramfs
-  fi
 }
 
 # main staging function

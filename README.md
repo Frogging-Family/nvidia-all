@@ -71,17 +71,21 @@ Supported: Arch, Debian/Ubuntu, Fedora/SUSE.
 git clone https://github.com/Frogging-Family/nvidia-all.git
 cd nvidia-all
 
+# All distributions
+./install.sh
+
 # Arch-based
 makepkg -si
 
-# All distributions
-./install.sh
 ```
 
 Then follow the prompts to select your desired driver version, module type, optional split packages and other options.
 
-If your setup needs it, consider a pacman hook for DRM mode setting:
+If your setup needs NVIDIA DRM kernel mode setting, configure it with your distro's tooling:
 https://wiki.archlinux.org/title/NVIDIA#DRM_kernel_mode_setting
+
+If your setup needs early KMS, configure it with your distro's initramfs tooling:
+https://wiki.archlinux.org/title/Kernel_mode_setting#Early_KMS_start
 
 ## Update
 
