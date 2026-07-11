@@ -278,12 +278,17 @@ _relocate_elfs() {
         mkdir -p "${_pkgdir}/usr/lib/x86_64-linux-gnu"
         # Move ELF-containing subdirectories
         local _dir
-        for _dir in gbm vdpau tls; do
+        for _dir in gbm nvidia vdpau tls; do
           [[ -d "${_pkgdir}/usr/lib/${_dir}" ]] && mv "${_pkgdir}/usr/lib/${_dir}" "${_pkgdir}/usr/lib/x86_64-linux-gnu/"
         done
-        # Move root-level shared libraries (.so / .so.N / .so.N.N.N …).
+        # Move root-level shared libraries (.so / .so.N / .so.N.N.N ...).
         find "${_pkgdir}/usr/lib" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
           -exec mv {} "${_pkgdir}/usr/lib/x86_64-linux-gnu/" \;
+      fi
+
+      local _xorg_conf="${_pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
+      if [[ -f "${_xorg_conf}" ]]; then
+        sed -i 's|ModulePath "/usr/lib/nvidia/xorg"|ModulePath "/usr/lib/x86_64-linux-gnu/nvidia/xorg"|' "${_xorg_conf}"
       fi
 
       # 32-bit ELF
