@@ -354,14 +354,14 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
             command -v mokutil >/dev/null 2>&1 &&
             mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
         }; then
-        msg2 "Secure Boot is active or module signing is enabled — installing mkinitcpio signing hook"
+        msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
         install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
-      msg2 "Skipping mkinitcpio hook due to user config"
+      msg2 "Skipping initramfs update hook due to user config"
     fi
   else
     pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
@@ -399,14 +399,14 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
             command -v mokutil >/dev/null 2>&1 &&
             mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
         }; then
-        msg2 "Secure Boot is active or module signing is enabled — installing mkinitcpio signing hook"
+        msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
         install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       fi
     else
-      msg2 "Skipping mkinitcpio hook due to user config"
+      msg2 "Skipping initramfs update hook due to user config"
     fi
   fi
 }
@@ -483,7 +483,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
         install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
       else
-        msg2 "Skipping mkinitcpio hook due to user config"
+        msg2 "Skipping initramfs update hook due to user config"
       fi
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
