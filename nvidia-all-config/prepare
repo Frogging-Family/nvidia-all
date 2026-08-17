@@ -82,6 +82,75 @@ _frog_banner() {
   plain ''
 }
 
+# Compact build output function. Reads from stdin and prints a single status line with the current build step.
+_compact_build_output() {
+  local _label="$1"
+  local _line _current
+  local _prefix=" -> Building ${_label} · "
+  local _columns="${COLUMNS:-}" _available
+
+  if ! [[ "${_columns}" =~ ^[0-9]+$ ]] || (( _columns < 40 )); then
+    _columns="$(tput cols 2>/dev/null || true)"
+  fi
+  if ! [[ "${_columns}" =~ ^[0-9]+$ ]] || (( _columns < 40 )); then
+    _columns=80
+  fi
+
+  while IFS= read -r _line || [[ -n "${_line}" ]]; do
+    _line="${_line//$'\r'/}"
+    [[ -n "${_line}" ]] || continue
+
+    if [[ "${_line}" =~ (\*\*\*|:[0-9]+(:[0-9]+)?:|[Ww]arning:|[Ee]rror:|[Ff]atal:|FAILED:|No.rule.to.make.target|undefined.reference|Error.[0-9]+) ]]; then
+      printf '\r\033[2K%s\n' "${_line}"
+    fi
+
+    _current="${_line#"${_line%%[![:space:]]*}"}"
+    _available=$((_columns - ${#_prefix} - 1))
+    (( _available < 1 )) && _available=1
+    if (( ${#_current} > _available )); then
+      _current="${_current:0:_available-1}…"
+    fi
+
+    printf '\r\033[2K \033[1;34m->\033[1;0m \033[1;1mBuilding %s · %s\033[1;0m' "${_label}" "${_current}"
+  done
+
+  printf '\r\033[2K'
+}
+
+# Run a build command and capture its output to logs/build.log.txt, optionally compacting the output to a single status line.
+_run_nv_build_command() {
+  local _label="$1"
+  shift
+
+  local _build_log="${_where}/logs/build.log.txt"
+  local -a _pipeline_status
+  local _status=0 _part_status
+
+  mkdir -p "${_where}/logs"
+
+  # If the output is a terminal, pipe it through tee and _compact_build_output to show a compact status line.
+  # It looks redundant, but we need to capture the exit status of the pipeline because of the set -e, so we use PIPESTATUS to get the exit status of each command in the pipeline.
+  if [[ "${_build_output}" = "compact" && -t 1 ]]; then
+    if LC_ALL=C "$@" 2>&1 | tee -a "${_build_log}" | _compact_build_output "${_label}"; then
+      _pipeline_status=("${PIPESTATUS[@]}")
+    else
+      _pipeline_status=("${PIPESTATUS[@]}")
+    fi
+  else
+    if "$@" 2>&1 | tee -a "${_build_log}"; then
+      _pipeline_status=("${PIPESTATUS[@]}")
+    else
+      _pipeline_status=("${PIPESTATUS[@]}")
+    fi
+  fi
+
+  for _part_status in "${_pipeline_status[@]}"; do
+    (( _status == 0 && _part_status != 0 )) && _status="${_part_status}"
+  done
+
+  return "${_status}"
+}
+
 # Fetch latest driver version per active series, populates _nvidia_ver_map.
 _define_nvidia_versions() {
   [[ -v _nvidia_ver_map ]] && return 0
@@ -782,6 +851,10 @@ _nv_download() {
 
 # Resolve settings
 _nv_initscript() {
+  if [[ ! "${_build_output}" =~ ^(full|compact)$ ]]; then
+    _die "Unknown _build_output value '${_build_output}'. Supported values are 'full' and 'compact'."
+  fi
+
   # When _set_default=true, fill in sensible defaults for any empty core variables
   # so the build can run fully unattended without a single prompt.
   if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ ]]; then
@@ -1456,11 +1529,19 @@ _nv_srcprep() {
 }
 
 _nv_build() {
+  local _build_status=0
+
   if [[ "${_libxnvctrl}" = "true" ]]; then
-    msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
+    if [[ "${_build_output}" != "compact" || ! -t 1 ]]; then
+      msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
+    fi
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
     cd "${srcdir}/nvidia-settings-${pkgver}"
-    make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so
+    _run_nv_build_command "libXNVCtrl" make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so || _build_status=$?
+    if (( _build_status != 0 )); then
+      error "Building libXNVCtrl.so failed (exit ${_build_status}). Full log: ${_where}/logs/build.log.txt"
+      return "${_build_status}"
+    fi
     cd "${srcdir}"
   fi
 
@@ -1506,14 +1587,17 @@ _nv_build() {
       cd "${srcdir}/${_pkg}/kernel-${_kernel}"
     fi
 
-    msg2 "Building ${_label} module for ${_kernel}..."
+    if [[ "${_build_output}" != "compact" || ! -t 1 ]]; then
+      msg2 "Building ${_label} module for ${_kernel}..."
+    fi
     echo "[BUILD] _nv_build: building ${_label} module for kernel ${_kernel}" >> "${_where}/logs/prepare.log.txt"
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules |& tee -a "${_where}/logs/build.log.txt"
-    local _make_status=${PIPESTATUS[0]}
-    if (( _make_status != 0 )); then
-      error "Building ${_label} module for ${_kernel} failed (exit ${_make_status})."
-      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_make_status})" >> "${_where}/logs/prepare.log.txt"
-      return "${_make_status}"
+    _build_status=0
+    CFLAGS='' CXXFLAGS='' LDFLAGS='' _run_nv_build_command "${_label} module for ${_kernel}" \
+      make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules || _build_status=$?
+    if (( _build_status != 0 )); then
+      error "Building ${_label} module for ${_kernel} failed (exit ${_build_status}). Full log: ${_where}/logs/build.log.txt"
+      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_build_status})" >> "${_where}/logs/prepare.log.txt"
+      return "${_build_status}"
     fi
     echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
 
