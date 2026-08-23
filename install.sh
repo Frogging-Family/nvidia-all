@@ -352,15 +352,6 @@ _stage_settings() {
   _relocate_elfs "${pkgdir}"
 }
 
-# Autoload nvidia-uvm at boot
-_stage_uvm_load() {
-  if [[ "${_blacklist_nouveau}" != "false" ]]; then
-    echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
-  else
-    msg2 "Skipping nvidia-uvm autoload due to user config"
-  fi
-}
-
 # Enable NVIDIA DRM KMS for proprietary modules.
 _stage_closed_drm_kms() {
   local _opts="options nvidia-drm modeset=1"
@@ -393,9 +384,6 @@ _stage_kmod() {
       mkdir -p "${pkgdir}/usr/lib/modprobe.d"
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
-
-      # Enable nvidia-uvm autoload at boot
-      _stage_uvm_load
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -405,9 +393,6 @@ _stage_kmod() {
 
       # Enable NVIDIA DRM KMS for proprietary modules.
       _stage_closed_drm_kms
-
-      # Enable nvidia-uvm autoload at boot
-      _stage_uvm_load
     fi
 
     _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
@@ -442,9 +427,6 @@ _stage_dkms() {
 
     install -Dm644 "${srcdir}/${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   fi
-
-  # Enable nvidia-uvm autoload at boot
-  _stage_uvm_load
 }
 
 # main staging function

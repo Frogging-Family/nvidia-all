@@ -302,6 +302,7 @@ _install_utils() {
   # System configuration files udev rules, sysusers
   install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils-tkg.sysusers" "${pkgdir}/usr/lib/sysusers.d/${pkgname}.conf"
   install -Dm644 "${_where}/nvidia-all-config/system/60-nvidia.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia.rules"
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
 
   if (( ${pkgver%%.*} >= 595 )); then
     # 595+ open modules use kernel suspend notifiers for video memory preservation

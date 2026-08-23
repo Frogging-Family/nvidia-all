@@ -385,13 +385,6 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
       _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
     done
 
-    # Enable nvidia-uvm autoload at boot
-    if [[ "${_blacklist_nouveau}" != "false" ]]; then
-      echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
-    else
-      msg2 "Skipping nvidia-uvm autoload due to user config"
-    fi
-
     if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
       if [[ "${_module_signing:-autodetect}" = "true" ]] ||
         {
@@ -487,13 +480,6 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       fi
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
-    fi
-
-    # Enable nvidia-uvm autoload at boot
-    if [[ "${_blacklist_nouveau}" != "false" ]]; then
-      echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}-uvm.conf"
-    else
-      msg2 "Skipping nvidia-uvm autoload due to user config"
     fi
   }
 source /dev/stdin <<EOF
