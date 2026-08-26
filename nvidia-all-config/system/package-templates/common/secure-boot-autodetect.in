@@ -1,5 +1,5 @@
 if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -Eqi 'secure[[:space:]]*boot[[:space:]]+enabled'; then
-  if [ -x /usr/lib/nvidia-tkg/module-signing ]; then
-    /usr/lib/nvidia-tkg/module-signing || true
+  if [ -x /usr/lib/nvidia-tkg/module-sign ]; then
+    /usr/lib/nvidia-tkg/module-sign || true
   fi
 fi

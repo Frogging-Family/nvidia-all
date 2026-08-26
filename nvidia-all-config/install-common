@@ -297,20 +297,21 @@ _install_utils() {
   fi
 
   # Distro-specific files must be installed in /usr/share/X11/xorg.conf.d
-  install -Dm644 "${_where}/nvidia-all-config/system/10-nvidia-drm-outputclass.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-drm-outputclass.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
 
-  # System configuration files udev rules, sysusers
-  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils-tkg.sysusers" "${pkgdir}/usr/lib/sysusers.d/${pkgname}.conf"
-  install -Dm644 "${_where}/nvidia-all-config/system/60-nvidia.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia.rules"
+  # nvidia -sysusers, -udev
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils.sysusers" "${pkgdir}/usr/lib/sysusers.d/nvidia-utils.conf"
+  install -Dm644 "${_where}/nvidia-all-config/system/nvidia.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia.rules"
+  # nvidia-modprobe
   install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
 
   if (( ${pkgver%%.*} >= 595 )); then
     # 595+ open modules use kernel suspend notifiers for video memory preservation
-    echo 'options nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp' | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-sleep.conf"
+    printf '\n# Use kernel suspend notifiers for video memory preservation\noptions nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   else
     # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
     # Fixes Wayland Sleep, when restoring the session
-    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sleep.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-sleep.conf"
+    printf '\n# Preserve video memory allocations across suspend and hibernate\noptions nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/var/tmp\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   fi
 
   # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
@@ -325,7 +326,7 @@ _install_utils() {
 
   if (( ${pkgver%%.*} >= 580 )); then
     # reduce idle power (CUDA contexts)
-    install -Dm644 "${_where}/nvidia-all-config/system/50-nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
   fi
 
   if (( ${pkgver%%.*} >= 590 )); then
@@ -338,15 +339,28 @@ _install_utils() {
   _modprobe_mobile="${_modprobe_mobile:-false}"
   if [[ "${_modprobe}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters..."
-    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-modprobe.conf" "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+    echo "options nvidia NVreg_InitializeSystemMemoryAllocations=0" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
     # NVreg_UsePageAttributeTable was removed in driver 610
     if (( ${pkgver%%.*} < 610 )); then
-      echo "options nvidia NVreg_UsePageAttributeTable=1" >> "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+      printf '# Use the page attribute table for memory mappings\noptions nvidia NVreg_UsePageAttributeTable=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
     fi
   fi
   if [[ "${_modprobe_mobile}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-    echo "options nvidia NVreg_DynamicPowerManagement=0x02" >> "${pkgdir}/usr/lib/modprobe.d/${pkgname}-modprobe.conf"
+    echo "options nvidia NVreg_DynamicPowerManagement=0x02" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
+  fi
+
+  # Blacklist nouveau
+  if [[ "${_blacklist_nouveau}" != "false" ]]; then
+    printf '%s\n' \
+      '# Blacklist nouveau' \
+      'blacklist nouveau' \
+      'blacklist nova_core' \
+      'blacklist nova_drm' \
+      '' \
+      >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
+  else
+    msg2 "Skipping nouveau blacklist due to user config"
   fi
 
   # Install nvidia-patch from https://github.com/keylase/nvidia-patch
@@ -382,17 +396,6 @@ _install_utils() {
   fi
 
   _create_links
-
-  # Blacklist nouveau
-  if [[ "${_blacklist_nouveau}" != "false" ]]; then
-    install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}-blacklist.conf" <<'EOF'
-blacklist nouveau
-blacklist nova_core
-blacklist nova_drm
-EOF
-  else
-    msg2 "Skipping nouveau blacklist due to user config"
-  fi
 }
 
 # 32-bit utilities and libraries package

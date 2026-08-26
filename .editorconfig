@@ -17,7 +17,7 @@ shell_variant = bash
 [*.install]
 shell_variant = bash
 
-[nvidia-all-config/{prepare,install-common,module-signing}]
+[nvidia-all-config/{prepare,install-common,module-sign}]
 shell_variant = bash
 
 [nvidia-all-patches/{patchwork,patches.list}]

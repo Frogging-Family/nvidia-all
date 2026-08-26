@@ -245,7 +245,7 @@ nvidia-utils-tkg() {
     provides+=('nvidia-utils-dinit')
     conflicts+=('nvidia-utils-dinit')
   fi
-  install=nvidia-all-config/system/nvidia-utils-tkg.install
+  install=nvidia-all-config/system/nvidia-utils.install
 
   cd "${_pkg}"
 
@@ -343,7 +343,8 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
 
     # Force module to load even on unsupported GPUs
     mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}-gpus.conf"
+    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
+      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
     install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}"
 
@@ -355,10 +356,10 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
             mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
         }; then
         msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
-        install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
       else
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
       fi
     else
       msg2 "Skipping initramfs update hook due to user config"
@@ -368,7 +369,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     depends=("nvidia-utils-tkg>=${pkgver}" 'libglvnd')
     provides=("nvidia=${pkgver}" "nvidia-tkg>=${pkgver}")
     conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
-    install=nvidia-all-config/system/nvidia-tkg.install
+    install=nvidia-all-config/system/nvidia.install
 
     local _kernel
     local -a _kernels
@@ -393,10 +394,10 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
             mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
         }; then
         msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
-        install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
       else
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
+        install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
       fi
     else
       msg2 "Skipping initramfs update hook due to user config"

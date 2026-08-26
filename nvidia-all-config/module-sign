@@ -13,7 +13,7 @@ _sign_module() {
     local _config="${_kbuild}/.config"
 
     if [[ ! -x "${_file}" ]] || [[ ! -r "${_config}" ]]; then
-      echo ":: module-signing: skipped ${_kernel}: build metadata missing"
+      echo ":: module-sign: skipped ${_kernel}: build metadata missing"
       continue
     fi
 
@@ -46,7 +46,7 @@ _sign_module() {
     fi
 
     if [[ ! -r "${_key}" ]] || [[ ! -r "${_cert}" ]]; then
-      echo ":: module-signing: skipped ${_kernel}: signing key not readable"
+      echo ":: module-sign: skipped ${_kernel}: signing key not readable"
       continue
     fi
 
@@ -93,7 +93,7 @@ _sign_module() {
   done < <(find -L /usr/lib/modules -mindepth 2 -maxdepth 2 -name build -print0)
 
   if (( _signed_any == 0 )); then
-    echo ":: module-signing: skipped — no installed NVIDIA modules found"
+    echo ":: module-sign: skipped — no installed NVIDIA modules found"
   fi
 }
 
@@ -103,7 +103,7 @@ main() {
       _sign_module
       ;;
     *)
-      echo "Usage: module-signing" >&2
+      echo "Usage: module-sign" >&2
       echo "  Signs installed NVIDIA kmod modules with the kernel/system signing key." >&2
       return 1
       ;;

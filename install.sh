@@ -369,7 +369,7 @@ _stage_kmod() {
   mapfile -t _kernels < <(_detect_kernels)
   local _kernel
 
-  install -Dm755 "${_where}/nvidia-all-config/module-signing" "${pkgdir}/usr/lib/nvidia-tkg/module-signing"
+  install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
 
   for _kernel in "${_kernels[@]}"; do
     msg2 "Staging kernel modules for ${_kernel}..."

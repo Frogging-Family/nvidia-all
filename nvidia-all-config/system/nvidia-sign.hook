@@ -1,0 +1,19 @@
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+Target=nvidia-tkg
+Target=nvidia-dkms-tkg
+Target=nvidia-dev-tkg
+Target=nvidia-dev-dkms-tkg
+Target=nvidia-dev-open-tkg
+Target=nvidia-dev-open-dkms-tkg
+Target=nvidia-open-tkg
+Target=nvidia-open-dkms-tkg
+
+[Action]
+Description=Sign Nvidia modules and refresh initramfs
+When=PostTransaction
+NeedsTargets
+Exec=/bin/sh -c 'if [ -x /usr/lib/nvidia-tkg/module-sign ]; then /usr/lib/nvidia-tkg/module-sign; fi; if command -v mkinitcpio >/dev/null 2>&1 && find /etc/mkinitcpio.d -maxdepth 1 -type f -name "*.preset" -print -quit 2>/dev/null | grep -q .; then exec mkinitcpio -P; elif command -v kernel-install >/dev/null 2>&1 && kernel-install inspect --json=short 2>/dev/null | grep -Eq "\"Layout\":\"(uki|bls)\""; then exec kernel-install add-all; elif [ -x /usr/lib/booster/regenerate_images ]; then exec /usr/lib/booster/regenerate_images; elif command -v dracut >/dev/null 2>&1; then exec dracut --regenerate-all --force; else printf "\\033[31m The initramfs generator was not found, please update initramfs manually\\033[0m\\n"; fi'
