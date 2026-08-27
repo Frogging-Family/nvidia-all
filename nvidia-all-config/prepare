@@ -35,6 +35,11 @@ _eol_nvidia=(
   "396 series: 396.54   (kernel 5.3 or lower, 5.1 or lower recommended)"
 )
 
+_deprecated_config_vars=(
+  "_modprobe_mobile"
+  "_logging_use_script"
+)
+
 # Check if the driver version supports open source modules.
 _driver_supports_open_modules() {
   local _ver="$1"
@@ -769,6 +774,13 @@ _nv_download() {
 
 # Resolve settings
 _nv_initscript() {
+  local _deprecated_var
+  for _deprecated_var in "${_deprecated_config_vars[@]}"; do
+    if [[ -n "${!_deprecated_var}" ]]; then
+      _die "The deprecated config var ${_deprecated_var} has been set. Please check the latest customization.cfg file to see what replaces it."
+    fi
+  done
+
   # When _set_default=true, fill in sensible defaults for any empty core variables
   # so the build can run fully unattended without a single prompt.
   if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ ]]; then
