@@ -1565,13 +1565,6 @@ _exit_cleanup() {
   fi
   rm -f "${_where}/BIG_UGLY_FROGMINER.pending"
 
-  # Move eventual shell-output.log file to logs folder
-  if [[ -f "${_where}/shell-output.log" ]]; then
-    mv -f "${_where}/shell-output.log" "${_where}/logs/shell-output.log.txt"
-    sed -i 's/\x1b\[[0-9;]*m//g' "${_where}/logs/shell-output.log.txt"
-    sed -i 's/\x1b(B//g' "${_where}/logs/shell-output.log.txt"
-  fi
-
   # Create logs/system-info.txt
   {
     cat /etc/os-release

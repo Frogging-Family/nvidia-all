@@ -65,13 +65,6 @@ if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
   fi
 fi
 
-if which script &> /dev/null && [[ "${_logging_use_script:-}" =~ ^(Y|y|Yes|yes|true|1)$ && -z "${SCRIPT:-}" ]]; then
-  export SCRIPT=1
-  msg2 "Using script"
-  script -q -e -c "$0 $*" shell-output.log
-  exit
-fi
-
 # Set driver version and source directory
 pkgver="${_driver_version}"
 _pkg="NVIDIA-Linux-x86_64-${pkgver}"
