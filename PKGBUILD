@@ -474,12 +474,6 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       install -dm 755 "${pkgdir}"/usr/{lib/modprobe.d,src}
       cp -dr --no-preserve='ownership' kernel-dkms "${pkgdir}/usr/src/nvidia-${pkgver}"
 
-      if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-tkg.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia-tkg.hook"
-      else
-        msg2 "Skipping initramfs update hook due to user config"
-      fi
-
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
     fi
   }
