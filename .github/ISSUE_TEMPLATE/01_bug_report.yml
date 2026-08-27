@@ -77,8 +77,6 @@ body:
         Please drag & drop all the files inside the `logs` folder, right after the build issue happened (or for the kernel you've built that have issues).
         Add anything else you deem useful in understanding what's wrong.
 
-        Notes:
-        - Arch users: the full build output isn't captured automatically, please re-run `makepkg [args] | tee shell-output.log.txt` then drag & drop that file
     validations:
       required: true
   - type: dropdown

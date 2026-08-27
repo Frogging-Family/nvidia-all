@@ -1459,7 +1459,12 @@ _nv_build() {
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
     cd "${srcdir}/nvidia-settings-${pkgver}"
-    make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so
+    ( set -o pipefail; time make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so 2>&1 | tee -a "${_where}/logs/build.log" ) || {
+      local _build_status=$?
+      error "Building libXNVCtrl.so failed (exit ${_build_status})."
+      echo "[ERROR] _nv_build: building libXNVCtrl.so failed (exit ${_build_status})" >> "${_where}/logs/prepare.log.txt"
+      return "${_build_status}"
+    }
     cd "${srcdir}"
   fi
 
@@ -1507,13 +1512,12 @@ _nv_build() {
 
     msg2 "Building ${_label} module for ${_kernel}..."
     echo "[BUILD] _nv_build: building ${_label} module for kernel ${_kernel}" >> "${_where}/logs/prepare.log.txt"
-    CFLAGS= CXXFLAGS= LDFLAGS= make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules |& tee -a "${_where}/logs/build.log.txt"
-    local _make_status=${PIPESTATUS[0]}
-    if (( _make_status != 0 )); then
-      error "Building ${_label} module for ${_kernel} failed (exit ${_make_status})."
-      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_make_status})" >> "${_where}/logs/prepare.log.txt"
-      return "${_make_status}"
-    fi
+    ( set -o pipefail; export CFLAGS='' CXXFLAGS='' LDFLAGS=''; time make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules 2>&1 | tee -a "${_where}/logs/build.log" ) || {
+      local _build_status=$?
+      error "Building ${_label} module for ${_kernel} failed (exit ${_build_status})."
+      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_build_status})" >> "${_where}/logs/prepare.log.txt"
+      return "${_build_status}"
+    }
     echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
 
     if [[ "${_open_source_modules}" = "true" ]]; then
