@@ -50,7 +50,7 @@ and other customization features.
 - Detects installed kernels and applies compatibility patches where needed.
 - Offers DKMS and regular package variants.
 - Supports optional split packages.
-- Exposes many build/runtime toggles through customization.cfg.
+- Exposes many build/runtime toggles through [customization.cfg](customization.cfg).
 - Legacy selection path includes additional older series down to 396.
 - Custom version input is supported for 396 and newer.
 
@@ -186,6 +186,8 @@ for your workflow.
 
 The main user-facing configuration lives in [customization.cfg](https://github.com/Frogging-Family/nvidia-all/blob/master/customization.cfg).
 External options can be placed at `~/.config/frogminer/nvidia-all.cfg` to automatically apply them.
+
+Custom patches are documented under `#### USER PATCHES ####` in [customization.cfg](customization.cfg).
 
 Prebuilted distro packages are written to `nvidia-all/dist/` and can be installed from there.
 
