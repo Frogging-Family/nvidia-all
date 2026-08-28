@@ -778,7 +778,7 @@ _deb_postrm() {
 _deb_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
 
-  mkdir -p "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
+  install -dm755 "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
   mkdir -p "${_where}/logs"
   cp -a "${_stagedir}/." "${_outdir}/${_pkgname}_${pkgver}_amd64/"
   _tmpl_pkgname="${_pkgname}" \
