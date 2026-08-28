@@ -334,15 +334,9 @@ _install_utils() {
     install -Dm644 "${_where}/nvidia-all-config/system/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
   fi
 
-  # nvidia-modprobe config
-  _modprobe="${_modprobe:-true}"
-  if [[ "${_modprobe}" == "true" ]]; then
-    msg2 "Applying advanced NVIDIA module parameters..."
-    echo "options nvidia NVreg_InitializeSystemMemoryAllocations=0" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
-    # NVreg_UsePageAttributeTable was removed in driver 610
-    if (( ${pkgver%%.*} < 610 )); then
-      printf '# Use the page attribute table for memory mappings\noptions nvidia NVreg_UsePageAttributeTable=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
-    fi
+  # NVreg_UsePageAttributeTable was removed in driver 610
+  if (( ${pkgver%%.*} < 610 )); then
+    printf '# Use the page attribute table for memory mappings\noptions nvidia NVreg_UsePageAttributeTable=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   fi
 
   # Blacklist nouveau
@@ -356,6 +350,10 @@ _install_utils() {
       >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   else
     msg2 "Skipping nouveau blacklist due to user config"
+  fi
+
+  if [[ -n "${_modprobe:-}" ]]; then
+    printf '# Custom NVIDIA module options\noptions nvidia %s\n\n' "${_modprobe}" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   fi
 
   # Install nvidia-patch from https://github.com/keylase/nvidia-patch

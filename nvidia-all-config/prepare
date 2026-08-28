@@ -262,7 +262,6 @@ _prompt_from_array() {
 _prompt_nvidia_options() {
   # Normalize pre-set values
   _nv_normalize_bool _blacklist_nouveau
-  _nv_normalize_bool _modprobe
   _nv_normalize_bool _nvidia_patch_enc_fbc
 
   # _blacklist_nouveau
@@ -273,17 +272,6 @@ _prompt_nvidia_options() {
     _default_index="0"
     _prompt_from_array "${_blacklist_nouveau_text[@]}"
     _blacklist_nouveau="${_blacklist_nouveau_vals[${_selected_index}]}"
-  fi
-
-  # _modprobe
-  if [[ -z "${_modprobe:-}" ]]; then
-    local _modprobe_text=("Yes (recommended)" "No")
-    local _modprobe_vals=("true" "false")
-    msg2 "Apply advanced NVIDIA module parameters?"
-    msg2 "Enables various NVIDIA module parameters that can improve performance, reduce latency."
-    _default_index="0"
-    _prompt_from_array "${_modprobe_text[@]}"
-    _modprobe="${_modprobe_vals[${_selected_index}]}"
   fi
 
   # _nvidia_patch_enc_fbc
@@ -297,12 +285,11 @@ _prompt_nvidia_options() {
     _nvidia_patch_enc_fbc="${_enc_fbc_vals[${_selected_index}]}"
   fi
 
-  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, modprobe=${_modprobe}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
+  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
 
   # Export selected options to BIG_UGLY_FROGMINER for use in PKGBUILD and install.sh
   cat >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}" <<EOF
 _blacklist_nouveau='${_blacklist_nouveau:-}'
-_modprobe='${_modprobe:-}'
 _nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'
 EOF
 }
