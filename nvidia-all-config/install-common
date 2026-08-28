@@ -336,7 +336,6 @@ _install_utils() {
 
   # nvidia-modprobe config
   _modprobe="${_modprobe:-true}"
-  _modprobe_mobile="${_modprobe_mobile:-false}"
   if [[ "${_modprobe}" == "true" ]]; then
     msg2 "Applying advanced NVIDIA module parameters..."
     echo "options nvidia NVreg_InitializeSystemMemoryAllocations=0" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
@@ -344,10 +343,6 @@ _install_utils() {
     if (( ${pkgver%%.*} < 610 )); then
       printf '# Use the page attribute table for memory mappings\noptions nvidia NVreg_UsePageAttributeTable=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
     fi
-  fi
-  if [[ "${_modprobe_mobile}" == "true" ]]; then
-    msg2 "Applying advanced NVIDIA module parameters for mobile devices..."
-    echo "options nvidia NVreg_DynamicPowerManagement=0x02" >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   fi
 
   # Blacklist nouveau

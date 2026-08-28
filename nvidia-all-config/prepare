@@ -258,7 +258,6 @@ _prompt_nvidia_options() {
   # Normalize pre-set values
   _nv_normalize_bool _blacklist_nouveau
   _nv_normalize_bool _modprobe
-  _nv_normalize_bool _modprobe_mobile
   _nv_normalize_bool _nvidia_patch_enc_fbc
 
   # _blacklist_nouveau
@@ -282,17 +281,6 @@ _prompt_nvidia_options() {
     _modprobe="${_modprobe_vals[${_selected_index}]}"
   fi
 
-  # _modprobe_mobile
-  if [[ -z "${_modprobe_mobile:-}" ]]; then
-    local _modprobe_mobile_text=("Yes" "No")
-    local _modprobe_mobile_vals=("true" "false")
-    msg2 "Apply dual-GPU specific NVIDIA module parameters?"
-    msg2 "Recommended for dual-GPU systems with Optimus/dGPU."
-    _default_index="1"
-    _prompt_from_array "${_modprobe_mobile_text[@]}"
-    _modprobe_mobile="${_modprobe_mobile_vals[${_selected_index}]}"
-  fi
-
   # _nvidia_patch_enc_fbc
   if [[ -z "${_nvidia_patch_enc_fbc:-}" ]]; then
     local _enc_fbc_text=("Yes" "No")
@@ -304,13 +292,12 @@ _prompt_nvidia_options() {
     _nvidia_patch_enc_fbc="${_enc_fbc_vals[${_selected_index}]}"
   fi
 
-  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, modprobe=${_modprobe}, modprobe_mobile=${_modprobe_mobile}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
+  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, modprobe=${_modprobe}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
 
   # Export selected options to BIG_UGLY_FROGMINER for use in PKGBUILD and install.sh
   cat >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}" <<EOF
 _blacklist_nouveau='${_blacklist_nouveau:-}'
 _modprobe='${_modprobe:-}'
-_modprobe_mobile='${_modprobe_mobile:-}'
 _nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'
 EOF
 }
