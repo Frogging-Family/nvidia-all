@@ -10,6 +10,7 @@
 #   strip     patch -pN strip level (usually 1)
 #   target    subdir for patch -d:
 #               .            driver root
+#               kernel       <pkg>/kernel/
 #               kernel-open  <open-src>/kernel-open/
 #               kernel-dkms  <pkg>/kernel-dkms/
 #   [flag]    optional: customization.cfg var, applied only when set to "true"
@@ -32,12 +33,12 @@
 open     all/nvidia-open-gcc-ibt-sls.diff                                              -        -           -            524.99       1      .
 
 # GCC 15 (all series, opt-in)
-dkms     all/gcc-15.diff                                                               -        -           -            -            1      .              _gcc15_fix
-closed   all/gcc-15.diff                                                               4.0      4.0.9999    -            -            2      .              _gcc15_fix
+dkms     all/gcc-15.diff                                                               -        -           -            -            1      .              _gcc15_fix                 470.256.02
+closed   all/gcc-15.diff                                                               4.0      4.0.9999    -            -            2      .              _gcc15_fix                 470.256.02
 
 # kernel 6.17+ (all series ≤ 575.99)
-dkms     all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       1      .
-closed   all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       2      .
+dkms     all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       1      .              -                          470.256.02
+closed   all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       2      .              -                          470.256.02
 
 # open: atomic modesetting (570–580.142)
 open     all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           570          580.142      1      kernel-open
@@ -151,20 +152,53 @@ closed   all/kernel-5.12.patch                                                  
 # ══════════════════════════════════════════════════════════════════════════════
 
 # GCC 14 (opt-in)
-closed   all/gcc-14-470.diff                                                           4.0      4.0.9999    470          470.9999     2      .              _gcc14_fix
+closed   all/gcc-14-470.diff                                                           4.0      4.0.9999    470          470.9999     2      .              _gcc14_fix                 470.256.02
 
 # clang fix (opt-in)
-dkms     470/clang.patch                                                               -        -           470          470.9999     1      kernel-dkms    _clang
-closed   470/clang.patch                                                               4.0      4.0.9999    470          470.9999     1      .              _clang
+dkms     470/clang.patch                                                               -        -           470          470.9999     1      kernel-dkms    _clang                     470.256.02
+closed   470/clang.patch                                                               4.0      4.0.9999    470          470.9999     1      .              _clang                     470.256.02
 
 # conftest GCC 14 compat
 dkms     470/0001-Fix-conftest-to-ignore-implicit-function-declaration.patch           -        -           470.40       470.9999     1      kernel-dkms
+closed   470/0001-Fix-conftest-to-ignore-implicit-function-declaration.patch           -        -           470.256.02   470.256.02   1      kernel
 dkms     470/0002-Fix-conftest-to-use-a-short-wchar_t.patch                            -        -           470.40       470.9999     1      kernel-dkms
+closed   470/0002-Fix-conftest-to-use-a-short-wchar_t.patch                            -        -           470.256.02   470.256.02   1      kernel
 dkms     470/0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se.patch           -        -           470.40       470.9999     1      kernel-dkms
+closed   470/0003-Fix-conftest-to-use-nv_drm_gem_vmap-which-has-the-se.patch           -        -           470.256.02   470.256.02   1      kernel
 
 # modeset by default (required for 6.12 support)
-dkms     470/nvidia-470xx-Enable-modeset-by-default.patch                              -        -           470          470.9999     2      kernel-dkms
-closed   470/nvidia-470xx-Enable-modeset-by-default.patch                              4.0      4.0.9999    470          470.9999     2      .
+dkms     470/nvidia-470xx-Enable-modeset-by-default.patch                              -        -           470          470.9999     2      kernel-dkms    -                          470.256.02
+closed   470/nvidia-470xx-Enable-modeset-by-default.patch                              4.0      4.0.9999    470          470.9999     2      .              -                          470.256.02
+
+# 470.256.02: current AUR compatibility stack as individual patches.
+dkms     470/kernel-6.10.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.10.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-6.12.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.12.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     470/gcc-15.patch                                                              -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/gcc-15.patch                                                              -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-6.13.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.13.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-6.14.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.14.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-6.15.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.15.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-6.17.patch                                                         -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-6.17.patch                                                         -        -           470.256.02   470.256.02   1      kernel
+dkms     all/kernel-6.19-470.patch                                                     -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   all/kernel-6.19-470.patch                                                     -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-7.0.patch                                                          -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-7.0.patch                                                          -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-7.2.patch                                                          -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-7.2.patch                                                          -        -           470.256.02   470.256.02   1      kernel
+dkms     470/kernel-7.3.patch                                                          -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/kernel-7.3.patch                                                          -        -           470.256.02   470.256.02   1      kernel
+
+# Proprietary blobs trigger objtool diagnostics; bypass only fatal validation.
+dkms     470/disable-objtool-override.patch                                            -        -           470.256.02   470.256.02   1      kernel-dkms
+closed   470/disable-objtool-override.patch                                            -        -           470.256.02   470.256.02   1      kernel
+dkms     470/nvidia-470xx-Enable-modeset-by-default.patch                              -        -           470.256.02   470.256.02   2      kernel-dkms
+closed   470/nvidia-470xx-Enable-modeset-by-default.patch                              -        -           470.256.02   470.256.02   2      kernel
 
 # GPL export fix (6.1+)
 dkms     all/6.1-6-7-8-gpl.diff                                                        6.1      6.1.9999    470.40       470.229      1      .
@@ -183,8 +217,8 @@ closed   all/kernel-6.0-470.patch                                               
 closed   all/kernel-6.0.patch                                                          6.0      6.0.9999    470.40       470.149      2      .
 
 # kernel 6.1+: GPL pfn_valid fix
-dkms     470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      6.1.9999    470          470.9999     1      kernel-dkms
-closed   470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      6.1.9999    470          470.9999     1      .
+dkms     470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      6.1.9999    470          470.9999     1      kernel-dkms    -                          470.256.02
+closed   470/kernel-6.1.76_6.6.15_6.7.3.patch                                          6.1      6.1.9999    470          470.9999     1      .              -                          470.256.02
 
 # kernel 6.3+
 dkms     all/kernel-6.3.patch                                                          6.3      6.3.9999    470.40       470.189      1      .
@@ -199,24 +233,20 @@ closed   all/legacy-kernel-6.4.diff                                             
 closed   all/legacy-kernel-6.5.diff                                                    6.5      6.5.9999    470.199      470.199.99   2      .
 
 # kernel 6.6
-dkms     470/kernel-6.6.patch                                                          6.6      6.6.9999    470          470.9999     1      kernel-dkms
-closed   470/kernel-6.6.patch                                                          6.6      6.6.9999    470          470.9999     1      .
+dkms     470/kernel-6.6.patch                                                          6.6      6.6.9999    470          470.9999     1      kernel-dkms    -                          470.256.02
+closed   470/kernel-6.6.patch                                                          6.6      6.6.9999    470          470.9999     1      .              -                          470.256.02
 
 # kernel 6.12
-dkms     470/kernel-6.12.patch                                                         6.12     6.12.9999   470          470.9999     1      kernel-dkms
-closed   470/kernel-6.12.patch                                                         6.12     6.12.9999   470          470.9999     1      .
+dkms     470/kernel-6.12.patch                                                         6.12     6.12.9999   470          470.9999     1      kernel-dkms    -                          470.256.02
+closed   470/kernel-6.12.patch                                                         6.12     6.12.9999   470          470.9999     1      .              -                          470.256.02
 
 # kernel 6.19
-dkms     all/kernel-6.19-470.patch                                                     6.19     6.19.9999   470          470.9999     1      kernel-dkms
-closed   all/kernel-6.19-470.patch                                                     6.19     6.19.9999   470          470.9999     1      .
+dkms     all/kernel-6.19-470.patch                                                     6.19     6.19.9999   470          470.9999     1      kernel-dkms    -                          470.256.02
+closed   all/kernel-6.19-470.patch                                                     6.19     6.19.9999   470          470.9999     1      .              -                          470.256.02
 
 # kernel 7.0
-dkms     470/kernel-7.0.patch                                                          7.0      7.0.9999    470          470.9999     1      kernel-dkms
-closed   470/kernel-7.0.patch                                                          7.0      7.0.9999    470          470.9999     1      .
-
-# kernel 7.1
-dkms     470/kernel-7.1.patch                                                          7.1      7.1.9999    470          470.9999     1      kernel-dkms
-closed   470/kernel-7.1.patch                                                          7.1      7.1.9999    470          470.9999     1      .
+dkms     470/kernel-7.0.patch                                                          7.0      7.0.9999    470          470.9999     1      kernel-dkms    -                          470.256.02
+closed   470/kernel-7.0.patch                                                          7.0      7.0.9999    470          470.9999     1      .              -                          470.256.02
 
 
 # ══════════════════════════════════════════════════════════════════════════════

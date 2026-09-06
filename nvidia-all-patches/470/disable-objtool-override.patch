@@ -1,0 +1,36 @@
+From 77af76b80b3dea6df69af616d45e4c6a1d26bf4c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Joan=20Bruguera=20Mic=C3=B3?= <joanbrugueram@gmail.com>
+Date: Mon, 16 Feb 2026 01:07:18 +0000
+Subject: [PATCH] Disable fatal objtool processing of objects with binary blobs
+
+The proprietary blobs do not satisfy current objtool requirements and
+therefore produce warnings for features such as IBT. Disable final objtool
+processing for the affected objects only when the kernel promotes those
+warnings to build errors through CONFIG_OBJTOOL_WERROR.
+
+Keep objtool enabled otherwise so non-fatal diagnostics remain visible.
+
+Based on the nvidia-470xx AUR workaround by Joan Bruguera Mico.
+---
+ Kbuild | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/Kbuild b/Kbuild
+index f333e0b..79e66ab 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -55,6 +55,12 @@ ifeq ($(NV_UNDEF_BEHAVIOR_SANITIZER),1)
+  UBSAN_SANITIZE := y
+ endif
+ 
++# Proprietary blobs cannot satisfy all current objtool requirements. Only
++# bypass final processing when warnings would otherwise abort the build.
++ifdef CONFIG_OBJTOOL_WERROR
++nvidia.o nvidia-modeset.o: override objtool-enabled =
++endif
++
+ $(foreach _module, $(NV_KERNEL_MODULES), \
+  $(eval include $(src)/$(_module)/$(_module).Kbuild))
+ 
+-- 
+2.55.0
