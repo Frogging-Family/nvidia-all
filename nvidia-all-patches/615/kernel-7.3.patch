@@ -1,0 +1,39 @@
+From 5c3e127ab57780f5d39041bcf618c92f98c0a87c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20K=C3=BChn?= <damachin3@proton.me>
+Date: Wed, 9 Sep 2026 19:57:09 +0200
+Subject: [PATCH] kernel: Adapt 615 to dmem cgroup changes in Linux 7.3
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Linux 7.3 replaces the size argument to dmem_cgroup_register_region()
+with a struct dmem_cgroup_init and interprets the region name as a
+printf-style format string.
+
+Initialize the new descriptor and pass the region name through a fixed
+format string.
+
+Signed-off-by: Christian Kühn <damachin3@proton.me>
+---
+ kernel-open/nvidia/os-interface.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/kernel-open/nvidia/os-interface.c b/kernel-open/nvidia/os-interface.c
+index f4f92f6..7d82843 100644
+--- a/kernel-open/nvidia/os-interface.c
++++ b/kernel-open/nvidia/os-interface.c
+@@ -3028,7 +3028,10 @@ void* NV_API_CALL os_cgroup_parent(void *cgroup) { return NULL; }
+ #if defined(NV_DMEM_CGROUP_PRESENT)
+ void* NV_API_CALL os_dmem_cgroup_register_region(const char *name, NvU64 size, NvU64 precharge, void **prechargePool)
+ {
+-    void *region = dmem_cgroup_register_region(size, name);
++    const struct dmem_cgroup_init init = {
++        .size = size,
++    };
++    void *region = dmem_cgroup_register_region(&init, "%s", name);
+     if (IS_ERR(region))
+     {
+         return NULL;
+-- 
+2.55.0
+
