@@ -66,6 +66,12 @@ _install_utils() {
   install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
   install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
   install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
+  if [[ -e libnvidia-fmdrv.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-fmdrv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fmdrv.so.${pkgver}"
+  fi
+  if [[ -e libnvidia-imex.so.${pkgver} ]]; then
+    install -D -m755 "libnvidia-imex.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-imex.so.${pkgver}"
+  fi
   install -D -m755 "libnvidia-glvkspirv.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glvkspirv.so.${pkgver}"
 
   if [[ -e libnvidia-api.so.1 ]]; then
@@ -195,6 +201,9 @@ _install_utils() {
 
   # nvidia-bug-report
   install -D -m755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
+  if [[ -e nvidia-networking-bug-report.py ]]; then
+    install -D -m755 nvidia-networking-bug-report.py "${pkgdir}/usr/bin/nvidia-networking-bug-report.py"
+  fi
 
   # nvidia-smi
   install -D -m755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
