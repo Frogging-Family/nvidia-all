@@ -124,6 +124,9 @@ _install_utils() {
   fi
   if [[ -e nvidia-pcc ]]; then
     install -D -m755 nvidia-pcc "${pkgdir}/usr/bin/nvidia-pcc"
+    if [[ -e nvidia-pcc.json ]]; then
+      install -D -m644 nvidia-pcc.json "${pkgdir}/etc/vulkansc/pcc.d/nvidia-pcc.json"
+    fi
   fi
 
   # VDPAU
