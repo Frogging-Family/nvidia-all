@@ -48,6 +48,12 @@ closed   all/0001-Enable-atomic-kernel-modesetting-by-default.patch             
 open     all/0002-Add-IBT-support.patch                                                -        -           570          595.80       1      .
 
 
+# open: optional DSC fixes + Bigscreen Beyond DP workaround (595+); 0002 is upstream in 610+.
+open     all/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -           595          -            1      .              _dsc_dp_fix
+open     all/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch           -        -           595          595.9999     1      .              _dsc_dp_fix
+open     all/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -           595          -            1      .              _dsc_dp_fix
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # LEGACY 396 / 410–440 / 450–460
 # ══════════════════════════════════════════════════════════════════════════════
@@ -392,11 +398,6 @@ closed   580/kernel-7.0.patch                                                   
 # SERIES 590–595
 # ══════════════════════════════════════════════════════════════════════════════
 
-# open + dkms: DSC + DP fixes (595–595.x)
-open     595/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -           595          595.9999     1      .
-open     595/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch           -        -           595          595.9999     1      .
-open     595/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -           595          595.9999     1      .
-
 # open: kernel 6.19+ (590)
 open     all/kernel-6.19.patch                                                         6.19     6.19.9999   590          590.9999     2      kernel-open
 
@@ -408,10 +409,6 @@ open     595/kernel-7.0.patch                                                   
 # SERIES 610
 # ══════════════════════════════════════════════════════════════════════════════
 
-# open + dkms: DSC + DP fixes (610.x)
-open     610/0001-fix-dsc-correct-RC-parameter-tables-to-match-VESA-DS.patch           -        -           610          -            1      .
-# open 610/0002-fix-dsc-use-bits_per_component-for-flatnessDetThresh.patch is already upstream in 610.43.02+ (EvoSetDpDscParams uses bpc), skip.
-open     610/0003-fix-dp-add-Bigscreen-Beyond-VR-headset-to-WAR-databa.patch           -        -           610          -            1      .
 # 610.57.04+ includes native Linux 7.2 DRM atomic commit support.
 open     610/kernel-7.2.patch                                                          7.2      7.2.9999    610          610.57.03    1      .
 # Linux 7.3 changes the dmem cgroup region registration API.
