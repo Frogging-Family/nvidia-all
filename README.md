@@ -231,6 +231,7 @@ and consult NVIDIA PRIME render offload documentation.
 
 ### Secure Boot enabled
 Secure Boot must be configured on your system. See your distribution’s documentation for setup instructions.
+For non-DKMS packages, `_module_signing` signs the NVIDIA modules in `extramodules` using an existing private key and certificate. The target kernel must trust that certificate; signing alone does not establish trust. nvidia-all does not create signing keys or enroll certificates in MOK. DKMS packages use the system's DKMS signing configuration independently of this option.
 If the driver fails to load, test once with Secure Boot disabled.
 
 ### Download fails
