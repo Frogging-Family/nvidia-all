@@ -49,21 +49,21 @@ fi
 
 _frog_banner
 
-# Create BIG_UGLY_FROGMINER only on first run and save in it all settings
-_frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
-
-# curl + bsdtar are needed by _nv_initscript
+# Install prerequisites before resolving driver versions and preparing sources.
 if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
   if command -v apt-get &>/dev/null; then
-    apt-get install -q curl libarchive-tools
+    sudo apt-get install -q curl libarchive-tools
   elif command -v dnf &>/dev/null; then
-    dnf install curl bsdtar
+    sudo dnf install curl bsdtar
   elif command -v zypper &>/dev/null; then
-    zypper install curl libarchive-tools
+    sudo zypper install curl libarchive-tools
   else
     _die "curl/bsdtar not found and no known package manager to install them."
   fi
 fi
+
+# Create BIG_UGLY_FROGMINER only on first run and save in it all settings
+_frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
 
 # Set driver version and source directory
 pkgver="${_driver_version}"
@@ -781,19 +781,21 @@ _deb_postrm() {
 # .deb builder
 _deb_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
+  local _debdir
+  _debdir="$(mktemp -d "${srcdir}/deb-${_pkgname}.XXXXXXXX")"
 
-  install -dm755 "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
+  install -dm755 "${_debdir}" "${_debdir}/DEBIAN"
   mkdir -p "${_where}/logs"
-  cp -a "${_stagedir}/." "${_outdir}/${_pkgname}_${pkgver}_amd64/"
+  cp -a "${_stagedir}/." "${_debdir}/"
   _tmpl_pkgname="${_pkgname}" \
     _tmpl_installed_size="$(du -sk "${_stagedir}" | cut -f1)" \
     _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
-    _write_pkg_template "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control" "deb/control.in"
-  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+    _write_pkg_template "${_debdir}/DEBIAN/control" "deb/control.in"
+  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_debdir}/DEBIAN/control"
 
   local _mode=""
   if [[ "${_pkgname}" == *dkms* ]]; then
@@ -804,18 +806,18 @@ _deb_builder() {
     _mode=initramfs
   fi
 
-  _deb_postinst "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}" "${_pkgname}"
-  _deb_prerm "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}"
-  _deb_postrm "${_outdir}/${_pkgname}_${pkgver}_amd64"
+  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+  _deb_postrm "${_debdir}"
 
   {
     echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
-    fakeroot dpkg-deb --build "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+    fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
   } >> "${_where}/logs/prepare.log.txt" 2>&1 || {
     error "Packaging failed for ${_pkgname}. See ${_where}/logs/prepare.log.txt"
     return 1
   }
-  rm -rf "${_outdir}/${_pkgname}_${pkgver}_amd64"
+  rm -rf "${_debdir}"
   msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
 }
 
