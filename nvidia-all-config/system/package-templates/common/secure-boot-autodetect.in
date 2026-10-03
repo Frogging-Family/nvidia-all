@@ -1,5 +1,14 @@
-if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -Eqi 'secure[[:space:]]*boot[[:space:]]+enabled'; then
-  if [ -x /usr/lib/nvidia-tkg/module-sign ]; then
-    /usr/lib/nvidia-tkg/module-sign || true
+if [ -d /sys/firmware/efi ] && command -v mokutil >/dev/null 2>&1; then
+  sb_state=$(mokutil --sb-state) || {
+    echo "ERROR: Could not determine Secure Boot state." >&2
+    exit 1
+  }
+  if printf '%s\n' "$sb_state" | grep -Eqi 'secure[[:space:]]*boot[[:space:]]+enabled'; then
+    for kver in $kernels; do
+      /usr/lib/nvidia-tkg/module-sign --required "$kver" || {
+        echo "ERROR: NVIDIA module signing failed for $kver." >&2
+        exit 1
+      }
+    done
   fi
 fi

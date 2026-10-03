@@ -31,6 +31,13 @@ plain() {
  echo -e "$1" >&2
 }
 
+# Keep package transaction output visible and preserve failures from the command or tee.
+_run_package_install() (
+  set -o pipefail
+  mkdir -p "${_where}/logs"
+  "$@" 2>&1 | tee -a "${_where}/logs/install.log.txt"
+)
+
 # Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
@@ -49,21 +56,22 @@ fi
 
 _frog_banner
 
-# Create BIG_UGLY_FROGMINER only on first run and save in it all settings
-_frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
-
-# curl + bsdtar are needed by _nv_initscript
+# Install prerequisites before resolving driver versions and preparing sources.
 if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
   if command -v apt-get &>/dev/null; then
-    apt-get install -q curl libarchive-tools
+    sudo apt-get install -q curl libarchive-tools
   elif command -v dnf &>/dev/null; then
-    dnf install curl bsdtar
+    sudo dnf install curl bsdtar
   elif command -v zypper &>/dev/null; then
-    zypper install curl libarchive-tools
+    sudo zypper install curl libarchive-tools
   else
     _die "curl/bsdtar not found and no known package manager to install them."
   fi
 fi
+
+# Create BIG_UGLY_FROGMINER only on first run and save in it all settings
+_NV_INSTALL_MODE="package"
+_frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
 
 # Set driver version and source directory
 pkgver="${_driver_version}"
@@ -187,9 +195,6 @@ _install_dependencies() {
 }
 _install_dependencies
 
-#  select install mode
-_NV_INSTALL_MODE="direct"
-
 _install_mode() {
   case "${_NV_PKG_TARGET}" in
     debian|ubuntu|fedora|suse) ;;
@@ -197,7 +202,6 @@ _install_mode() {
   esac
 
   # Build a native distro package
-  _NV_INSTALL_MODE="package"
   if [[ -z "${PKG_FORMAT:-}" ]]; then
     case "${_NV_PKG_TARGET}" in
       debian|ubuntu)
@@ -380,9 +384,12 @@ _stage_kmod() {
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" ]]; then
-        install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      fi
+      local _peer_module
+      for _peer_module in nvidia-peermem nvidia-ib-peermem-stub; do
+        if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]]; then
+          install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        fi
+      done
 
       # Enable NVIDIA DRM KMS for proprietary modules.
       _stage_closed_drm_kms
@@ -550,9 +557,9 @@ _meta_nvidia_opencl() {
 _meta_nvidia_settings() {
   local _epoch="$1"
   _NV_META[nvidia-settings-tkg_desc]="NVIDIA GPU configuration tool"
-  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1"
+  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1, libxnvctrl0"
   _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
-  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit)"
+  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit), libXNVCtrl.so.0()(64bit)"
   _NV_META[nvidia-settings-tkg_suggests_rpm]="libXv, libvdpau"
   _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
   _NV_META[nvidia-settings-tkg_provides_rpm]="nvidia-settings = ${pkgver}"
@@ -594,19 +601,6 @@ _build_metadata() {
     _NV_META[lib32-nvidia-utils-tkg_depends_rpm]+=", egl-wayland(x86-32), egl-wayland2(x86-32), egl-gbm(x86-32), egl-x11(x86-32)"
     _NV_META[nvidia-utils-tkg_suggests_rpm]="acpica-tools, vulkan-tools"
     _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, opencl-filesystem, libOpenCL.so.1()(64bit)"
-
-    # libxnvctrl
-    if [[ "${_nvsettings:-false}" == "true" ]]; then
-      case "${_libxnvctrl:-external}" in
-        true)
-          _NV_META[nvidia-settings-tkg_provides_rpm]+=", libXNVCtrl = ${pkgver}"
-          _NV_META[nvidia-settings-tkg_conflicts_rpm]+=", libXNVCtrl"
-          ;;
-        external)
-          _NV_META[nvidia-settings-tkg_depends_rpm]+=", libXNVCtrl.so.0()(64bit)"
-          ;;
-      esac
-    fi
   fi
 
   # detect .deb versioned NVIDIA packages
@@ -623,20 +617,6 @@ _build_metadata() {
       else
         _NV_META[lib32-nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
       fi
-    fi
-
-    # libxnvctrl
-    if [[ "${_nvsettings:-false}" == "true" ]]; then
-      case "${_libxnvctrl:-external}" in
-        true)
-          _NV_META[nvidia-settings-tkg_provides_deb]+=", libxnvctrl0 (= ${pkgver})"
-          _NV_META[nvidia-settings-tkg_conflicts_deb]+=", libxnvctrl0"
-          _NV_META[nvidia-settings-tkg_replaces_deb]+=", libxnvctrl0"
-          ;;
-        external)
-          _NV_META[nvidia-settings-tkg_depends_deb]+=", libxnvctrl0"
-          ;;
-      esac
     fi
 
     # Map extends conflicts_deb + replaces_deb
@@ -691,8 +671,41 @@ _pkg_template_path() {
 }
 
 _render_pkg_template() {
-  local _template="$1" _content
+  local _template="$1" _content _include _marker _path _snippet
+  local _tmpl_kernels="${_package_kernels:-}"
+  if [[ "${_dkms:-false}" == true && -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+    _tmpl_kernels=""
+  fi
   _content="$(<"$(_pkg_template_path "${_template}")")"
+  # Keep complete package scripts in templates; include shared and optional steps.
+  for _include in \
+    KERNEL_FUNCTIONS:common/kernel-functions.in \
+    REMOVE_FUNCTIONS:common/kmod-remove.in \
+    SERVICE_FUNCTIONS:common/nvidia-services.in \
+    KMOD_POSTINST:common/kmod-postinst.in \
+    SECURE_BOOT:common/secure-boot-autodetect.in \
+    FEDORA_DKMS_POSTTRANS:rpm/dkms-fedora-posttrans.in \
+    FEDORA_DKMS_PREUN:rpm/dkms-fedora-preun.in \
+    FEDORA_KMOD_POSTTRANS:rpm/kmod-fedora-scriptlets.in \
+    FEDORA_KMOD_PREUN:rpm/kmod-fedora-preun.in \
+    FEDORA_RESTORECON:rpm/default-fedora-restorecon.in; do
+    _marker="@${_include%%:*}@"
+    [[ "${_content}" == *"${_marker}"* ]] || continue
+    _path="${_include#*:}"
+    case "${_include%%:*}" in
+      SECURE_BOOT)
+        case "${_module_signing:-autodetect}" in
+          false) _path="" ;;
+          true) _path="common/secure-boot-forced.in" ;;
+        esac
+        ;;
+      FEDORA_*) [[ "${_NV_PKG_TARGET:-}" == fedora ]] || _path="" ;;
+    esac
+    _snippet=""
+    [[ -z "${_path}" ]] || _snippet="$(_render_pkg_template "${_path}")"
+    _content="${_content//"${_marker}"/"${_snippet}"}"
+  done
+  _content="${_content//@KERNELS@/${_tmpl_kernels:-}}"
   _content="${_content//@PKGNAME@/${_tmpl_pkgname:-}}"
   _content="${_content//@PKGVER@/${pkgver}}"
   _content="${_content//@DESCRIPTION@/${_tmpl_description:-NVIDIA driver package}}"
@@ -713,18 +726,6 @@ _append_pkg_template() {
   _render_pkg_template "${_template}" >> "${_dest}"
 }
 
-_append_secure_boot_postinst_snippet() {
-  case "${_module_signing:-autodetect}" in
-    false) return 0 ;;
-    true)
-      _append_pkg_template "$1" "common/secure-boot-forced.in"
-      return 0
-      ;;
-  esac
-
-  _append_pkg_template "$1" "common/secure-boot-autodetect.in"
-}
-
 _deb_postinst() {
   local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
 
@@ -735,20 +736,11 @@ _deb_postinst() {
     return 0
   fi
 
-  _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.base.in"
-
-  if [[ "${_pkgname}" == "nvidia-utils-tkg" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.sysusers.in"
-  fi
-
-  if [[ "${_mode}" == "kmod" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.depmod.in"
-    _append_secure_boot_postinst_snippet "${_debdir}/DEBIAN/postinst"
-  fi
-
-  if [[ "${_mode}" == "kmod" || "${_mode}" == "initramfs" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.initramfs.in"
-  fi
+  case "${_mode}" in
+    kmod) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.kmod.in" ;;
+    initramfs) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.utils.in" ;;
+    *) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.default.in" ;;
+  esac
 
   chmod 755 "${_debdir}/DEBIAN/postinst"
 }
@@ -781,19 +773,21 @@ _deb_postrm() {
 # .deb builder
 _deb_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
+  local _debdir
+  _debdir="$(mktemp -d "${srcdir}/deb-${_pkgname}.XXXXXXXX")"
 
-  install -dm755 "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN"
+  install -dm755 "${_debdir}" "${_debdir}/DEBIAN"
   mkdir -p "${_where}/logs"
-  cp -a "${_stagedir}/." "${_outdir}/${_pkgname}_${pkgver}_amd64/"
+  cp -a "${_stagedir}/." "${_debdir}/"
   _tmpl_pkgname="${_pkgname}" \
     _tmpl_installed_size="$(du -sk "${_stagedir}" | cut -f1)" \
     _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
-    _write_pkg_template "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control" "deb/control.in"
-  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
-  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_outdir}/${_pkgname}_${pkgver}_amd64/DEBIAN/control"
+    _write_pkg_template "${_debdir}/DEBIAN/control" "deb/control.in"
+  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_debdir}/DEBIAN/control"
 
   local _mode=""
   if [[ "${_pkgname}" == *dkms* ]]; then
@@ -804,18 +798,25 @@ _deb_builder() {
     _mode=initramfs
   fi
 
-  _deb_postinst "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}" "${_pkgname}"
-  _deb_prerm "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_mode}" "${_stagedir}"
-  _deb_postrm "${_outdir}/${_pkgname}_${pkgver}_amd64"
+  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
+    chmod 755 "${_debdir}/DEBIAN/prerm"
+  fi
+  _deb_postrm "${_debdir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
+  fi
 
   {
     echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
-    fakeroot dpkg-deb --build "${_outdir}/${_pkgname}_${pkgver}_amd64" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+    fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
   } >> "${_where}/logs/prepare.log.txt" 2>&1 || {
     error "Packaging failed for ${_pkgname}. See ${_where}/logs/prepare.log.txt"
     return 1
   }
-  rm -rf "${_outdir}/${_pkgname}_${pkgver}_amd64"
+  rm -rf "${_debdir}"
   msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
 }
 
@@ -836,7 +837,7 @@ _rpm_spec_field() {
 # .rpm builder
 _rpm_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
-  local _is_fedora=false
+  local _tmpl_pkgname="${_pkgname}"
   local _dracutopts="rd.driver.blacklist=nouveau,nova_core,nova_drm modprobe.blacklist=nouveau,nova_core,nova_drm"
   mkdir -p "${_where}/logs"
   if (( ${pkgver%%.*} >= 470 && ${pkgver%%.*} < 580 )); then
@@ -845,8 +846,6 @@ _rpm_builder() {
       _dracutopts+=" nvidia-drm.fbdev=1"
     fi
   fi
-
-  [[ "${_NV_PKG_TARGET:-}" == "fedora" ]] && _is_fedora=true
 
   _tmpl_pkgname="${_pkgname}" \
     _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
@@ -863,41 +862,24 @@ _rpm_builder() {
     _tmpl_stagedir="${_stagedir}" \
     _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/spec-install.in"
 
-  # DKMS packages need dkms add/build/install in %post and dkms remove in %preun
+  # Install DKMS modules after old packages have removed theirs in %preun.
   # All other packages only need ldconfig + depmod
   if [[ "${_pkgname}" == *dkms* ]]; then
     local _nv_dkms_name
     _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
     _tmpl_dkms_name="${_nv_dkms_name}" \
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-post.in"
-    if [[ "${_is_fedora}" == true ]]; then
       _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-posttrans.in"
-    fi
-    _tmpl_dkms_name="${_nv_dkms_name}" \
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-preun.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-preun.in"
-    fi
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-postun.in"
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms.in"
   elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-head.in"
-    _append_secure_boot_postinst_snippet "${_outdir}/${_pkgname}.spec"
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-tail.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-fedora-scriptlets.in"
-    fi
+    _tmpl_dracutopts="${_dracutopts}" \
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod.in"
+  elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/utils.in"
   else
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-post.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-fedora-restorecon.in"
-    fi
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-postun.in"
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default.in"
   fi
 
-  _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/files-header.in"
+  printf '%s\n' '%files' >> "${_outdir}/${_pkgname}.spec"
 
   # %files list: one path per line, appended directly under the %files header
   find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_outdir}/${_pkgname}.spec"
@@ -927,6 +909,27 @@ _rpm_builder() {
   msg2 "Built: ${_outdir}/${_pkgname}-${pkgver}-1.x86_64.rpm"
 }
 
+# Verify every selected kernel before reporting a completed DKMS installation.
+_verify_dkms_install() {
+  local _verify_kernels="${_package_kernels:-}" _build _kernel _status
+  if [[ -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+    _verify_kernels=""
+    for _build in /usr/lib/modules/*/build; do
+      [[ -d "${_build}" ]] || continue
+      _kernel="${_build%/build}"
+      _verify_kernels+="${_kernel##*/}"$'\n'
+    done
+  fi
+  [[ -n "${_verify_kernels}" ]] || _die "No selected kernel headers found for NVIDIA DKMS."
+  while IFS= read -r _kernel; do
+    [[ -n "${_kernel}" ]] || continue
+    _status="$(sudo dkms status -m "${_built_dkms_name}" -v "${pkgver}" -k "${_kernel}" -a "$(uname -m)")"
+    if [[ "${_status}" != *": installed"* ]]; then
+      _die "NVIDIA DKMS ${pkgver} is not installed for ${_kernel}. Check the package transaction output and DKMS build log before rebooting."
+    fi
+  done <<< "${_verify_kernels}"
+}
+
 # package build path
 _distdir="${_where}/dist/${_NV_DISTRO_ID:-${_NV_DISTRO_FAMILY}}"
 mkdir -p "${_distdir}" "${srcdir}"
@@ -942,6 +945,7 @@ if [[ "${_dkms:-false}" != "true" ]]; then
   _nv_build
 fi
 
+_package_kernels="$(_detect_kernels)"
 _build_metadata
 IFS=' ' read -ra _packages <<< "$(_build_pkg_list)"
 msg2 "Packages to build: ${_packages[*]}"
@@ -952,6 +956,9 @@ for _pkgname in "${_packages[@]}"; do
   _pkgstage="${srcdir}/stage-${_pkgname}"
   mkdir -p "${_pkgstage}"
   _stage_package "${_pkgname}" "${_pkgstage}"
+  if [[ "${_pkgname}" == *dkms* ]]; then
+    _built_dkms_name="$(_staged_dkms_name "${_pkgstage}")"
+  fi
 
   msg2 "Packaging ${_pkgname}"
   if [[ "$PKG_FORMAT" == "deb" ]]; then
@@ -973,9 +980,21 @@ plain ""
 case "$PKG_FORMAT" in
   rpm)
     _rpm_install_cmd=(sudo rpm -Uvh --force --nodeps "${_built_pkg_files[@]}")
+    _rpm_reinstall_cmd=()
     case "${_NV_PKG_TARGET:-}" in
       fedora)
         _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_built_pkg_files[@]}")
+        # DNF install skips identical packages, including a failed posttrans.
+        _rpm_reinstall_files=()
+        for _pkgfile in "${_built_pkg_files[@]}"; do
+          _rpm_nevra="$(rpm -qp --queryformat '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "${_pkgfile}")"
+          if rpm -q --quiet "${_rpm_nevra}"; then
+            _rpm_reinstall_files+=("${_pkgfile}")
+          fi
+        done
+        if (( ${#_rpm_reinstall_files[@]} )); then
+          _rpm_reinstall_cmd=(sudo dnf reinstall --nogpgcheck --allowerasing "${_rpm_reinstall_files[@]}")
+        fi
         ;;
       suse)
         _rpm_install_cmd=(sudo zypper install --no-gpg-checks --force -y "${_built_pkg_files[@]}")
@@ -989,6 +1008,13 @@ case "$PKG_FORMAT" in
       printf -v _arg_quoted '%q' "${_arg}"
       _rpm_install_hint+="${_rpm_install_hint:+ }${_arg_quoted}"
     done
+    if (( ${#_rpm_reinstall_cmd[@]} )); then
+      _rpm_install_hint+=" &&"
+      for _arg in "${_rpm_reinstall_cmd[@]}"; do
+        printf -v _arg_quoted '%q' "${_arg}"
+        _rpm_install_hint+=" ${_arg_quoted}"
+      done
+    fi
 
     msg2 "To install manually:"
     msg2 "  ${_rpm_install_hint}"
@@ -1013,7 +1039,32 @@ case "$PKG_FORMAT" in
           msg2 "Installing packages via rpm..."
           ;;
       esac
-      "${_rpm_install_cmd[@]}"
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        _dkms_posttrans_marker="/run/nvidia-all/dkms-${_built_dkms_name}-${pkgver}.complete"
+        sudo rm -f -- "${_dkms_posttrans_marker}"
+      else
+        _kmod_posttrans_marker="/run/nvidia-all/kmod-${_packages[0]}-${pkgver}.complete"
+        sudo rm -f -- "${_kmod_posttrans_marker}"
+      fi
+      _services_marker="/run/nvidia-all/services-${pkgver}.complete"
+      sudo rm -f -- "${_services_marker}"
+      _run_package_install "${_rpm_install_cmd[@]}"
+      if (( ${#_rpm_reinstall_cmd[@]} )); then
+        _run_package_install "${_rpm_reinstall_cmd[@]}"
+      fi
+      # RPM may report scriptlet failures without failing the transaction.
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        if ! sudo test -f "${_dkms_posttrans_marker}"; then
+          _die "NVIDIA DKMS ${pkgver} post-installation did not complete. Check the package transaction output before rebooting."
+        fi
+        _verify_dkms_install
+      fi
+      if ! sudo test -f "${_services_marker}"; then
+        _die "NVIDIA suspend service configuration did not complete. Check the package transaction output before rebooting."
+      fi
+      if [[ "${_dkms:-false}" != true ]] && ! sudo test -f "${_kmod_posttrans_marker}"; then
+        _die "NVIDIA kernel module post-installation did not complete. Check the package transaction output before rebooting."
+      fi
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"
@@ -1051,7 +1102,10 @@ case "$PKG_FORMAT" in
       done
 
       _deb_install_cmd=(sudo apt-get install -y --reinstall "${_pkg_install_files[@]}")
-      DEBIAN_FRONTEND=noninteractive "${_deb_install_cmd[@]}"
+      DEBIAN_FRONTEND=noninteractive _run_package_install "${_deb_install_cmd[@]}"
+      if [[ "${_dkms:-false}" == true ]]; then
+        _verify_dkms_install
+      fi
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"

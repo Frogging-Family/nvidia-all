@@ -1,0 +1,34 @@
+# Track only nvidia-all's version transitions; preserve choices on normal upgrades.
+_nv_version() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$1" ]
+}
+_nv_services_configure() {
+  old_version=${1:-}
+  state=/var/lib/nvidia-all/services-version
+  if [ -z "$old_version" ] && [ -r "$state" ]; then
+    old_version=$(cat "$state")
+  fi
+  old_version=${old_version#*:}
+  if command -v systemctl >/dev/null 2>&1; then
+    if _nv_version "$2" 595.44.02 && { [ -z "$old_version" ] || _nv_version "$old_version" 560.35.03 || ! _nv_version "$old_version" 595.44.02; }; then
+      for service in nvidia-resume nvidia-hibernate nvidia-suspend; do
+        if [ -f "/usr/lib/systemd/system/$service.service" ]; then
+          systemctl enable "$service.service" || return 1
+        fi
+      done
+    elif ! _nv_version "$2" 595.44.02 && [ -n "$old_version" ] && _nv_version "$old_version" 595.44.02; then
+      _nv_services || return 1
+    fi
+  fi
+  mkdir -p /var/lib/nvidia-all || return 1
+  printf '%s\n' "$2" > "$state"
+}
+_nv_services() {
+  if command -v systemctl >/dev/null 2>&1; then
+    for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
+      if systemctl is-enabled --quiet "$service.service"; then
+        systemctl disable "$service.service" || return 1
+      fi
+    done
+  fi
+}

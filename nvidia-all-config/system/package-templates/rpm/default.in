@@ -1,0 +1,12 @@
+%post
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+@FEDORA_RESTORECON@
+exit 0
+
+%postun
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+exit 0
