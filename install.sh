@@ -31,6 +31,13 @@ plain() {
  echo -e "$1" >&2
 }
 
+# Keep package transaction output visible and preserve failures from the command or tee.
+_run_package_install() (
+  set -o pipefail
+  mkdir -p "${_where}/logs"
+  "$@" 2>&1 | tee -a "${_where}/logs/install.log.txt"
+)
+
 # Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare"
 source "${_where}/nvidia-all-config/install-common"
@@ -1041,9 +1048,9 @@ case "$PKG_FORMAT" in
       fi
       _services_marker="/run/nvidia-all/services-${pkgver}.complete"
       sudo rm -f -- "${_services_marker}"
-      "${_rpm_install_cmd[@]}"
+      _run_package_install "${_rpm_install_cmd[@]}"
       if (( ${#_rpm_reinstall_cmd[@]} )); then
-        "${_rpm_reinstall_cmd[@]}"
+        _run_package_install "${_rpm_reinstall_cmd[@]}"
       fi
       # RPM may report scriptlet failures without failing the transaction.
       if [[ "${_dkms:-false}" == "true" ]]; then
@@ -1095,7 +1102,7 @@ case "$PKG_FORMAT" in
       done
 
       _deb_install_cmd=(sudo apt-get install -y --reinstall "${_pkg_install_files[@]}")
-      DEBIAN_FRONTEND=noninteractive "${_deb_install_cmd[@]}"
+      DEBIAN_FRONTEND=noninteractive _run_package_install "${_deb_install_cmd[@]}"
       if [[ "${_dkms:-false}" == true ]]; then
         _verify_dkms_install
       fi
