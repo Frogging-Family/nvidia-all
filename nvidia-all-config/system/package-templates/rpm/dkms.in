@@ -1,0 +1,39 @@
+%posttrans
+set -e
+mkdir -p /run/nvidia-all
+rm -f -- /run/nvidia-all/dkms-@DKMS_NAME@-@PKGVER@.complete
+DKMS_NAME=@DKMS_NAME@
+DKMS_VERSION=@PKGVER@
+
+@KERNEL_FUNCTIONS@
+
+_nv_install_dkms
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload
+fi
+@FEDORA_DKMS_POSTTRANS@
+touch /run/nvidia-all/dkms-@DKMS_NAME@-@PKGVER@.complete
+exit 0
+
+%preun
+if command -v dkms >/dev/null 2>&1; then
+  if dkms_status=$(dkms status -m @DKMS_NAME@ -v @PKGVER@); then
+    if [ -n "$dkms_status" ]; then
+      if ! dkms remove -m @DKMS_NAME@ -v @PKGVER@ --all; then
+        echo "WARNING: Failed to remove NVIDIA DKMS modules." >&2
+      fi
+    fi
+  else
+    echo "WARNING: Failed to query NVIDIA DKMS state." >&2
+  fi
+fi
+@FEDORA_DKMS_PREUN@
+exit 0
+
+%postun
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+@KERNEL_FUNCTIONS@
+@REMOVE_FUNCTIONS@
+exit 0

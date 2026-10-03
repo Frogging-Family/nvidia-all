@@ -1,0 +1,41 @@
+%post
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+@FEDORA_RESTORECON@
+set -e
+mkdir -p /run/nvidia-all
+rm -f -- /run/nvidia-all/services-@PKGVER@.complete
+# Capture the previous version before RPM erases the old package.
+old_version=$(rpm -q --queryformat '%%{VERSION}\n' @PKGNAME@ | grep -vx '@PKGVER@' | head -n1)
+printf '%s\n' "$old_version" > /run/nvidia-all/services-@PKGVER@.previous
+exit 0
+
+%posttrans
+set -e
+
+@SERVICE_FUNCTIONS@
+
+old_version=$(cat /run/nvidia-all/services-@PKGVER@.previous)
+_nv_services_configure "$old_version" @PKGVER@
+rm -f /run/nvidia-all/services-@PKGVER@.previous
+touch /run/nvidia-all/services-@PKGVER@.complete
+exit 0
+
+%postun
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+if [ "${1:-0}" -eq 0 ]; then
+  rm -f /var/lib/nvidia-all/services-version
+fi
+exit 0
+
+%preun
+@SERVICE_FUNCTIONS@
+if [ "${1:-0}" -eq 0 ]; then
+  if ! _nv_services; then
+    echo "WARNING: Failed to disable NVIDIA suspend services." >&2
+  fi
+fi
+exit 0
