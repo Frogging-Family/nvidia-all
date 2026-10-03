@@ -63,6 +63,7 @@ if ! command -v curl &>/dev/null || ! command -v bsdtar &>/dev/null; then
 fi
 
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
+_NV_INSTALL_MODE="package"
 _frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
 
 # Set driver version and source directory
@@ -187,9 +188,6 @@ _install_dependencies() {
 }
 _install_dependencies
 
-#  select install mode
-_NV_INSTALL_MODE="direct"
-
 _install_mode() {
   case "${_NV_PKG_TARGET}" in
     debian|ubuntu|fedora|suse) ;;
@@ -197,7 +195,6 @@ _install_mode() {
   esac
 
   # Build a native distro package
-  _NV_INSTALL_MODE="package"
   if [[ -z "${PKG_FORMAT:-}" ]]; then
     case "${_NV_PKG_TARGET}" in
       debian|ubuntu)
@@ -550,9 +547,9 @@ _meta_nvidia_opencl() {
 _meta_nvidia_settings() {
   local _epoch="$1"
   _NV_META[nvidia-settings-tkg_desc]="NVIDIA GPU configuration tool"
-  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1"
+  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1, libxnvctrl0"
   _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
-  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit)"
+  _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit), libXNVCtrl.so.0()(64bit)"
   _NV_META[nvidia-settings-tkg_suggests_rpm]="libXv, libvdpau"
   _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
   _NV_META[nvidia-settings-tkg_provides_rpm]="nvidia-settings = ${pkgver}"
@@ -594,19 +591,6 @@ _build_metadata() {
     _NV_META[lib32-nvidia-utils-tkg_depends_rpm]+=", egl-wayland(x86-32), egl-wayland2(x86-32), egl-gbm(x86-32), egl-x11(x86-32)"
     _NV_META[nvidia-utils-tkg_suggests_rpm]="acpica-tools, vulkan-tools"
     _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, opencl-filesystem, libOpenCL.so.1()(64bit)"
-
-    # libxnvctrl
-    if [[ "${_nvsettings:-false}" == "true" ]]; then
-      case "${_libxnvctrl:-external}" in
-        true)
-          _NV_META[nvidia-settings-tkg_provides_rpm]+=", libXNVCtrl = ${pkgver}"
-          _NV_META[nvidia-settings-tkg_conflicts_rpm]+=", libXNVCtrl"
-          ;;
-        external)
-          _NV_META[nvidia-settings-tkg_depends_rpm]+=", libXNVCtrl.so.0()(64bit)"
-          ;;
-      esac
-    fi
   fi
 
   # detect .deb versioned NVIDIA packages
@@ -623,20 +607,6 @@ _build_metadata() {
       else
         _NV_META[lib32-nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
       fi
-    fi
-
-    # libxnvctrl
-    if [[ "${_nvsettings:-false}" == "true" ]]; then
-      case "${_libxnvctrl:-external}" in
-        true)
-          _NV_META[nvidia-settings-tkg_provides_deb]+=", libxnvctrl0 (= ${pkgver})"
-          _NV_META[nvidia-settings-tkg_conflicts_deb]+=", libxnvctrl0"
-          _NV_META[nvidia-settings-tkg_replaces_deb]+=", libxnvctrl0"
-          ;;
-        external)
-          _NV_META[nvidia-settings-tkg_depends_deb]+=", libxnvctrl0"
-          ;;
-      esac
     fi
 
     # Map extends conflicts_deb + replaces_deb

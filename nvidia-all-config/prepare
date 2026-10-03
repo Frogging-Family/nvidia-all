@@ -781,6 +781,12 @@ _nv_initscript() {
 
   _nv_normalize_bool _abort_on_patch_error
 
+  if [[ "${_NV_INSTALL_MODE:-}" == "package" && "${_libxnvctrl:-}" != "external" ]]; then
+    msg2 "DEB/RPM builds use the system libXNVCtrl library; setting _libxnvctrl=external."
+    _libxnvctrl="external"
+    echo "_libxnvctrl='external'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
+  fi
+
   _set_driver_version
   _set_dkms
   _set_open_modules
