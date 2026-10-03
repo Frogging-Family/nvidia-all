@@ -377,9 +377,12 @@ _stage_kmod() {
     # Closed-source modules.
     else
       install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" ]]; then
-        install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/nvidia-peermem.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      fi
+      local _peer_module
+      for _peer_module in nvidia-peermem nvidia-ib-peermem-stub; do
+        if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]]; then
+          install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+        fi
+      done
 
       # Enable NVIDIA DRM KMS for proprietary modules.
       _stage_closed_drm_kms
@@ -673,7 +676,12 @@ _render_pkg_template() {
     REMOVE_FUNCTIONS:common/kmod-remove.in \
     SERVICE_FUNCTIONS:common/nvidia-services.in \
     KMOD_POSTINST:common/kmod-postinst.in \
-    SECURE_BOOT:common/secure-boot-autodetect.in; do
+    SECURE_BOOT:common/secure-boot-autodetect.in \
+    FEDORA_DKMS_POSTTRANS:rpm/dkms-fedora-posttrans.in \
+    FEDORA_DKMS_PREUN:rpm/dkms-fedora-preun.in \
+    FEDORA_KMOD_POSTTRANS:rpm/kmod-fedora-scriptlets.in \
+    FEDORA_KMOD_PREUN:rpm/kmod-fedora-preun.in \
+    FEDORA_RESTORECON:rpm/default-fedora-restorecon.in; do
     _marker="@${_include%%:*}@"
     [[ "${_content}" == *"${_marker}"* ]] || continue
     _path="${_include#*:}"
@@ -709,18 +717,6 @@ _write_pkg_template() {
 _append_pkg_template() {
   local _dest="$1" _template="$2"
   _render_pkg_template "${_template}" >> "${_dest}"
-}
-
-_append_secure_boot_postinst_snippet() {
-  case "${_module_signing:-autodetect}" in
-    false) return 0 ;;
-    true)
-      _append_pkg_template "$1" "common/secure-boot-forced.in"
-      return 0
-      ;;
-  esac
-
-  _append_pkg_template "$1" "common/secure-boot-autodetect.in"
 }
 
 _deb_postinst() {
@@ -834,7 +830,7 @@ _rpm_spec_field() {
 # .rpm builder
 _rpm_builder() {
   local _pkgname="$1" _stagedir="$2" _outdir="$3"
-  local _is_fedora=false
+  local _tmpl_pkgname="${_pkgname}"
   local _dracutopts="rd.driver.blacklist=nouveau,nova_core,nova_drm modprobe.blacklist=nouveau,nova_core,nova_drm"
   mkdir -p "${_where}/logs"
   if (( ${pkgver%%.*} >= 470 && ${pkgver%%.*} < 580 )); then
@@ -843,8 +839,6 @@ _rpm_builder() {
       _dracutopts+=" nvidia-drm.fbdev=1"
     fi
   fi
-
-  [[ "${_NV_PKG_TARGET:-}" == "fedora" ]] && _is_fedora=true
 
   _tmpl_pkgname="${_pkgname}" \
     _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
@@ -861,41 +855,24 @@ _rpm_builder() {
     _tmpl_stagedir="${_stagedir}" \
     _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/spec-install.in"
 
-  # DKMS packages need dkms add/build/install in %post and dkms remove in %preun
+  # Install DKMS modules after old packages have removed theirs in %preun.
   # All other packages only need ldconfig + depmod
   if [[ "${_pkgname}" == *dkms* ]]; then
     local _nv_dkms_name
     _nv_dkms_name="$(_staged_dkms_name "${_stagedir}")"
     _tmpl_dkms_name="${_nv_dkms_name}" \
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-post.in"
-    if [[ "${_is_fedora}" == true ]]; then
       _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-posttrans.in"
-    fi
-    _tmpl_dkms_name="${_nv_dkms_name}" \
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-preun.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-fedora-preun.in"
-    fi
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms-postun.in"
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/dkms.in"
   elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-head.in"
-    _append_secure_boot_postinst_snippet "${_outdir}/${_pkgname}.spec"
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-post-tail.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _tmpl_dracutopts="${_dracutopts}" \
-        _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod-fedora-scriptlets.in"
-    fi
+    _tmpl_dracutopts="${_dracutopts}" \
+      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod.in"
+  elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/utils.in"
   else
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-post.in"
-    if [[ "${_is_fedora}" == true ]]; then
-      _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-fedora-restorecon.in"
-    fi
-    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default-postun.in"
+    _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default.in"
   fi
 
-  _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/files-header.in"
+  printf '%s\n' '%files' >> "${_outdir}/${_pkgname}.spec"
 
   # %files list: one path per line, appended directly under the %files header
   find "${_stagedir}" -type f -o -type l | sed "s|^${_stagedir}||" >> "${_outdir}/${_pkgname}.spec"
@@ -925,6 +902,27 @@ _rpm_builder() {
   msg2 "Built: ${_outdir}/${_pkgname}-${pkgver}-1.x86_64.rpm"
 }
 
+# Verify every selected kernel before reporting a completed DKMS installation.
+_verify_dkms_install() {
+  local _verify_kernels="${_package_kernels:-}" _build _kernel _status
+  if [[ -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+    _verify_kernels=""
+    for _build in /usr/lib/modules/*/build; do
+      [[ -d "${_build}" ]] || continue
+      _kernel="${_build%/build}"
+      _verify_kernels+="${_kernel##*/}"$'\n'
+    done
+  fi
+  [[ -n "${_verify_kernels}" ]] || _die "No selected kernel headers found for NVIDIA DKMS."
+  while IFS= read -r _kernel; do
+    [[ -n "${_kernel}" ]] || continue
+    _status="$(sudo dkms status -m "${_built_dkms_name}" -v "${pkgver}" -k "${_kernel}" -a "$(uname -m)")"
+    if [[ "${_status}" != *": installed"* ]]; then
+      _die "NVIDIA DKMS ${pkgver} is not installed for ${_kernel}. Check the package transaction output and DKMS build log before rebooting."
+    fi
+  done <<< "${_verify_kernels}"
+}
+
 # package build path
 _distdir="${_where}/dist/${_NV_DISTRO_ID:-${_NV_DISTRO_FAMILY}}"
 mkdir -p "${_distdir}" "${srcdir}"
@@ -951,6 +949,9 @@ for _pkgname in "${_packages[@]}"; do
   _pkgstage="${srcdir}/stage-${_pkgname}"
   mkdir -p "${_pkgstage}"
   _stage_package "${_pkgname}" "${_pkgstage}"
+  if [[ "${_pkgname}" == *dkms* ]]; then
+    _built_dkms_name="$(_staged_dkms_name "${_pkgstage}")"
+  fi
 
   msg2 "Packaging ${_pkgname}"
   if [[ "$PKG_FORMAT" == "deb" ]]; then
@@ -972,9 +973,21 @@ plain ""
 case "$PKG_FORMAT" in
   rpm)
     _rpm_install_cmd=(sudo rpm -Uvh --force --nodeps "${_built_pkg_files[@]}")
+    _rpm_reinstall_cmd=()
     case "${_NV_PKG_TARGET:-}" in
       fedora)
         _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_built_pkg_files[@]}")
+        # DNF install skips identical packages, including a failed posttrans.
+        _rpm_reinstall_files=()
+        for _pkgfile in "${_built_pkg_files[@]}"; do
+          _rpm_nevra="$(rpm -qp --queryformat '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "${_pkgfile}")"
+          if rpm -q --quiet "${_rpm_nevra}"; then
+            _rpm_reinstall_files+=("${_pkgfile}")
+          fi
+        done
+        if (( ${#_rpm_reinstall_files[@]} )); then
+          _rpm_reinstall_cmd=(sudo dnf reinstall --nogpgcheck --allowerasing "${_rpm_reinstall_files[@]}")
+        fi
         ;;
       suse)
         _rpm_install_cmd=(sudo zypper install --no-gpg-checks --force -y "${_built_pkg_files[@]}")
@@ -988,6 +1001,13 @@ case "$PKG_FORMAT" in
       printf -v _arg_quoted '%q' "${_arg}"
       _rpm_install_hint+="${_rpm_install_hint:+ }${_arg_quoted}"
     done
+    if (( ${#_rpm_reinstall_cmd[@]} )); then
+      _rpm_install_hint+=" &&"
+      for _arg in "${_rpm_reinstall_cmd[@]}"; do
+        printf -v _arg_quoted '%q' "${_arg}"
+        _rpm_install_hint+=" ${_arg_quoted}"
+      done
+    fi
 
     msg2 "To install manually:"
     msg2 "  ${_rpm_install_hint}"
@@ -1012,7 +1032,32 @@ case "$PKG_FORMAT" in
           msg2 "Installing packages via rpm..."
           ;;
       esac
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        _dkms_posttrans_marker="/run/nvidia-all/dkms-${_built_dkms_name}-${pkgver}.complete"
+        sudo rm -f -- "${_dkms_posttrans_marker}"
+      else
+        _kmod_posttrans_marker="/run/nvidia-all/kmod-${_packages[0]}-${pkgver}.complete"
+        sudo rm -f -- "${_kmod_posttrans_marker}"
+      fi
+      _services_marker="/run/nvidia-all/services-${pkgver}.complete"
+      sudo rm -f -- "${_services_marker}"
       "${_rpm_install_cmd[@]}"
+      if (( ${#_rpm_reinstall_cmd[@]} )); then
+        "${_rpm_reinstall_cmd[@]}"
+      fi
+      # RPM may report scriptlet failures without failing the transaction.
+      if [[ "${_dkms:-false}" == "true" ]]; then
+        if ! sudo test -f "${_dkms_posttrans_marker}"; then
+          _die "NVIDIA DKMS ${pkgver} post-installation did not complete. Check the package transaction output before rebooting."
+        fi
+        _verify_dkms_install
+      fi
+      if ! sudo test -f "${_services_marker}"; then
+        _die "NVIDIA suspend service configuration did not complete. Check the package transaction output before rebooting."
+      fi
+      if [[ "${_dkms:-false}" != true ]] && ! sudo test -f "${_kmod_posttrans_marker}"; then
+        _die "NVIDIA kernel module post-installation did not complete. Check the package transaction output before rebooting."
+      fi
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"
@@ -1051,6 +1096,9 @@ case "$PKG_FORMAT" in
 
       _deb_install_cmd=(sudo apt-get install -y --reinstall "${_pkg_install_files[@]}")
       DEBIAN_FRONTEND=noninteractive "${_deb_install_cmd[@]}"
+      if [[ "${_dkms:-false}" == true ]]; then
+        _verify_dkms_install
+      fi
       msg2 "Installation complete. A system reboot is recommended."
     else
       msg2 "Skipping installation. Packages remain in: ${_distdir}"

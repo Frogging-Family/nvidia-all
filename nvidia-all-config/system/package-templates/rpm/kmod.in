@@ -1,0 +1,24 @@
+%posttrans
+set -e
+mkdir -p /run/nvidia-all
+rm -f -- /run/nvidia-all/kmod-@PKGNAME@-@PKGVER@.complete
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+
+@KERNEL_FUNCTIONS@
+
+@KMOD_POSTINST@
+@FEDORA_KMOD_POSTTRANS@
+touch /run/nvidia-all/kmod-@PKGNAME@-@PKGVER@.complete
+exit 0
+
+%postun
+if command -v ldconfig >/dev/null 2>&1; then
+  ldconfig
+fi
+
+@KERNEL_FUNCTIONS@
+@REMOVE_FUNCTIONS@
+exit 0
+@FEDORA_KMOD_PREUN@
