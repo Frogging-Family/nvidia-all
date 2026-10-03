@@ -1,0 +1,42 @@
+# Limit package actions to the selected kernels. DKMS defaults to installed headers.
+_nv_kernel_versions() {
+  if [ -n '@KERNELS@' ]; then
+    printf '%s\n' '@KERNELS@'
+  else
+    for build in /lib/modules/*/build; do
+      [ -d "$build" ] || continue
+      kver=${build%/build}
+      printf '%s\n' "${kver##*/}"
+    done
+  fi
+}
+_nv_refresh_initramfs() {
+  if command -v update-initramfs >/dev/null 2>&1; then
+    update-initramfs -u -k "$1"
+  elif command -v dracut >/dev/null 2>&1; then
+    dracut --force --kver "$1"
+  else
+    echo "ERROR: No initramfs generator found for NVIDIA kernel $1." >&2
+    return 1
+  fi
+}
+_nv_install_dkms() {
+  if [ -f /etc/dkms/no-autoinstall ]; then
+    echo "ERROR: NVIDIA DKMS installation is disabled by /etc/dkms/no-autoinstall." >&2
+    return 1
+  fi
+  kernels=$(_nv_kernel_versions)
+  if [ -z "$kernels" ]; then
+    echo "ERROR: No selected kernel headers found for NVIDIA DKMS." >&2
+    return 1
+  fi
+  for kver in $kernels; do
+    dkms install -m "$DKMS_NAME" -v "$DKMS_VERSION" -k "$kver"
+    dkms_status=$(dkms status -m "$DKMS_NAME" -v "$DKMS_VERSION" -k "$kver")
+    case "$dkms_status" in
+      *": installed"*) ;;
+      *) echo "ERROR: NVIDIA DKMS is not installed for $kver." >&2; return 1 ;;
+    esac
+    _nv_refresh_initramfs "$kver"
+  done
+}

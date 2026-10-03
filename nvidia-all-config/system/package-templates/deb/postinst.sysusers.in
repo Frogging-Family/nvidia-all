@@ -1,3 +1,0 @@
-if command -v systemd-sysusers >/dev/null 2>&1; then
-  systemd-sysusers nvidia-utils.conf
-fi

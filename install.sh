@@ -661,8 +661,36 @@ _pkg_template_path() {
 }
 
 _render_pkg_template() {
-  local _template="$1" _content
+  local _template="$1" _content _include _marker _path _snippet
+  local _tmpl_kernels="${_package_kernels:-}"
+  if [[ "${_dkms:-false}" == true && -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+    _tmpl_kernels=""
+  fi
   _content="$(<"$(_pkg_template_path "${_template}")")"
+  # Keep complete package scripts in templates; include shared and optional steps.
+  for _include in \
+    KERNEL_FUNCTIONS:common/kernel-functions.in \
+    REMOVE_FUNCTIONS:common/kmod-remove.in \
+    SERVICE_FUNCTIONS:common/nvidia-services.in \
+    KMOD_POSTINST:common/kmod-postinst.in \
+    SECURE_BOOT:common/secure-boot-autodetect.in; do
+    _marker="@${_include%%:*}@"
+    [[ "${_content}" == *"${_marker}"* ]] || continue
+    _path="${_include#*:}"
+    case "${_include%%:*}" in
+      SECURE_BOOT)
+        case "${_module_signing:-autodetect}" in
+          false) _path="" ;;
+          true) _path="common/secure-boot-forced.in" ;;
+        esac
+        ;;
+      FEDORA_*) [[ "${_NV_PKG_TARGET:-}" == fedora ]] || _path="" ;;
+    esac
+    _snippet=""
+    [[ -z "${_path}" ]] || _snippet="$(_render_pkg_template "${_path}")"
+    _content="${_content//"${_marker}"/"${_snippet}"}"
+  done
+  _content="${_content//@KERNELS@/${_tmpl_kernels:-}}"
   _content="${_content//@PKGNAME@/${_tmpl_pkgname:-}}"
   _content="${_content//@PKGVER@/${pkgver}}"
   _content="${_content//@DESCRIPTION@/${_tmpl_description:-NVIDIA driver package}}"
@@ -705,20 +733,11 @@ _deb_postinst() {
     return 0
   fi
 
-  _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.base.in"
-
-  if [[ "${_pkgname}" == "nvidia-utils-tkg" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.sysusers.in"
-  fi
-
-  if [[ "${_mode}" == "kmod" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.depmod.in"
-    _append_secure_boot_postinst_snippet "${_debdir}/DEBIAN/postinst"
-  fi
-
-  if [[ "${_mode}" == "kmod" || "${_mode}" == "initramfs" ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.initramfs.in"
-  fi
+  case "${_mode}" in
+    kmod) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.kmod.in" ;;
+    initramfs) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.utils.in" ;;
+    *) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.default.in" ;;
+  esac
 
   chmod 755 "${_debdir}/DEBIAN/postinst"
 }
@@ -778,7 +797,14 @@ _deb_builder() {
 
   _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
   _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
+    chmod 755 "${_debdir}/DEBIAN/prerm"
+  fi
   _deb_postrm "${_debdir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
+  fi
 
   {
     echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
@@ -914,6 +940,7 @@ if [[ "${_dkms:-false}" != "true" ]]; then
   _nv_build
 fi
 
+_package_kernels="$(_detect_kernels)"
 _build_metadata
 IFS=' ' read -ra _packages <<< "$(_build_pkg_list)"
 msg2 "Packages to build: ${_packages[*]}"

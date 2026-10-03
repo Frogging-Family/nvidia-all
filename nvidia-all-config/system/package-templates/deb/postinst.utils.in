@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+ldconfig
+if command -v systemd-sysusers >/dev/null 2>&1; then
+  systemd-sysusers nvidia-utils.conf
+fi
+
+@SERVICE_FUNCTIONS@
+
+case "$1" in
+  configure) _nv_services_configure "${2:-}" @PKGVER@ ;;
+esac
+
+if command -v update-initramfs >/dev/null 2>&1; then
+  update-initramfs -u -k all
+elif command -v dracut >/dev/null 2>&1; then
+  dracut --force
+fi
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload
+fi

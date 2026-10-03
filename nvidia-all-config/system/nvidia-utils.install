@@ -13,9 +13,9 @@ post_install() {
 }
 
 post_upgrade() {
-  # Only enable the services for the 560.35.03-16 version
-  # This avoids, that the services are automatically enabled in every upgrade
-  if (( $(vercmp $1 595.44.02-1) < 0)) && (( $(vercmp $2 560.35.03-16) < 0)); then
+  # Enable services for the original migration or a downgrade from 595+.
+  # Preserve service choices on normal upgrades.
+  if (( $(vercmp $1 595.44.02-1) < 0)) && { (( $(vercmp $2 560.35.03-16) < 0)) || (( $(vercmp $2 595.44.02-1) >= 0)); }; then
     for service in nvidia-resume nvidia-hibernate nvidia-suspend; do
       if ! systemctl is-enabled --quiet $service; then
         echo "Enabling $service..."
