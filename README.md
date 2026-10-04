@@ -152,20 +152,20 @@ List installed nvidia-all packages:
 dpkg-query -W -f='${Package}\n' | grep -E 'nvidia.*-tkg$'
 
 # Fedora/SUSE
-rpm -qa | grep -E 'nvidia.*-tkg$'
+rpm -qa --qf '%{NAME}\n' | grep -E 'nvidia.*-tkg$'
 ```
 
 Remove them:
 
 ```bash
 # Debian/Ubuntu
-dpkg-query -W -f='${Package}\n' | grep -E 'nvidia.*-tkg$' | xargs -r -o sudo dpkg -r
+sudo dpkg -r $(dpkg-query -W -f='${Package}\n' | grep -E 'nvidia.*-tkg$')
 
 # Fedora
-rpm -qa | grep -E 'nvidia.*-tkg$' | xargs -r -o sudo rpm -e
+sudo rpm -e $(rpm -qa --qf '%{NAME}\n' | grep -E 'nvidia.*-tkg$')
 
 # SUSE
-rpm -qa | grep -E 'nvidia.*-tkg$' | xargs -r -o sudo zypper remove
+sudo zypper remove $(rpm -qa --qf '%{NAME}\n' | grep -E 'nvidia.*-tkg$')
 ```
 
 Then reinstall the NVIDIA driver provided by your distro.
