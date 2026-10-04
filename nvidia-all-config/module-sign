@@ -18,10 +18,10 @@ _sign_module() {
     return 0
   fi
 
-  while IFS= read -r -d '' _kbuild; do
-    local _kernel="${_kbuild%/build}"
-    _kernel="${_kernel##*/}"
-    local _modules="/usr/lib/modules/${_kernel}/extramodules"
+  while IFS= read -r -d '' _moddir; do
+    local _kernel="${_moddir##*/}"
+    local _kbuild="${_moddir}/build"
+    local _modules="${_moddir}/extramodules"
     [[ -z "${_selected_kernel}" || "${_kernel}" == "${_selected_kernel}" ]] || continue
     [[ -d "${_modules}" ]] || continue
     if ! find "${_modules}" -maxdepth 1 -type f -name 'nvidia*.ko*' -print -quit | grep -q .; then
@@ -110,7 +110,7 @@ _sign_module() {
     if (( _changed )); then
       depmod "${_kernel}"
     fi
-  done < <(find -L /usr/lib/modules -mindepth 2 -maxdepth 2 -name build -print0)
+  done < <(find -L /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -print0)
 
   if [[ "${_required}" == true && "${_signed_any}" == 0 ]]; then
     echo "ERROR: module-sign: no NVIDIA modules could be signed." >&2
