@@ -1613,7 +1613,7 @@ _exit_cleanup() {
 
   # Create logs/system-info.txt
   {
-    cat /etc/os-release
+    head -n1 /etc/os-release
     echo "#################"
     echo "NVIDIA driver: ${_driver_version:-unknown} (${_driver_branch:-unknown})"
     echo "#################"
