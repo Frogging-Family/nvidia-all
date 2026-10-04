@@ -342,8 +342,12 @@ _install_utils() {
   fi
 
   if (( ${pkgver%%.*} >= 590 )); then
-    install -Dm644 "${_where}/nvidia-all-config/system/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
-    install -Dm644 "${_where}/nvidia-all-config/system/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+    if [[ "${_limit_vram_usage:-true}" != "false" ]]; then
+      install -Dm644 "${_where}/nvidia-all-config/system/limit-vram-usage" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/limit-vram-usage"
+    fi
+    if [[ "${_cuda_no_stable_perf_limit:-true}" != "false" ]]; then
+      install -Dm644 "${_where}/nvidia-all-config/system/cuda-no-stable-perf-limit" "${pkgdir}/etc/nvidia/nvidia-application-profiles-rc.d/cuda-no-stable-perf-limit"
+    fi
   fi
 
   # NVreg_UsePageAttributeTable was removed in driver 610
