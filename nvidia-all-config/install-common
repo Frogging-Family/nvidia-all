@@ -337,8 +337,10 @@ _install_utils() {
   fi
 
   if (( ${pkgver%%.*} >= 580 )); then
-    # reduce idle power (CUDA contexts)
-    install -Dm644 "${_where}/nvidia-all-config/system/nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    if [[ "${_cuda_disable_perf_boost:-false}" = "true" ]]; then
+      # reduce idle power (CUDA contexts)
+      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-cuda-disable-perf-boost.conf" "${pkgdir}/usr/lib/environment.d/50-nvidia-cuda-disable-perf-boost.conf"
+    fi
   fi
 
   if (( ${pkgver%%.*} >= 590 )); then
