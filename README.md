@@ -3,13 +3,8 @@
 We've added installer support for multiple distributions, but it is still in an early stage. If you encounter any issues or have suggestions for improvement, please report them. If the driver misbehaves, make sure you know how to revert to your distro's packaged driver. See [Uninstall and revert](#uninstall-and-revert) below.
 
 Tested:
-- Fedora 44 - kernel 7.x, NVIDIA 610 series (DKMS)
-- Ubuntu 26.04 - kernel 7.x, NVIDIA 610 series (DKMS)
-
-Caveats:
-- Standard (non-DKMS) build path is currently untested.
-
-KISS! 🐸 damachine
+- Fedora 44 - kernel 7.x, NVIDIA 615 series (DKMS/KMOD)
+- Ubuntu 26.04 - kernel 7.x, NVIDIA 615 series (DKMS/KMOD)
 
 ---
 
