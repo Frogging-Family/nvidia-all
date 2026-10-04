@@ -401,8 +401,8 @@ closed   580/kernel-7.0.patch                                                   
 # open: kernel 6.19+ (590)
 open     all/kernel-6.19.patch                                                         6.19     6.19.9999   590          590.9999     2      kernel-open
 
-# open: kernel 7.0+ (590–595.58.03, excl buggy 595 tags)
-open     595/kernel-7.0.patch                                                          7.0      7.0.9999    590          595.58.03    2      kernel-open    -                          595.44.06:595.44.07:595.44.08:595.44.09
+# open: kernel 7.0+ (590–595.58.03, excl buggy 595 tags and 595.44.15 using pahole.sh)
+open     595/kernel-7.0.patch                                                          7.0      7.0.9999    590          595.58.03    2      kernel-open    -                          595.44.06:595.44.07:595.44.08:595.44.09:595.44.15
 
 
 # ══════════════════════════════════════════════════════════════════════════════
