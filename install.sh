@@ -601,6 +601,13 @@ _build_metadata() {
     _NV_META[lib32-nvidia-utils-tkg_depends_rpm]+=", egl-wayland(x86-32), egl-wayland2(x86-32), egl-gbm(x86-32), egl-x11(x86-32)"
     _NV_META[nvidia-utils-tkg_suggests_rpm]="acpica-tools, vulkan-tools"
     _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, opencl-filesystem, libOpenCL.so.1()(64bit)"
+  elif [[ "${_NV_PKG_TARGET:-}" == "suse" ]]; then
+    # Use library capabilities instead of Fedora-specific package names.
+    _NV_META[nvidia-utils-tkg_depends_rpm]="libglvnd >= 1.3, libGL.so.1()(64bit), libvulkan.so.1()(64bit)"
+    _NV_META[lib32-nvidia-utils-tkg_depends_rpm]="nvidia-utils-tkg = ${_rpm_pkgver_epoch}, libc.so.6, libGLX.so.0, libOpenGL.so.0"
+    _NV_META[opencl-nvidia-tkg_depends_rpm]="libz.so.1()(64bit), libOpenCL.so.1()(64bit)"
+    _NV_META[lib32-opencl-nvidia-tkg_depends_rpm]="libz.so.1"
+    _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_rpm_pkgver_epoch}, libgtk-3.so.0()(64bit), libjansson.so.4()(64bit), libX11.so.6()(64bit), libXext.so.6()(64bit), libXxf86vm.so.1()(64bit), libcairo.so.2()(64bit), libgdk_pixbuf-2.0.so.0()(64bit), libglib-2.0.so.0()(64bit), libpango-1.0.so.0()(64bit), libwayland-client.so.0()(64bit), libXNVCtrl.so.0()(64bit)"
   fi
 
   # detect .deb versioned NVIDIA packages
@@ -997,7 +1004,7 @@ case "$PKG_FORMAT" in
         fi
         ;;
       suse)
-        _rpm_install_cmd=(sudo zypper install --no-gpg-checks --force -y "${_built_pkg_files[@]}")
+        _rpm_install_cmd=(sudo zypper --no-gpg-checks install --force -y "${_built_pkg_files[@]}")
         ;;
     esac
 
