@@ -1,3 +1,6 @@
+case "$1" in
+  remove|purge) rm -f /var/lib/nvidia-all/services-before-remove ;;
+esac
 if [ "$1" = purge ]; then
   rm -f /var/lib/nvidia-all/services-version
 fi

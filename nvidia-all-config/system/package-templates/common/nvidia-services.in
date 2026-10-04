@@ -25,10 +25,26 @@ _nv_services_configure() {
 }
 _nv_services() {
   if command -v systemctl >/dev/null 2>&1; then
+    if [ "${1:-}" = save ]; then
+      mkdir -p /var/lib/nvidia-all || return 1
+      touch /var/lib/nvidia-all/services-before-remove || return 1
+    fi
     for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
       if systemctl is-enabled --quiet "$service.service"; then
+        if [ "${1:-}" = save ]; then
+          printf '%s\n' "$service.service" >> /var/lib/nvidia-all/services-before-remove || return 1
+        fi
         systemctl disable "$service.service" || return 1
       fi
     done
+  fi
+}
+_nv_services_restore() {
+  if [ -r /var/lib/nvidia-all/services-before-remove ] && command -v systemctl >/dev/null 2>&1; then
+    while IFS= read -r service; do
+      [ -f "/usr/lib/systemd/system/$service" ] || continue
+      systemctl enable "$service" || return 1
+    done < /var/lib/nvidia-all/services-before-remove
+    rm -f /var/lib/nvidia-all/services-before-remove
   fi
 }

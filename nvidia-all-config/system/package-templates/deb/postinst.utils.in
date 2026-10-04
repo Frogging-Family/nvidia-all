@@ -8,7 +8,11 @@ fi
 @SERVICE_FUNCTIONS@
 
 case "$1" in
-  configure) _nv_services_configure "${2:-}" @PKGVER@ ;;
+  configure)
+    _nv_services_restore
+    _nv_services_configure "${2:-}" @PKGVER@
+    ;;
+  abort-remove|abort-deconfigure) _nv_services_restore ;;
 esac
 
 if command -v update-initramfs >/dev/null 2>&1; then

@@ -2,5 +2,5 @@
 set -e
 @SERVICE_FUNCTIONS@
 case "$1" in
-  remove|deconfigure) _nv_services ;;
+  remove|deconfigure) _nv_services save ;;
 esac
