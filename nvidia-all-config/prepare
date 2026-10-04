@@ -263,7 +263,11 @@ _prompt_from_array() {
 _prompt_nvidia_options() {
   # Normalize pre-set values
   _nv_normalize_bool _blacklist_nouveau
+  _nv_normalize_bool _limit_vram_usage
+  _nv_normalize_bool _cuda_no_stable_perf_limit
+  _nv_normalize_bool _cuda_disable_perf_boost
   _nv_normalize_bool _nvidia_patch_enc_fbc
+  _nv_normalize_bool _dsc_dp_fix
 
   # _blacklist_nouveau
   if [[ -z "${_blacklist_nouveau:-}" ]]; then
@@ -273,6 +277,31 @@ _prompt_nvidia_options() {
     _default_index="0"
     _prompt_from_array "${_blacklist_nouveau_text[@]}"
     _blacklist_nouveau="${_blacklist_nouveau_vals[${_selected_index}]}"
+  fi
+
+  local _option_text=("Yes" "No")
+  local _option_vals=("true" "false")
+
+  if [[ -z "${_limit_vram_usage:-}" ]]; then
+    msg2 "Install the additional VRAM reuse profile (590+)?"
+    _default_index="0"
+    _prompt_from_array "${_option_text[@]}"
+    _limit_vram_usage="${_option_vals[${_selected_index}]}"
+  fi
+
+  if [[ -z "${_cuda_no_stable_perf_limit:-}" ]]; then
+    msg2 "Install the additional CUDA performance profile (590+)?"
+    _default_index="0"
+    _prompt_from_array "${_option_text[@]}"
+    _cuda_no_stable_perf_limit="${_option_vals[${_selected_index}]}"
+  fi
+
+  if [[ -z "${_cuda_disable_perf_boost:-}" ]]; then
+    msg2 "Disable CUDA performance boost for user services (580+)?"
+    msg2 "This may reduce power consumption but can increase latency."
+    _default_index="1"
+    _prompt_from_array "${_option_text[@]}"
+    _cuda_disable_perf_boost="${_option_vals[${_selected_index}]}"
   fi
 
   # _nvidia_patch_enc_fbc
@@ -286,12 +315,24 @@ _prompt_nvidia_options() {
     _nvidia_patch_enc_fbc="${_enc_fbc_vals[${_selected_index}]}"
   fi
 
-  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}"
+  if [[ -z "${_dsc_dp_fix:-}" ]]; then
+    msg2 "Apply the DSC fixes and Bigscreen Beyond DisplayPort workaround (595+)?"
+    msg2 "The DSC flatness threshold fix applies only to 595; it is included in 610+."
+    _default_index="1"
+    _prompt_from_array "${_option_text[@]}"
+    _dsc_dp_fix="${_option_vals[${_selected_index}]}"
+  fi
+
+  msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, limit_vram_usage=${_limit_vram_usage}, cuda_no_stable_perf_limit=${_cuda_no_stable_perf_limit}, cuda_disable_perf_boost=${_cuda_disable_perf_boost}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}, dsc_dp_fix=${_dsc_dp_fix}"
 
   # Export selected options to BIG_UGLY_FROGMINER for use in PKGBUILD and install.sh
   cat >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}" <<EOF
 _blacklist_nouveau='${_blacklist_nouveau:-}'
+_limit_vram_usage='${_limit_vram_usage:-}'
+_cuda_no_stable_perf_limit='${_cuda_no_stable_perf_limit:-}'
+_cuda_disable_perf_boost='${_cuda_disable_perf_boost:-}'
 _nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'
+_dsc_dp_fix='${_dsc_dp_fix:-}'
 EOF
 }
 
