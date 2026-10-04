@@ -1078,7 +1078,7 @@ case "$PKG_FORMAT" in
     fi
     ;;
   deb)
-    _deb_install_cmd=(sudo apt-get install -y --reinstall "${_built_pkg_files[@]}")
+    _deb_install_cmd=(sudo apt-get install -y --allow-downgrades --reinstall "${_built_pkg_files[@]}")
     _deb_install_hint=""
     _arg=""
     _arg_quoted=""
@@ -1108,7 +1108,7 @@ case "$PKG_FORMAT" in
         _pkg_install_files+=("${_pkg_tmpdir}/${_pkgfile##*/}")
       done
 
-      _deb_install_cmd=(sudo apt-get install -y --reinstall "${_pkg_install_files[@]}")
+      _deb_install_cmd=(sudo apt-get install -y --allow-downgrades --reinstall "${_pkg_install_files[@]}")
       DEBIAN_FRONTEND=noninteractive _run_package_install "${_deb_install_cmd[@]}"
       if [[ "${_dkms:-false}" == true ]]; then
         _verify_dkms_install
