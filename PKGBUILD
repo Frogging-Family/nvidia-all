@@ -162,7 +162,7 @@ nvidia-egl-wayland-tkg() {
     provides+=("egl-gbm")
     conflicts+=('egl-gbm')
   fi
-  if (( ${pkgver%%.*} >= 590 )); then
+  if [[ -n "$(_eglw_so_ver "${srcdir}/${_pkg}/libnvidia-egl-wayland2.so.*.*.*")" ]]; then
     provides+=("egl-wayland2")
     conflicts+=('egl-wayland2')
   fi
@@ -223,7 +223,7 @@ nvidia-utils-tkg() {
   fi
   if [[ "${_eglwayland:-external}" = "external" ]]; then
     depends+=('egl-wayland')
-    if (( ${pkgver%%.*} >= 590 )); then
+    if (( ${pkgver%%.*} >= 580 )); then
       depends+=('egl-wayland2')
     fi
   fi

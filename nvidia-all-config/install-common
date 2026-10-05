@@ -234,6 +234,12 @@ _install_utils() {
   fi
   msg2 "Detected init system: ${_detected_init}"
 
+  # Fix plasmashell crash caused by FD leak
+  # See: https://github.com/NVIDIA/egl-wayland/issues/196
+  if [[ "${pkgver%%.*}" = "580" ]] && [[ "${_detected_init}" = "systemd" ]] && [[ "${_eglwayland:-external}" != "false" ]]; then
+    install -Dm644 "${_where}/nvidia-all-config/system/kwin-580xx-override.conf" "${pkgdir}/usr/lib/systemd/user/plasma-kwin_wayland.service.d/kwin-580xx-override.conf"
+  fi
+
   # nvidia-persistenced
   install -D -m755 nvidia-persistenced "${pkgdir}/usr/bin/nvidia-persistenced"
   install -D -m644 nvidia-persistenced.1.gz "${pkgdir}/usr/share/man/man1/nvidia-persistenced.1.gz"
@@ -514,7 +520,7 @@ _install_egl_wayland() {
     fi
   fi
 
-  # wayland2 (driver >= 590): use Fedora packages; bundle elsewhere if present.
+  # wayland2: use Fedora packages; bundle elsewhere if present.
   if ! _sys_pkg_rpm; then
     if [[ -n "${_eglwver2}" ]] && [[ -e "libnvidia-egl-wayland2.so.${_eglwver2}" ]]; then
       install -Dm755 "libnvidia-egl-wayland2.so.${_eglwver2}" "${pkgdir}/usr/lib/libnvidia-egl-wayland2.so.${_eglwver2}"
