@@ -315,7 +315,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
   nvidia-tkg() {
   if [[ "${_open_source_modules}" = "true" ]]; then
     pkgdesc="Open NVIDIA kernel modules for all installed kernels"
-    depends=('linux')
+    depends=('linux' "nvidia-utils-tkg=${pkgver}")
     conflicts=('NVIDIA-MODULE' 'nvidia-tkg')
     provides=('NVIDIA-MODULE')
 
@@ -366,7 +366,7 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
     fi
   else
     pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
-    depends=("nvidia-utils-tkg>=${pkgver}" 'libglvnd')
+    depends=("nvidia-utils-tkg=${pkgver}" 'libglvnd')
     provides=("nvidia=${pkgver}" "nvidia-tkg>=${pkgver}")
     conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
     install=nvidia-all-config/system/nvidia.install
@@ -430,7 +430,7 @@ EOF
 
 lib32-nvidia-utils-tkg() {
   pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-tkg' (32-bit)"
-  depends=('lib32-zlib' 'lib32-gcc-libs' 'nvidia-utils-tkg' 'lib32-libglvnd' 'lib32-mesa' 'lib32-vulkan-icd-loader')
+  depends=('lib32-zlib' 'lib32-gcc-libs' "nvidia-utils-tkg=${pkgver}" 'lib32-libglvnd' 'lib32-mesa' 'lib32-vulkan-icd-loader')
   optdepends=('lib32-opencl-nvidia-tkg: OpenCL support')
   provides=("lib32-nvidia-utils=${pkgver}" "lib32-nvidia-utils-tkg=${pkgver}" 'lib32-vulkan-driver' 'lib32-opengl-driver' 'lib32-nvidia-libgl')
   conflicts=('lib32-nvidia-utils' 'lib32-nvidia-libgl')
@@ -449,7 +449,7 @@ EOF
 if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
   nvidia-dkms-tkg() {
     if [[ "${_open_source_modules}" = "true" ]]; then
-      depends=('dkms')
+      depends=('dkms' "nvidia-utils-tkg=${pkgver}")
       conflicts=('nvidia-open' 'NVIDIA-MODULE' 'nvidia-dkms')
       provides=('nvidia-open' 'NVIDIA-MODULE')
 
@@ -465,7 +465,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       install -Dm644 "${_srcbase}-${pkgver}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}"
     else
       pkgdesc="NVIDIA kernel module sources (DKMS)"
-      depends=('dkms' "nvidia-utils-tkg>=${pkgver}" 'nvidia-libgl' 'pahole')
+      depends=('dkms' "nvidia-utils-tkg=${pkgver}" 'nvidia-libgl' 'pahole')
       provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
       conflicts=('nvidia' 'nvidia-dkms')
 
