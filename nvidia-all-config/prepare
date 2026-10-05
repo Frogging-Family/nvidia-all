@@ -283,7 +283,7 @@ _prompt_nvidia_options() {
   local _option_vals=("true" "false")
 
   if [[ -z "${_limit_vram_usage:-}" ]]; then
-    msg2 "Install the additional VRAM reuse profile (590+)?"
+    msg2 "Install the additional VRAM reuse profile (580+)?"
     _default_index="0"
     _prompt_from_array "${_option_text[@]}"
     _limit_vram_usage="${_option_vals[${_selected_index}]}"
