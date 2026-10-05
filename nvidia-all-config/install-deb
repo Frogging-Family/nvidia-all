@@ -1,0 +1,295 @@
+# Internal DEB functions sourced by install.sh.
+
+_deb_install_prerequisites() {
+  sudo apt-get install -q curl libarchive-tools
+}
+
+_deb_install_dependencies() {
+  local -a _kernels=("$@")
+
+  # Enable i386 multiarch for lib32 packages
+  if ! dpkg --print-foreign-architectures | grep -q i386; then
+    msg2 "Enabling i386 multiarch support..."
+    sudo dpkg --add-architecture i386
+    sudo DEBIAN_FRONTEND=noninteractive apt-get update -q
+  fi
+
+  local _kver
+  for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "linux-headers-${_kver}"
+  done
+
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y dkms build-essential gcc-multilib dwarves libarchive-tools patchelf libglvnd-dev libvulkan-dev curl pciutils mokutil
+}
+
+_deb_install_build_tools() {
+  if ! command -v dpkg-deb &>/dev/null || ! command -v fakeroot &>/dev/null; then
+    msg2 "dpkg-deb and/or fakeroot not found — installing required build tools..."
+    sudo apt-get install dpkg fakeroot
+  fi
+}
+
+_deb_relocate_elfs() {
+  local _pkgdir="$1"
+
+  # 64-bit ELF
+  if [[ -d "${_pkgdir}/usr/lib" ]]; then
+    mkdir -p "${_pkgdir}/usr/lib/x86_64-linux-gnu"
+    # Move ELF-containing subdirectories
+    local _dir
+    for _dir in gbm nvidia vdpau tls; do
+      [[ -d "${_pkgdir}/usr/lib/${_dir}" ]] && mv "${_pkgdir}/usr/lib/${_dir}" "${_pkgdir}/usr/lib/x86_64-linux-gnu/"
+    done
+    # Move root-level shared libraries (.so / .so.N / .so.N.N.N ...).
+    find "${_pkgdir}/usr/lib" -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) \
+      -exec mv {} "${_pkgdir}/usr/lib/x86_64-linux-gnu/" \;
+  fi
+
+  local _xorg_conf="${_pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
+  if [[ -f "${_xorg_conf}" ]]; then
+    sed -i 's|ModulePath "/usr/lib/nvidia/xorg"|ModulePath "/usr/lib/x86_64-linux-gnu/nvidia/xorg"|' "${_xorg_conf}"
+  fi
+
+  # 32-bit ELF
+  if [[ -d "${_pkgdir}/usr/lib32" ]]; then
+    mkdir -p "${_pkgdir}/usr/lib/i386-linux-gnu"
+    cp -a "${_pkgdir}/usr/lib32/." "${_pkgdir}/usr/lib/i386-linux-gnu/"
+    rm -rf "${_pkgdir}/usr/lib32"
+  fi
+}
+
+_deb_build_metadata() {
+  local _installed_pkgs=""
+
+  _NV_META[nvidia-utils-tkg_depends_deb]="libc6, libglvnd0, libgl1-mesa-glx | libgl1, libvulkan1, libx11-6, libxext6, libwayland-client0"
+  _NV_META[nvidia-utils-tkg_provides_deb]="nvidia-utils (= ${pkgver}), libgl1-nvidia-glvnd-glx, nvidia-libgl, vulkan-driver, opengl-driver"
+  _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
+  _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
+  _NV_META[lib32-nvidia-utils-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), gcc-multilib, libglvnd0:i386, libvulkan1:i386, libnvidia-egl-wayland1:i386"
+  _NV_META[lib32-nvidia-utils-tkg_provides_deb]="lib32-nvidia-utils (= ${pkgver}), lib32-nvidia-libgl, lib32-vulkan-driver, lib32-opengl-driver"
+  _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
+  _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
+  _NV_META[nvidia-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
+  _NV_META[nvidia-dkms-tkg_provides_deb]="nvidia-kernel-dkms (= ${pkgver}), nvidia-kernel-${pkgver}, nvidia-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
+  _NV_META[nvidia-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
+  _NV_META[nvidia-dkms-tkg_replaces_deb]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-open-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
+  _NV_META[nvidia-open-dkms-tkg_provides_deb]="nvidia-open-kernel-dkms (= ${pkgver}), nvidia-open-kernel-${pkgver}, nvidia-open-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
+  _NV_META[nvidia-open-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
+  _NV_META[nvidia-open-dkms-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
+  _NV_META[nvidia-tkg_provides_deb]="nvidia (= ${pkgver}), nvidia-kernel-${pkgver}, NVIDIA-MODULE"
+  _NV_META[nvidia-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-open-tkg"
+  _NV_META[nvidia-open-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
+  _NV_META[nvidia-open-tkg_provides_deb]="nvidia-open (= ${pkgver}), nvidia-open-kernel-${pkgver}, NVIDIA-MODULE"
+  _NV_META[nvidia-open-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg"
+  _NV_META[nvidia-open-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-tkg"
+  _NV_META[opencl-nvidia-tkg_depends_deb]="zlib1g, nvidia-utils-tkg (= ${pkgver})"
+  _NV_META[opencl-nvidia-tkg_provides_deb]="opencl-nvidia (= ${pkgver}), opencl-driver, opencl-icd"
+  _NV_META[opencl-nvidia-tkg_conflicts_deb]="opencl-nvidia, nvidia-opencl-icd, libcuda1"
+  _NV_META[opencl-nvidia-tkg_replaces_deb]="opencl-nvidia, nvidia-opencl-icd, libcuda1"
+  _NV_META[lib32-opencl-nvidia-tkg_depends_deb]="zlib1g:i386, gcc-multilib, opencl-nvidia-tkg (= ${pkgver})"
+  _NV_META[lib32-opencl-nvidia-tkg_provides_deb]="lib32-opencl-nvidia (= ${pkgver}), lib32-opencl-driver, lib32-opencl-icd"
+  _NV_META[lib32-opencl-nvidia-tkg_conflicts_deb]="lib32-opencl-nvidia"
+  _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1, libxnvctrl0"
+  _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
+  _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
+  _NV_META[nvidia-settings-tkg_conflicts_deb]="nvidia-settings"
+  _NV_META[nvidia-settings-tkg_replaces_deb]="nvidia-settings"
+
+  if (( ${pkgver%%.*} >= 465 )); then
+    _NV_META[nvidia-utils-tkg_provides_deb]+=", firmware-nvidia-gsp (= ${pkgver}), firmware-nvidia-gsp-${pkgver}"
+    _NV_META[nvidia-utils-tkg_conflicts_deb]+=", firmware-nvidia-gsp, firmware-nvidia-gsp-${pkgver}"
+    _NV_META[nvidia-utils-tkg_replaces_deb]+=", firmware-nvidia-gsp, firmware-nvidia-gsp-${pkgver}"
+  fi
+
+  # Detect versioned distribution NVIDIA packages.
+  if command -v dpkg &>/dev/null && [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu)$ ]]; then
+    if (( ${pkgver%%.*} >= 470 )); then
+      _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1"
+      if [[ -n "${_NV_META[nvidia-utils-tkg_recommends_deb]:-}" ]]; then
+        _NV_META[nvidia-utils-tkg_recommends_deb]+=", libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
+      else
+        _NV_META[nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1, libnvidia-egl-xcb1, libnvidia-egl-xlib1"
+      fi
+      if [[ -n "${_NV_META[lib32-nvidia-utils-tkg_recommends_deb]:-}" ]]; then
+        _NV_META[lib32-nvidia-utils-tkg_recommends_deb]+=", libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
+      else
+        _NV_META[lib32-nvidia-utils-tkg_recommends_deb]="libnvidia-egl-gbm1:i386, libnvidia-egl-xcb1:i386, libnvidia-egl-xlib1:i386"
+      fi
+    fi
+
+    # Map extends conflicts_deb + replaces_deb
+    local -a _cr_map=(
+      'libnvidia-compute-[0-9]*:opencl-nvidia-tkg'
+      'nvidia-utils-[0-9]*:nvidia-utils-tkg'
+      'nvidia-kernel-common-[0-9]*:nvidia-utils-tkg'
+      'nvidia-firmware-[0-9]*:nvidia-utils-tkg'
+      'libnvidia-extra-[0-9]*:nvidia-utils-tkg'
+      'libnvidia-gl-[0-9]*:nvidia-utils-tkg'
+      'xserver-xorg-video-nvidia-[0-9]*:nvidia-utils-tkg'
+    )
+
+    for _entry in "${_cr_map[@]}"; do
+      _installed_pkgs="$(_deb_installed_pkg_csv "${_entry%%:*}")"
+      if [[ -n "${_installed_pkgs}" ]]; then
+        _NV_META[${_entry##*:}_conflicts_deb]+=", ${_installed_pkgs}"
+        _NV_META[${_entry##*:}_replaces_deb]+=", ${_installed_pkgs}"
+      fi
+    done
+
+    # Special case two packages, no replaces
+    _installed_pkgs="$(_deb_installed_pkg_csv 'nvidia-dkms-[0-9]*-open')"
+    if [[ -n "${_installed_pkgs}" ]]; then
+      _NV_META[nvidia-dkms-tkg_conflicts_deb]+=", ${_installed_pkgs}"
+      _NV_META[nvidia-open-dkms-tkg_conflicts_deb]+=", ${_installed_pkgs}"
+    fi
+  fi
+}
+
+_deb_installed_pkg_csv() {
+  dpkg-query -W -f=$'${db:Status-Abbrev}\t${binary:Package}\n' "$1" 2>/dev/null | awk '
+    $1 == "ii" {
+      printf "%s%s", sep, $2
+      sep = ", "
+    }
+  '
+}
+
+_deb_postinst() {
+  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
+
+  if [[ "${_mode}" == "dkms" ]]; then
+    _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" _tmpl_pkgname="${_pkgname}" \
+      _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.dkms.in"
+    chmod 755 "${_debdir}/DEBIAN/postinst"
+    return 0
+  fi
+
+  case "${_mode}" in
+    kmod) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.kmod.in" ;;
+    initramfs) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.utils.in" ;;
+    *) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.default.in" ;;
+  esac
+
+  chmod 755 "${_debdir}/DEBIAN/postinst"
+}
+
+_deb_prerm() {
+  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}"
+
+  case "${_mode}" in
+    dkms)
+      _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" \
+        _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.dkms.in"
+      ;;
+    kmod)
+      _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.kmod.in"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  chmod 755 "${_debdir}/DEBIAN/prerm"
+}
+
+_deb_postrm() {
+  local _debdir="$1"
+  _write_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.in"
+  chmod 755 "${_debdir}/DEBIAN/postrm"
+}
+
+_deb_builder() {
+  local _pkgname="$1" _stagedir="$2" _outdir="$3"
+  local _debdir
+  _debdir="$(mktemp -d "${srcdir}/deb-${_pkgname}.XXXXXXXX")"
+
+  install -dm755 "${_debdir}" "${_debdir}/DEBIAN"
+  mkdir -p "${_where}/logs"
+  cp -a "${_stagedir}/." "${_debdir}/"
+  _tmpl_pkgname="${_pkgname}" \
+    _tmpl_installed_size="$(du -sk "${_stagedir}" | cut -f1)" \
+    _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
+    _write_pkg_template "${_debdir}/DEBIAN/control" "deb/control.in"
+  [[ -n "${_NV_META[${_pkgname}_depends_deb]:-}" ]] && echo "Depends: ${_NV_META[${_pkgname}_depends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_recommends_deb]:-}" ]] && echo "Recommends: ${_NV_META[${_pkgname}_recommends_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_provides_deb]:-}" ]] && echo "Provides: ${_NV_META[${_pkgname}_provides_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_conflicts_deb]:-}" ]] && echo "Conflicts: ${_NV_META[${_pkgname}_conflicts_deb]}" >> "${_debdir}/DEBIAN/control"
+  [[ -n "${_NV_META[${_pkgname}_replaces_deb]:-}" ]] && echo "Replaces: ${_NV_META[${_pkgname}_replaces_deb]}" >> "${_debdir}/DEBIAN/control"
+
+  local _mode=""
+  if [[ "${_pkgname}" == *dkms* ]]; then
+    _mode=dkms
+  elif [[ "${_pkgname}" == nvidia-tkg || "${_pkgname}" == nvidia-open-tkg ]]; then
+    _mode=kmod
+  elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _mode=initramfs
+  fi
+
+  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
+    chmod 755 "${_debdir}/DEBIAN/prerm"
+  fi
+  _deb_postrm "${_debdir}"
+  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+    _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
+  fi
+
+  {
+    echo "[PACKAGING] dpkg-deb: ${_pkgname} ${pkgver}"
+    fakeroot dpkg-deb --build "${_debdir}" "${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+  } >> "${_where}/logs/prepare.log.txt" 2>&1 || {
+    error "Packaging failed for ${_pkgname}. See ${_where}/logs/prepare.log.txt"
+    return 1
+  }
+  rm -rf "${_debdir}"
+  msg2 "Built: ${_outdir}/${_pkgname}_${pkgver}_amd64.deb"
+}
+
+_deb_install_packages() {
+  _deb_install_cmd=(sudo apt-get install -y --allow-downgrades --reinstall "${_built_pkg_files[@]}")
+  _deb_install_hint=""
+  _arg=""
+  _arg_quoted=""
+  for _arg in "${_deb_install_cmd[@]}"; do
+    printf -v _arg_quoted '%q' "${_arg}"
+    _deb_install_hint+="${_deb_install_hint:+ }${_arg_quoted}"
+  done
+
+  msg2 "To install manually:"
+  msg2 "  ${_deb_install_hint}"
+  plain ""
+
+  if [[ "${_set_default:-}" =~ ^(true|1|yes|y)$ ]]; then
+    _install_ans="y"
+    msg2 "Auto-accepting package installation (default: Y)"
+  else
+    read -rp " -> Install the built DEB packages now? [Y/n]: " _install_ans
+  fi
+
+  if [[ -z "${_install_ans}" || "${_install_ans}" =~ ^[Yy] ]]; then
+    msg2 "Installing packages via apt..."
+    _pkg_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/nvidia-all-pkg.XXXXXXXX")"
+    install -d -m 755 "${_pkg_tmpdir}"
+    _pkg_install_files=()
+    for _pkgfile in "${_built_pkg_files[@]}"; do
+      install -m 644 "${_pkgfile}" "${_pkg_tmpdir}/${_pkgfile##*/}"
+      _pkg_install_files+=("${_pkg_tmpdir}/${_pkgfile##*/}")
+    done
+
+    _deb_install_cmd=(sudo apt-get install -y --allow-downgrades --reinstall "${_pkg_install_files[@]}")
+    DEBIAN_FRONTEND=noninteractive _run_package_install "${_deb_install_cmd[@]}"
+    if [[ "${_dkms:-false}" == true ]]; then
+      _verify_dkms_install
+    fi
+    msg2 "Installation complete. A system reboot is recommended."
+  else
+    msg2 "Skipping installation. Packages remain in: ${_distdir}"
+  fi
+}
+
+# vim: set ft=sh ts=2 sw=2 et:
