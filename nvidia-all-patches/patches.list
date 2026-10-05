@@ -40,9 +40,10 @@ closed   all/gcc-15.diff                                                        
 dkms     all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       1      .              -                          470.256.02
 closed   all/kernel-6.17.patch                                                         6.17     6.17.9999   -            575.99       2      .              -                          470.256.02
 
-# open: atomic modesetting (570–580.142)
-open     all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           570          580.142      1      kernel-open
-closed   all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           570          580.142      1      .
+# Atomic modesetting (570–580)
+open     all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           570          580.9999     1      kernel-open
+closed   all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           570          580.9999     1      kernel
+dkms     all/0001-Enable-atomic-kernel-modesetting-by-default.patch                    -        -           580          580.9999     1      kernel-dkms
 
 # open: Add-IBT-support (all series ≥ 570)
 open     all/0002-Add-IBT-support.patch                                                -        -           570          595.80       1      .
@@ -379,8 +380,10 @@ open     575/0008-kbuild-Add-workaround-for-GCC-15-Compilation.patch            
 # SERIES 580
 # ══════════════════════════════════════════════════════════════════════════════
 
-# open: hw cursor KDE fix
+# 580: hw cursor KDE fix
 open     580/fix-hw-cursor-kde.patch                                                   -        -           580          580.9999     1      kernel-open
+closed   580/fix-hw-cursor-kde.patch                                                   -        -           580          580.9999     1      kernel
+dkms     580/fix-hw-cursor-kde.patch                                                   -        -           580          580.9999     1      kernel-dkms
 
 # open: uvm get_devmap_page API change (kernel 6.18+; 580.159+ has it natively)
 open     580/0003-nvidia-uvm-Remove-unused-get_devmap_page-parameter.patch             -        -           580          580.142      1      .
