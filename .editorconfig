@@ -11,13 +11,10 @@ insert_final_newline = true
 [PKGBUILD]
 shell_variant = bash
 
-[*.sh]
+[{*.sh,*.install,*.in}]
 shell_variant = bash
 
-[*.install]
-shell_variant = bash
-
-[nvidia-all-config/{prepare,install-common,module-sign}]
+[nvidia-all-config/{prepare,install-common,install-deb,install-rpm,module-sign}]
 shell_variant = bash
 
 [nvidia-all-patches/{patchwork,patches.list}]
