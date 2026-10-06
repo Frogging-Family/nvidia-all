@@ -1535,7 +1535,7 @@ _nv_build() {
       IGNORE_CC_MISMATCH=yes
       IGNORE_XEN_PRESENCE=1
       IGNORE_PREEMPT_RT_PRESENCE=1
-      SYSSRC="/usr/lib/modules/${_kernel}/build"
+      KERNEL_UNAME="${_kernel}"
     )
 
     local _label="Nvidia"
