@@ -323,13 +323,18 @@ _install_utils() {
   # nvidia-modprobe
   install -Dm644 "${_where}/nvidia-all-config/system/nvidia-utils.conf" "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
 
-  if (( ${pkgver%%.*} >= 595 )); then
-    # 595+ open modules use kernel suspend notifiers for video memory preservation
-    printf '\n# Use kernel suspend notifiers for video memory preservation\noptions nvidia NVreg_UseKernelSuspendNotifiers=1 NVreg_TemporaryFilePath=/var/tmp\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
-  else
-    # Enable PreserveVideoMemoryAllocations and TemporaryFilePath
-    # Fixes Wayland Sleep, when restoring the session
-    printf '\n# Preserve video memory allocations across suspend and hibernate\noptions nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/var/tmp\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
+  # Configure video memory preservation
+  if (( ${pkgver%%.*} >= 595 )) && (( $(vercmp "$pkgver" 615.78.08) < 0 )); then
+    # Preserve video memory using kernel suspend notifiers
+    printf '\n# Use kernel suspend notifiers for video memory preservation\noptions nvidia NVreg_UseKernelSuspendNotifiers=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
+  elif (( ${pkgver%%.*} < 595 )); then
+    # Preserve video memory using the suspend and resume hooks
+    printf '\n# Preserve video memory allocations across suspend and hibernate\noptions nvidia NVreg_PreserveVideoMemoryAllocations=1\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
+  fi
+
+  # Configure temporary video memory storage
+  if (( $(vercmp "$pkgver" 615.78.08) < 0 )); then
+    printf '\n# Store temporary video memory allocations in /var/tmp\noptions nvidia NVreg_TemporaryFilePath=/var/tmp\n\n' >> "${pkgdir}/usr/lib/modprobe.d/nvidia-utils.conf"
   fi
 
   # Lists NVIDIA driver files for container runtimes like nvidia-container-toolkit
