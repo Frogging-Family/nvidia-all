@@ -28,6 +28,7 @@ and other customization features.
     - [Non-Arch (install.sh)](#non-arch-installsh)
   - [DKMS or regular modules](#dkms-or-regular-modules)
   - [Important customization.cfg options and paths](#important-customizationcfg-options-and-paths)
+    - [Flatpak driver extensions](#flatpak-driver-extensions)
   - [Custom driver versions](#custom-driver-versions)
   - [Troubleshooting](#troubleshooting)
     - [DKMS build stopped working after a kernel update](#dkms-build-stopped-working-after-a-kernel-update)
@@ -187,6 +188,14 @@ Custom patches are documented under `#### USER PATCHES ####` in [customization.c
 Prebuilted distro packages are written to `nvidia-all/dist/` and can be installed from there.
 
 Build logs and environment snapshots are written under `nvidia-all/logs/`.
+
+### Flatpak driver extensions
+
+Set `_flatpak="true"` in your configuration and rebuild with `./install.sh` (or `makepkg -si` on Arch).
+This adds `flatpak-nvidia-tkg` and, when `_lib32="true"`, `lib32-flatpak-nvidia-tkg`.
+
+To remove this support, remove the installed Flatpak driver packages with `pacman -R`, `apt remove`, `dnf remove` or `zypper remove`
+(remove the 32-bit package first if installed), then set `_flatpak="false"`.
 
 ---
 

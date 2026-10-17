@@ -656,4 +656,96 @@ _install_settings() {
   install -D -m644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
+# Based on Arch Linux's nvidia-utils Flatpak packaging:
+# https://gitlab.archlinux.org/archlinux/packaging/packages/nvidia-utils/-/commit/db6cb4c5705eba277fdb755eb9973736baa7164b
+# Adapted from:
+# https://github.com/orowith2os/nvidia-flatpakker
+_flatpak_extension() {
+  local _id="$1" _libdir="$2" _lib _file _name
+  local _flatpak_dir=/usr/lib/nvidia/flatpak
+  local _prefix="${pkgdir}${_flatpak_dir}/${_id}"
+
+  # These libraries are required even when optional components are absent.
+  for _lib in libGLX_nvidia libEGL_nvidia libnvidia-glcore libnvidia-eglcore; do
+    if [[ ! -f "${_libdir}/${_lib}.so.${pkgver}" ]]; then
+      error "Missing Flatpak driver library: ${_libdir}/${_lib}.so.${pkgver}"
+      return 1
+    fi
+  done
+
+  install -d "${_prefix}/lib"
+  for _lib in "${_libdir}"/*.so*; do
+    [[ -f "${_lib}" ]] || continue
+    case "${_lib##*/}" in
+      libEGL.so*|libGL.so*|libGLESv1_CM.so*|libGLESv2.so*|libGLX.so*|libGLdispatch.so*|libOpenGL.so*|libOpenCL.so*) continue ;;
+      nvidia_drv.so|libglx.so*|libglxserver_nvidia.so*|libnvidia-wfb.so*|libnvidia-gtk*) continue ;;
+    esac
+    install -m755 "${_lib}" "${_prefix}/lib/"
+  done
+
+  if [[ -f "${_prefix}/lib/libnvidia-allocator.so.${pkgver}" ]]; then
+    install -d "${_prefix}/lib/gbm"
+    ln -s "../libnvidia-allocator.so.${pkgver}" "${_prefix}/lib/gbm/nvidia-drm_gbm.so"
+  fi
+
+  # _create_links deliberately skips the Vulkan producer in host packages.
+  if [[ -f "${_prefix}/lib/libnvidia-vulkan-producer.so.${pkgver}" ]]; then
+    ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${_prefix}/lib/libnvidia-vulkan-producer.so.1"
+    ln -s "libnvidia-vulkan-producer.so.${pkgver}" "${_prefix}/lib/libnvidia-vulkan-producer.so"
+  fi
+
+  install -Dm644 "nvidia-application-profiles-${pkgver}-rc" "nvidia-application-profiles-${pkgver}-key-documentation" -t "${_prefix}/share/nvidia"
+  ln -s "nvidia-application-profiles-${pkgver}-rc" "${_prefix}/share/nvidia/nvidia-application-profiles-rc"
+  ln -s "nvidia-application-profiles-${pkgver}-key-documentation" "${_prefix}/share/nvidia/nvidia-application-profiles-key-documentation"
+
+  if [[ -f nvidia_icd.json ]]; then
+    install -Dm644 nvidia_icd.json "${_prefix}/vulkan/icd.d/nvidia_icd.json"
+  else
+    install -Dm644 nvidia_icd.json.template "${_prefix}/vulkan/icd.d/nvidia_icd.json"
+    sed -i 's/__NV_VK_ICD__/libGLX_nvidia.so.0/g' "${_prefix}/vulkan/icd.d/nvidia_icd.json"
+  fi
+  if [[ -f nvidia_layers.json ]]; then
+    install -Dm644 nvidia_layers.json -t "${_prefix}/vulkan/implicit_layer.d"
+  fi
+
+  install -Dm644 10_nvidia.json -t "${_prefix}/glvnd/egl_vendor.d"
+  for _file in *_nvidia_*.json; do
+    [[ -f "${_file}" ]] || continue
+    _name="${_file}"
+    # Match Flathub's filename for the original egl-wayland config.
+    [[ "${_name}" = 10_nvidia_wayland.json ]] && _name=10_nvidia.json
+    install -Dm644 "${_file}" "${_prefix}/egl/egl_external_platform.d/${_name}"
+  done
+  install -Dm644 nvidia.icd -t "${_prefix}/OpenCL/vendors"
+
+  _create_links
+
+  # Flatpak discovers unmanaged extensions here; keep their payload in /usr.
+  install -d "${pkgdir}/var/lib/flatpak/extension/${_id}/x86_64"
+  ln -s "${_flatpak_dir}/${_id}" "${pkgdir}/var/lib/flatpak/extension/${_id}/x86_64/1.4"
+  install -d "${pkgdir}/usr/share/licenses"
+  ln -s nvidia-utils "${pkgdir}/usr/share/licenses/${pkgname[0]}"
+}
+
+_install_flatpak() {
+  _flatpak_extension "org.freedesktop.Platform.GL.nvidia-${pkgver//./-}" .
+
+  local _prefix="${pkgdir}/usr/lib/nvidia/flatpak/org.freedesktop.Platform.GL.nvidia-${pkgver//./-}" _file
+  if [[ -f nvoptix.bin ]]; then
+    install -Dm644 nvoptix.bin -t "${_prefix}/share/nvidia"
+  fi
+  if [[ -f nvidia_icd_vksc.json && -f "${_prefix}/lib/libnvidia-vksc-core.so.${pkgver}" ]]; then
+    install -Dm644 nvidia_icd_vksc.json -t "${_prefix}/vulkansc/icd.d"
+  fi
+  for _file in _nvngx.dll nvngx.dll nvngx_dlssg.dll; do
+    if [[ -f "${_file}" ]]; then
+      install -Dm755 "${_file}" -t "${_prefix}/lib/nvidia/wine"
+    fi
+  done
+}
+
+_install_lib32_flatpak() {
+  _flatpak_extension "org.freedesktop.Platform.GL32.nvidia-${pkgver//./-}" 32
+}
+
 # vim: set ft=sh ts=2 sw=2 et:
