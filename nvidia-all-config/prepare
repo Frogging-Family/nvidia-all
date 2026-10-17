@@ -1135,7 +1135,7 @@ _user_patcher() {
           msg2 ""
           msg2 "######################################################"
           echo "[PATCH] Reverting user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
-          ( cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
     else
@@ -1162,7 +1162,7 @@ _user_patcher() {
           msg2 ""
           msg2 "######################################################"
           echo "[PATCH] Applying user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
-          ( cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" ) >> "${_where}"/logs/prepare.log.txt || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
     else
