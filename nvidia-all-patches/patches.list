@@ -367,10 +367,10 @@ closed   all/kernel-6.12.patch                                                  
 # GPL nv_vm_flags workaround
 open     575/0003-Workaround-nv_vm_flags_-calling-GPL-only-code.patch                  -        -           575          575.9999     1      kernel-open
 
-# uvm fixes
-open     575/0005-nvidia-uvm-Use-__iowrite64_hi_lo.patch                               -        -           575          575.9999     1      .
-open     575/0006-nvidia-uvm-Use-page_pgmap.patch                                      -        -           575          575.9999     1      .
-open     575/0007-nvidia-uvm-Convert-make_device_exclusive_range-to-ma.patch           -        -           575          575.9999     1      .
+# UVM fixes (NVIDIA provides its own compatibility code in 575.57.08+)
+open     575/0005-nvidia-uvm-Use-__iowrite64_hi_lo.patch                               -        -           575          575.51.03    1      .
+open     575/0006-nvidia-uvm-Use-page_pgmap.patch                                      -        -           575          575.51.03    1      .
+open     575/0007-nvidia-uvm-Convert-make_device_exclusive_range-to-ma.patch           -        -           575          575.51.03    1      .
 
 # GCC 15 kbuild workaround (opt-in)
 open     575/0008-kbuild-Add-workaround-for-GCC-15-Compilation.patch                   -        -           575          575.9999     1      .              _gcc15_fix
