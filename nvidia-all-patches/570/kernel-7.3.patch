@@ -1,0 +1,349 @@
+From 9d2b5825e69f0af9135e70b0070089ced935823b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20K=C3=BChn?= <damachin3@proton.me>
+Date: Mon, 19 Oct 2026 18:48:07 +0200
+Subject: [PATCH] fix(570): support Linux 7.3 kernel modules
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Update kernel probes, IRQ helpers, DMA mappings and DRM/KMS APIs.
+Replace removed strncpy() calls.
+
+Target: NVIDIA 570.211.01 open and proprietary modules, Linux 7.3.
+Signed-off-by: Christian Kühn <damachin3@proton.me>
+---
+ kernel-open/common/inc/nv-time.h               | 13 +++++++++++--
+ kernel-open/conftest.sh                        | 18 +++++++++++++++---
+ .../nvidia-drm/nvidia-dma-fence-helper.h       |  4 ++++
+ kernel-open/nvidia-drm/nvidia-drm-conftest.h   | 16 ++++++++++++++++
+ .../nvidia-drm/nvidia-drm-gem-nvkms-memory.h   |  2 ++
+ kernel-open/nvidia-drm/nvidia-drm-helper.h     | 16 +++++++++++++---
+ kernel-open/nvidia-drm/nvidia-drm-priv.h       |  4 ++++
+ .../nvidia-modeset/nvidia-modeset-linux.c      |  8 +++++++-
+ kernel-open/nvidia-uvm/uvm_pmm_gpu.c           |  2 +-
+ kernel-open/nvidia/linux_nvswitch.c            | 10 ++++++++--
+ kernel-open/nvidia/nv-dma.c                    |  4 ++++
+ kernel-open/nvidia/os-interface.c              |  5 ++---
+ 12 files changed, 87 insertions(+), 15 deletions(-)
+
+diff --git a/kernel-open/common/inc/nv-time.h b/kernel-open/common/inc/nv-time.h
+index 7c3f512e0d3aa73620c77bb227abe6d9d48c8a4c..0acb250ab3dbf1750270d3d459fbdeb2c1d2bb87 100644
+--- a/kernel-open/common/inc/nv-time.h
++++ b/kernel-open/common/inc/nv-time.h
+@@ -32,6 +32,15 @@
+ 
+ #include <nvstatus.h>
+ 
++static inline NvBool nv_in_hardirq(void)
++{
++#if defined(in_hardirq)
++    return in_hardirq();
++#else
++    return in_irq();
++#endif
++}
++
+ #define NV_MAX_ISR_DELAY_US           20000
+ #define NV_MAX_ISR_DELAY_MS           (NV_MAX_ISR_DELAY_US / 1000)
+ #define NV_NSECS_TO_JIFFIES(nsec)     ((nsec) * HZ / 1000000000)
+@@ -142,7 +151,7 @@ static inline NV_STATUS nv_sleep_us(unsigned int us)
+     ktime_get_raw_ts64(&tm1);
+ #endif
+ 
+-    if (in_irq() && (us > NV_MAX_ISR_DELAY_US))
++    if (nv_in_hardirq() && (us > NV_MAX_ISR_DELAY_US))
+         return NV_ERR_GENERIC;
+ 
+     mdelay_safe_msec = us / 1000;
+@@ -187,7 +196,7 @@ static inline NV_STATUS nv_sleep_ms(unsigned int ms)
+     tm_start = tm_aux;
+ #endif
+ 
+-    if (in_irq() && (ms > NV_MAX_ISR_DELAY_MS))
++    if (nv_in_hardirq() && (ms > NV_MAX_ISR_DELAY_MS))
+     {
+         return NV_ERR_GENERIC;
+     }
+diff --git a/kernel-open/conftest.sh b/kernel-open/conftest.sh
+index 5dd4a4ff6ca7dc244149233df4b7ea8df52b477d..c5bc0c94b3ff2de211282c8344847c7e5cd84e2a 100755
+--- a/kernel-open/conftest.sh
++++ b/kernel-open/conftest.sh
+@@ -233,6 +233,11 @@ if [ ${OS_FREEBSD} -ne 1 ] ; then
+         #include <generated/autoconf.h>
+         #else
+         #include <linux/autoconf.h>
++        #endif
++        #include <linux/version.h>
++        #if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++        #define drm_atomic_state drm_atomic_commit
++        #define drm_atomic_state_get drm_atomic_commit_get
+         #endif"
+ fi
+ 
+@@ -2473,6 +2478,9 @@ compile_test() {
+             #include <drm/drm_crtc_helper.h>
+             void drm_helper_mode_fill_fb_struct(struct drm_device *dev,
+                                                 struct drm_framebuffer *fb,
++                                                #if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++                                                const struct drm_format_info *info,
++                                                #endif
+                                                 const struct drm_mode_fb_cmd2 *mode_cmd)
+             {
+                 return;
+@@ -2499,6 +2507,9 @@ compile_test() {
+                 echo "$CONFTEST_PREAMBLE
+                 #include <drm/drm_crtc_helper.h>
+                 void drm_helper_mode_fill_fb_struct(struct drm_framebuffer *fb,
++                                                    #if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++                                                    const struct drm_format_info *info,
++                                                    #endif
+                                                     const struct drm_mode_fb_cmd2 *mode_cmd)
+                 {
+                     return;
+@@ -6573,16 +6584,17 @@ compile_test() {
+         vm_area_struct_has_const_vm_flags)
+             #
+             # Determine if the 'vm_area_struct' structure has
+-            # const 'vm_flags'.
++            # const 'vm_flags'. Probe the accessor because Linux 6.19
++            # removed the private '__vm_flags' member.
+             #
+             # A union of '__vm_flags' and 'const vm_flags' was added by
+             # commit bc292ab00f6c ("mm: introduce vma->vm_flags wrapper
+             # functions") in v6.3.
+             #
+             CODE="
+-            #include <linux/mm_types.h>
++            #include <linux/mm.h>
+             int conftest_vm_area_struct_has_const_vm_flags(void) {
+-                return offsetof(struct vm_area_struct, __vm_flags);
++                return sizeof(&vm_flags_set);
+             }"
+ 
+             compile_check_conftest "$CODE" "NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS" "" "types"
+diff --git a/kernel-open/nvidia-drm/nvidia-dma-fence-helper.h b/kernel-open/nvidia-drm/nvidia-dma-fence-helper.h
+index 731f6a794bec7e197b79293778086d99cbe42403..125196937873c953a99e2f62114c2b3cd2c9997d 100644
+--- a/kernel-open/nvidia-drm/nvidia-dma-fence-helper.h
++++ b/kernel-open/nvidia-drm/nvidia-dma-fence-helper.h
+@@ -96,6 +96,8 @@ nv_dma_fence_default_wait(nv_dma_fence_t *fence,
+ static inline int nv_dma_fence_signal(nv_dma_fence_t *fence) {
+ #if defined(NV_LINUX_FENCE_H_PRESENT)
+     return fence_signal(fence);
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    return dma_fence_check_and_signal(fence);
+ #else
+     return dma_fence_signal(fence);
+ #endif
+@@ -104,6 +106,8 @@ static inline int nv_dma_fence_signal(nv_dma_fence_t *fence) {
+ static inline int nv_dma_fence_signal_locked(nv_dma_fence_t *fence) {
+ #if defined(NV_LINUX_FENCE_H_PRESENT)
+     return fence_signal_locked(fence);
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    return dma_fence_check_and_signal_locked(fence);
+ #else
+     return dma_fence_signal_locked(fence);
+ #endif
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-conftest.h b/kernel-open/nvidia-drm/nvidia-drm-conftest.h
+index 9dc7075315238826543c828364f0f3b4145bcaf2..cb1322bbfc3970f1971119cd4a87cef18bceb05f 100644
+--- a/kernel-open/nvidia-drm/nvidia-drm-conftest.h
++++ b/kernel-open/nvidia-drm/nvidia-drm-conftest.h
+@@ -25,6 +25,22 @@
+ 
+ #include "conftest.h"
+ #include "nvtypes.h"
++#include <linux/version.h>
++
++/*
++ * Linux v7.2 renamed DRM atomic state to DRM atomic commit. Keep the NVIDIA
++ * DRM sources on the old spelling until upstream compatibility tests grow a
++ * dedicated probe for this API transition.
++ */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++#define drm_atomic_state                 drm_atomic_commit
++#define drm_atomic_state_alloc           drm_atomic_commit_alloc
++#define drm_atomic_state_init            drm_atomic_commit_init
++#define drm_atomic_state_clear           drm_atomic_commit_clear
++#define drm_atomic_state_default_clear   drm_atomic_commit_default_clear
++#define drm_atomic_state_default_release drm_atomic_commit_default_release
++#define drm_atomic_state_put             drm_atomic_commit_put
++#endif
+ 
+ /*
+  * NOTE: This file is expected to get included at the top before including any
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-gem-nvkms-memory.h b/kernel-open/nvidia-drm/nvidia-drm-gem-nvkms-memory.h
+index 1af8c2a7b2fd4daa1897e3eb91da0ebdd85c042e..c0119784488bd6affc2c1a2c49d8f9aa9450bcb7 100644
+--- a/kernel-open/nvidia-drm/nvidia-drm-gem-nvkms-memory.h
++++ b/kernel-open/nvidia-drm/nvidia-drm-gem-nvkms-memory.h
+@@ -87,6 +87,8 @@ struct nv_drm_gem_nvkms_memory *nv_drm_gem_object_nvkms_memory_lookup(
+     return to_nv_nvkms_memory(nv_gem);
+ }
+ 
++struct drm_mode_create_dumb;
++
+ int nv_drm_dumb_create(
+     struct drm_file *file_priv,
+     struct drm_device *dev, struct drm_mode_create_dumb *args);
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-helper.h b/kernel-open/nvidia-drm/nvidia-drm-helper.h
+index b96e1433e10460f8f4e64b73ea7389c5d518ab3c..df48438d0e28fbab916d55394b275615f1f9dafc 100644
+--- a/kernel-open/nvidia-drm/nvidia-drm-helper.h
++++ b/kernel-open/nvidia-drm/nvidia-drm-helper.h
+@@ -245,13 +245,21 @@ int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
+  * points to the new state, while afterwards it points to the old state. Due to
+  * this tricky confusion this macro is deprecated.
+  */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++/* The renamed member still tracks the state before/after the swap. */
++#define NV_DRM_STATE_TO_DESTROY state_to_destroy
++#else
++#define NV_DRM_STATE_TO_DESTROY state
++#endif
++
+ #if !defined(for_each_connector_in_state)
+ #define nv_drm_for_each_connector_in_state(__state,                         \
+                                            connector, connector_state, __i) \
+        for ((__i) = 0;                                                      \
+             (__i) < (__state)->num_connector &&                             \
+             ((connector) = (__state)->connectors[__i].ptr,                  \
+-            (connector_state) = (__state)->connectors[__i].state, 1);       \
++            (connector_state) =                                     \
++                (__state)->connectors[__i].NV_DRM_STATE_TO_DESTROY, 1); \
+             (__i)++)                                                        \
+                for_each_if (connector)
+ #else
+@@ -278,7 +286,8 @@ int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
+        for ((__i) = 0;                                                \
+             (__i) < (__state)->dev->mode_config.num_crtc &&           \
+             ((crtc) = (__state)->crtcs[__i].ptr,                      \
+-            (crtc_state) = (__state)->crtcs[__i].state, 1);           \
++            (crtc_state) =                                     \
++                (__state)->crtcs[__i].NV_DRM_STATE_TO_DESTROY, 1); \
+             (__i)++)                                                  \
+                for_each_if (crtc_state)
+ #else
+@@ -303,7 +312,8 @@ int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
+        for ((__i) = 0;                                                   \
+             (__i) < (__state)->dev->mode_config.num_total_plane &&       \
+             ((plane) = (__state)->planes[__i].ptr,                       \
+-            (plane_state) = (__state)->planes[__i].state, 1);            \
++            (plane_state) =                                     \
++                (__state)->planes[__i].NV_DRM_STATE_TO_DESTROY, 1); \
+             (__i)++)                                                     \
+                for_each_if (plane_state)
+ #else
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-priv.h b/kernel-open/nvidia-drm/nvidia-drm-priv.h
+index c31b19c620642a0fa957b8684cb9f330025f35e4..4563e2bcd75e130f152e21964b1fa26eaec4eea6 100644
+--- a/kernel-open/nvidia-drm/nvidia-drm-priv.h
++++ b/kernel-open/nvidia-drm/nvidia-drm-priv.h
+@@ -47,6 +47,10 @@
+ 
+ #include "nvkms-kapi.h"
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++#include <drm/drm_print.h>
++#endif
++
+ #define NV_DRM_LOG_ERR(__fmt, ...) \
+     DRM_ERROR("[nvidia-drm] " __fmt "\n", ##__VA_ARGS__)
+ 
+diff --git a/kernel-open/nvidia-modeset/nvidia-modeset-linux.c b/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+index ef51e84e0a48b0084ca70fe8eb35d7b2a24d2f26..6afab59a0fa2a34d85b0e3f2a2cd3fd796e77c83 100644
+--- a/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
++++ b/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+@@ -405,7 +405,13 @@ int nvkms_strcmp(const char *s1, const char *s2)
+ 
+ char* nvkms_strncpy(char *dest, const char *src, size_t n)
+ {
+-    return strncpy(dest, src, n);
++    size_t copied = strnlen(src, n);
++
++    memcpy(dest, src, copied);
++    if (copied < n)
++        memset(dest + copied, 0, n - copied);
++
++    return dest;
+ }
+ 
+ void nvkms_usleep(NvU64 usec)
+diff --git a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+index aaa12c72781d6c38adbce636ee766d83aee2b5ac..3ee201766635b6a9525da12af6b17ecd3912504e 100644
+--- a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
++++ b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+@@ -2753,7 +2753,7 @@ static NV_STATUS init_chunk_split_cache_level(uvm_pmm_gpu_t *pmm, size_t level)
+             size_t size;
+             size_t align;
+             if (level == 0) {
+-                strncpy(chunk_split_cache[level].name, "uvm_gpu_chunk_t", sizeof(chunk_split_cache[level].name) - 1);
++                strscpy(chunk_split_cache[level].name, "uvm_gpu_chunk_t", sizeof(chunk_split_cache[level].name));
+                 size = sizeof(uvm_gpu_chunk_t);
+                 align = __alignof__(uvm_gpu_chunk_t);
+             } else {
+diff --git a/kernel-open/nvidia/linux_nvswitch.c b/kernel-open/nvidia/linux_nvswitch.c
+index 40cb0d782691432039064245a7cbd31de95c6116..afa3cdbd9556aa9cf6900dd314a58c7492f7ebef 100644
+--- a/kernel-open/nvidia/linux_nvswitch.c
++++ b/kernel-open/nvidia/linux_nvswitch.c
+@@ -2026,7 +2026,7 @@ nvswitch_os_read_registry_dword
+         return -NVL_ERR_GENERIC;
+     }
+ 
+-    strncpy(regkey_val, regkey_val_start, regkey_val_len);
++    memcpy(regkey_val, regkey_val_start, regkey_val_len);
+     regkey_val[regkey_val_len] = '\0';
+ 
+     if (nvswitch_os_strtouint(regkey_val, data) != 0)
+@@ -2381,7 +2381,13 @@ nvswitch_os_strncpy
+     NvLength length
+ )
+ {
+-    return strncpy(dest, src, length);
++    size_t copied = strnlen(src, length);
++
++    memcpy(dest, src, copied);
++    if (copied < length)
++        memset(dest + copied, 0, length - copied);
++
++    return dest;
+ }
+ 
+ int
+diff --git a/kernel-open/nvidia/nv-dma.c b/kernel-open/nvidia/nv-dma.c
+index 22317fd212a81c1be2fddb575898761883fdc195..a65193cf78a2c76cf8d984a08c8f2ea485915588 100644
+--- a/kernel-open/nvidia/nv-dma.c
++++ b/kernel-open/nvidia/nv-dma.c
+@@ -731,7 +731,11 @@ static NvBool nv_dma_use_map_resource
+ #endif
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    return (ops->map_phys != NULL);
++#else
+     return (ops->map_resource != NULL);
++#endif
+ #else
+     return NV_FALSE;
+ #endif
+diff --git a/kernel-open/nvidia/os-interface.c b/kernel-open/nvidia/os-interface.c
+index b6bfd4ce3a80896b496c8a35a2072d7b4104949b..95bff5f9c509d5b7168d3c22d48f0a718466f531 100644
+--- a/kernel-open/nvidia/os-interface.c
++++ b/kernel-open/nvidia/os-interface.c
+@@ -364,7 +364,7 @@ NvBool NV_API_CALL os_semaphore_may_sleep(void)
+ 
+ NvBool NV_API_CALL os_is_isr(void)
+ {
+-    return (in_irq());
++    return (nv_in_hardirq());
+ }
+ 
+ // return TRUE if the caller is the super-user
+@@ -798,8 +798,7 @@ NvU32 NV_API_CALL os_get_current_process(void)
+ void NV_API_CALL os_get_current_process_name(char *buf, NvU32 len)
+ {
+     task_lock(current);
+-    strncpy(buf, current->comm, len - 1);
+-    buf[len - 1] = '\0';
++    strscpy_pad(buf, current->comm, len);
+     task_unlock(current);
+ }
+ 
+-- 
+2.56.0
+

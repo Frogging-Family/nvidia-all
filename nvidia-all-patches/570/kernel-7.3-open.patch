@@ -1,0 +1,112 @@
+From a087a4726bbd6d0945abef5205e8176a4d70e2a8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20K=C3=BChn?= <damachin3@proton.me>
+Date: Mon, 19 Oct 2026 18:48:07 +0200
+Subject: [PATCH] fix(570): update HMM and PCI APIs for Linux 7.3
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Update zone_device_page_init(), dev_pagemap_ops and
+pci_resize_resource() calls.
+
+Target: NVIDIA 570.211.01 open modules, Linux 7.3.
+Signed-off-by: Christian Kühn <damachin3@proton.me>
+---
+ kernel-open/nvidia-uvm/uvm_hmm.c     |  4 ++++
+ kernel-open/nvidia-uvm/uvm_pmm_gpu.c | 20 ++++++++++++++++++++
+ kernel-open/nvidia/nv-pci.c          |  4 ++++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
+index cd77a73b529a99d1af8615a9c4215766d782ce6a..4bb2831a4527532cea9260f88f5b286098971b33 100644
+--- a/kernel-open/nvidia-uvm/uvm_hmm.c
++++ b/kernel-open/nvidia-uvm/uvm_hmm.c
+@@ -2141,7 +2141,11 @@ static void fill_dst_pfn(uvm_va_block_t *va_block,
+ 
+         UVM_ASSERT(!page_count(dpage));
+         UVM_ASSERT(!dpage->zone_device_data);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++        zone_device_page_init(dpage, page_pgmap(dpage), 0);
++#else
+         zone_device_page_init(dpage);
++#endif
+         dpage->zone_device_data = gpu_chunk;
+         atomic64_inc(&va_block->hmm.va_space->hmm.allocated_page_count);
+     }
+diff --git a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+index 3ee201766635b6a9525da12af6b17ecd3912504e..f1fd4de73adc625e66dd39b268796699e8ba4760 100644
+--- a/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
++++ b/kernel-open/nvidia-uvm/uvm_pmm_gpu.c
+@@ -3094,8 +3094,14 @@ static bool uvm_pmm_gpu_check_orphan_pages(uvm_pmm_gpu_t *pmm)
+     return ret;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++static void devmem_folio_free(struct folio *folio)
++{
++    struct page *page = &folio->page;
++#else
+ static void devmem_page_free(struct page *page)
+ {
++#endif
+     uvm_gpu_chunk_t *chunk = uvm_pmm_devmem_page_to_chunk(page);
+     uvm_gpu_t *gpu = uvm_gpu_chunk_get_gpu(chunk);
+ 
+@@ -3156,7 +3162,11 @@ static vm_fault_t devmem_fault_entry(struct vm_fault *vmf)
+ 
+ static const struct dev_pagemap_ops uvm_pmm_devmem_ops =
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    .folio_free = devmem_folio_free,
++#else
+     .page_free = devmem_page_free,
++#endif
+     .migrate_to_ram = devmem_fault_entry,
+ };
+ 
+@@ -3299,8 +3309,14 @@ static void device_p2p_page_free_wake(struct nv_kref *ref)
+     wake_up(&p2p_mem->waitq);
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++static void device_p2p_folio_free(struct folio *folio)
++{
++    struct page *page = &folio->page;
++#else
+ static void device_p2p_page_free(struct page *page)
+ {
++#endif
+     uvm_device_p2p_mem_t *p2p_mem = page->zone_device_data;
+ 
+     page->zone_device_data = NULL;
+@@ -3309,7 +3325,11 @@ static void device_p2p_page_free(struct page *page)
+ 
+ static const struct dev_pagemap_ops uvm_device_p2p_pgmap_ops =
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    .folio_free = device_p2p_folio_free,
++#else
+     .page_free = device_p2p_page_free,
++#endif
+ };
+ 
+ void uvm_pmm_gpu_device_p2p_init(uvm_gpu_t *gpu)
+diff --git a/kernel-open/nvidia/nv-pci.c b/kernel-open/nvidia/nv-pci.c
+index 706a0585a2f668c728fa0e8ae5cd69dca819e1bb..4d0e4638bd9e809af28969dffdcaad5fcc385cea 100644
+--- a/kernel-open/nvidia/nv-pci.c
++++ b/kernel-open/nvidia/nv-pci.c
+@@ -237,7 +237,11 @@ static int nv_resize_pcie_bars(struct pci_dev *pci_dev) {
+ 
+ resize:
+     /* Attempt to resize BAR1 to the largest supported size */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size, 0);
++#else
+     r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size);
++#endif
+ 
+     if (r) {
+         if (r == -ENOSPC)
+-- 
+2.56.0
+

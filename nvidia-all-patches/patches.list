@@ -361,6 +361,23 @@ closed   all/kernel-6.12.patch                                                  
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SERIES 570
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Linux 7.3 compatibility for the offered 570 kernel modules.
+open     570/kernel-7.3.patch                                                          7.3      7.3.9999    570.211.01   570.211.01   1      .
+dkms     570/kernel-7.3.patch                                                          7.3      7.3.9999    570.211.01   570.211.01   2      kernel-dkms
+closed   570/kernel-7.3.patch                                                          7.3      7.3.9999    570.211.01   570.211.01   2      .
+
+# Open-only Linux 7.3 interfaces.
+open     570/kernel-7.3-open.patch                                                     7.3      7.3.9999    570.211.01   570.211.01   1      .
+
+# Linux 7.3 compatibility for the offered 570 proprietary-module release.
+dkms     all/kernel-7.3-vma.patch                                                      7.3      7.3.9999    570.211.01   570.211.01   2      kernel-dkms
+closed   all/kernel-7.3-vma.patch                                                      7.3      7.3.9999    570.211.01   570.211.01   2      .
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SERIES 575
 # ══════════════════════════════════════════════════════════════════════════════
 

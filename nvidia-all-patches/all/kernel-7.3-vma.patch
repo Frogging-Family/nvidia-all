@@ -1,0 +1,116 @@
+From 3a1dc0396402b6450d658459a85d9b20e91bf36f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20K=C3=BChn?= <damachin3@proton.me>
+Date: Mon, 19 Oct 2026 20:47:46 +0200
+Subject: [PATCH] Update VMA flag and locking APIs for Linux 7.3
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Use vma_flags_*_word() and VM_REFCNT_EXCLUDE_READERS_FLAG.
+Update __is_vma_write_locked() calls for the new signature.
+
+Target: NVIDIA 570.211.01 and 575.64.05 proprietary modules, Linux 7.3.
+Signed-off-by: Christian Kühn <damachin3@proton.me>
+---
+ kernel/common/inc/nv-mm.h |  9 +++++++++
+ kernel/nvidia/nv-mmap.c   | 19 +++++++++++++++----
+ 2 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/kernel/common/inc/nv-mm.h b/kernel/common/inc/nv-mm.h
+index f06e47841d382a0c11fc4410848df6fa104e388e..1e1ae55d07c12fd623200912c6ab942b867f2b5d 100644
+--- a/kernel/common/inc/nv-mm.h
++++ b/kernel/common/inc/nv-mm.h
+@@ -23,6 +23,7 @@
+ #ifndef __NV_MM_H__
+ #define __NV_MM_H__
+ 
++#include <linux/version.h>
+ #include "conftest.h"
+ 
+ #if !defined(NV_VM_FAULT_T_IS_PRESENT)
+@@ -314,7 +315,11 @@ static inline void nv_vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
+ {
+ #if !NV_CAN_CALL_VMA_START_WRITE
+     nv_vma_start_write(vma);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    vma_flags_set_word(&vma->flags, flags);
++#else
+     ACCESS_PRIVATE(vma, __vm_flags) |= flags;
++#endif
+ #elif defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS)
+     vm_flags_set(vma, flags);
+ #else
+@@ -326,7 +331,11 @@ static inline void nv_vm_flags_clear(struct vm_area_struct *vma, vm_flags_t flag
+ {
+ #if !NV_CAN_CALL_VMA_START_WRITE
+     nv_vma_start_write(vma);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    vma_flags_clear_word(&vma->flags, flags);
++#else
+     ACCESS_PRIVATE(vma, __vm_flags) &= ~flags;
++#endif
+ #elif defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS)
+     vm_flags_clear(vma, flags);
+ #else
+diff --git a/kernel/nvidia/nv-mmap.c b/kernel/nvidia/nv-mmap.c
+index 3d1dffa7db1831b3c89c82a056435244814020c2..35d287922c446c9112eca291a6ca17cbf49e4eb6 100644
+--- a/kernel/nvidia/nv-mmap.c
++++ b/kernel/nvidia/nv-mmap.c
+@@ -869,15 +869,21 @@ void NV_API_CALL nv_set_safe_to_mmap_locked(
+ }
+ 
+ #if !NV_CAN_CALL_VMA_START_WRITE
++#if defined(VM_REFCNT_EXCLUDE_READERS_FLAG)
++#define NV_VMA_LOCK_OFFSET VM_REFCNT_EXCLUDE_READERS_FLAG
++#else
++#define NV_VMA_LOCK_OFFSET VMA_LOCK_OFFSET
++#endif
++
+ static NvBool nv_vma_enter_locked(struct vm_area_struct *vma, NvBool detaching)
+ {
+-    NvU32 tgt_refcnt = VMA_LOCK_OFFSET;
++    NvU32 tgt_refcnt = NV_VMA_LOCK_OFFSET;
+     NvBool interrupted = NV_FALSE;
+     if (!detaching)
+     {
+         tgt_refcnt++;
+     }
+-    if (!refcount_add_not_zero(VMA_LOCK_OFFSET, &vma->vm_refcnt))
++    if (!refcount_add_not_zero(NV_VMA_LOCK_OFFSET, &vma->vm_refcnt))
+     {
+         return NV_FALSE;
+     }
+@@ -907,7 +913,7 @@ static NvBool nv_vma_enter_locked(struct vm_area_struct *vma, NvBool detaching)
+     if (interrupted)
+     {
+         // Clean up on error: release refcount and dep_map
+-        refcount_sub_and_test(VMA_LOCK_OFFSET, &vma->vm_refcnt);
++        refcount_sub_and_test(NV_VMA_LOCK_OFFSET, &vma->vm_refcnt);
+         rwsem_release(&vma->vmlock_dep_map, _RET_IP_);
+         return NV_FALSE;
+     }
+@@ -923,7 +929,12 @@ void nv_vma_start_write(struct vm_area_struct *vma)
+ {
+     NvU32 mm_lock_seq;
+     NvBool locked;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++    mm_lock_seq = __vma_raw_mm_seqnum(vma);
++    if (__is_vma_write_locked(vma))
++#else
+     if (__is_vma_write_locked(vma, &mm_lock_seq))
++#endif
+         return;
+ 
+     locked = nv_vma_enter_locked(vma, NV_FALSE);
+@@ -932,7 +943,7 @@ void nv_vma_start_write(struct vm_area_struct *vma)
+     if (locked)
+     {
+         NvBool detached;
+-        detached = refcount_sub_and_test(VMA_LOCK_OFFSET, &vma->vm_refcnt);
++        detached = refcount_sub_and_test(NV_VMA_LOCK_OFFSET, &vma->vm_refcnt);
+         rwsem_release(&vma->vmlock_dep_map, _RET_IP_);
+         WARN_ON_ONCE(detached);
+     }
+-- 
+2.56.0
+
