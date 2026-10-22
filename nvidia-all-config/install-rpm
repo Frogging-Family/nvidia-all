@@ -81,44 +81,68 @@ _rpm_relocate_elfs() {
 _rpm_build_metadata() {
   local _epoch="300:${pkgver}"
 
+  # Driver utilities
   _NV_META[nvidia-utils-tkg_depends_rpm]="libglvnd >= 1.3, mesa-libGL, vulkan-loader"
   _NV_META[nvidia-utils-tkg_provides_rpm]="nvidia-utils = ${pkgver}, nvidia-libgl, vulkan-driver, opengl-driver"
   _NV_META[nvidia-utils-tkg_conflicts_rpm]="nvidia-utils, xorg-x11-drv-nvidia, xorg-x11-drv-nvidia-libs, xorg-x11-drv-nvidia-470xx, xorg-x11-drv-nvidia-580xx, nvidia-modprobe, nvidia-persistenced"
+
   _NV_META[lib32-nvidia-utils-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, glibc(x86-32), libglvnd(x86-32)"
   _NV_META[lib32-nvidia-utils-tkg_provides_rpm]="lib32-nvidia-utils = ${pkgver}"
   _NV_META[lib32-nvidia-utils-tkg_conflicts_rpm]="lib32-nvidia-utils, xorg-x11-drv-nvidia-libs-i686, xorg-x11-drv-nvidia-470xx-libs"
+
+  # Flatpak extensions
+  _NV_META["flatpak-nvidia-tkg_depends_rpm"]="flatpak, nvidia-utils-tkg = ${_epoch}"
+  _NV_META["flatpak-nvidia-tkg_provides_rpm"]="flatpak-nvidia = ${pkgver}"
+  _NV_META["flatpak-nvidia-tkg_conflicts_rpm"]="flatpak-nvidia, flatpak-host-driver-tkg"
+
+  _NV_META["lib32-flatpak-nvidia-tkg_depends_rpm"]="flatpak-nvidia-tkg = ${_epoch}, lib32-nvidia-utils-tkg = ${_epoch}"
+  _NV_META["lib32-flatpak-nvidia-tkg_provides_rpm"]="lib32-flatpak-nvidia = ${pkgver}"
+  _NV_META["lib32-flatpak-nvidia-tkg_conflicts_rpm"]="lib32-flatpak-nvidia, flatpak-host-driver-tkg"
+
+  # Kernel module sources (DKMS)
   _NV_META[nvidia-dkms-tkg_depends_rpm]="dkms, nvidia-utils-tkg = ${_epoch}, dwarves"
   _NV_META[nvidia-dkms-tkg_provides_rpm]="nvidia-dkms = ${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-dkms-tkg_conflicts_rpm]="nvidia-dkms, nvidia-open-dkms, kmod-nvidia, akmod-nvidia, akmod-nvidia-open"
   _NV_META[nvidia-dkms-tkg_obsoletes_rpm]="nvidia-open-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
+
   _NV_META[nvidia-open-dkms-tkg_depends_rpm]="dkms, nvidia-utils-tkg = ${_epoch}, dwarves"
   _NV_META[nvidia-open-dkms-tkg_provides_rpm]="nvidia-open-dkms = ${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-open-dkms-tkg_conflicts_rpm]="nvidia-dkms, nvidia-open-dkms, kmod-nvidia, akmod-nvidia, akmod-nvidia-open"
   _NV_META[nvidia-open-dkms-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
+
+  # Prebuilt kernel modules
   _NV_META[nvidia-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, libglvnd"
   _NV_META[nvidia-tkg_provides_rpm]="nvidia = ${pkgver}, NVIDIA-MODULE, kmod-nvidia"
   _NV_META[nvidia-tkg_conflicts_rpm]="nvidia, nvidia-dkms, kmod-nvidia, nvidia-open, nvidia-open-kmod, akmod-nvidia, akmod-nvidia-open"
   _NV_META[nvidia-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-open-dkms-tkg < ${_epoch}, nvidia-open-tkg < ${_epoch}"
+
   _NV_META[nvidia-open-tkg_depends_rpm]="nvidia-utils-tkg = ${_epoch}, libglvnd"
   _NV_META[nvidia-open-tkg_provides_rpm]="nvidia-open = ${pkgver}, NVIDIA-MODULE, kmod-nvidia"
   _NV_META[nvidia-open-tkg_conflicts_rpm]="nvidia, nvidia-dkms, kmod-nvidia, nvidia-kmod, nvidia-open, akmod-nvidia, akmod-nvidia-open"
   _NV_META[nvidia-open-tkg_obsoletes_rpm]="nvidia-dkms-tkg < ${_epoch}, nvidia-open-dkms-tkg < ${_epoch}, nvidia-tkg < ${_epoch}"
+
+  # OpenCL
   _NV_META[opencl-nvidia-tkg_depends_rpm]="zlib, (ocl-icd or OpenCL-ICD-Loader)"
   _NV_META[opencl-nvidia-tkg_provides_rpm]="opencl-nvidia = ${pkgver}"
   _NV_META[opencl-nvidia-tkg_conflicts_rpm]="opencl-nvidia"
+
   _NV_META[lib32-opencl-nvidia-tkg_depends_rpm]="zlib(x86-32)"
   _NV_META[lib32-opencl-nvidia-tkg_provides_rpm]="lib32-opencl-nvidia = ${pkgver}"
   _NV_META[lib32-opencl-nvidia-tkg_conflicts_rpm]="lib32-opencl-nvidia"
+
+  # NVIDIA Settings
   _NV_META[nvidia-settings-tkg_depends_rpm]="nvidia-utils-tkg >= ${_epoch}, gtk3, jansson, libX11, libXext, libXxf86vm, cairo, gdk-pixbuf2, glib2, pango, libwayland-client.so.0()(64bit), libXNVCtrl.so.0()(64bit)"
   _NV_META[nvidia-settings-tkg_suggests_rpm]="libXv, libvdpau"
   _NV_META[nvidia-settings-tkg_provides_rpm]="nvidia-settings = ${pkgver}"
   _NV_META[nvidia-settings-tkg_conflicts_rpm]="nvidia-settings"
 
+  # GSP firmware
   if (( ${pkgver%%.*} >= 465 )); then
     _NV_META[nvidia-utils-tkg_provides_rpm]+=", firmware-nvidia-gsp = ${pkgver}"
     _NV_META[nvidia-utils-tkg_conflicts_rpm]+=", firmware-nvidia-gsp"
   fi
 
+  # Distribution-specific dependencies
   if [[ "${_NV_PKG_TARGET:-}" == "fedora" ]]; then
     _NV_META[nvidia-utils-tkg_depends_rpm]+=", pciutils, which, egl-wayland, egl-wayland2, egl-gbm, egl-x11"
     _NV_META[lib32-nvidia-utils-tkg_depends_rpm]+=", egl-wayland(x86-32), egl-wayland2(x86-32), egl-gbm(x86-32), egl-x11(x86-32)"
@@ -188,7 +212,7 @@ _rpm_builder() {
       _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/kmod.in"
   elif [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
     _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/utils.in"
-  else
+  elif [[ "${_pkgname}" != *flatpak-nvidia-tkg ]]; then
     _append_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/default.in"
   fi
 
