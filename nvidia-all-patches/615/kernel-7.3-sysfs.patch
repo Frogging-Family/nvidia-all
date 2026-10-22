@@ -1,0 +1,58 @@
+From e0bda6fb2d39c97667d0a3e121e2aa27ff1907e2 Mon Sep 17 00:00:00 2001
+From: treshaun <71833988+treshaun@users.noreply.github.com>
+Date: Tue, 20 Oct 2026 16:28:01 +0100
+Subject: [PATCH] Open sysfs config from the userspace root on 7.3+
+
+Since 615, probe runs in an nv-probe kthread during module init. On
+7.3 kthreads have an empty nullfs root, so filp_open() on
+/sys/bus/pci/devices/<id>/config fails with -ENOENT. The driver then
+thinks runtime PM isn't available, and runtime D3 shows up as
+"Disabled by default".
+
+Use scoped_with_init_fs() on 7.3+ so the lookup goes through the
+userspace root again.
+
+Tested on an RTX 5050 laptop GPU with 7.3-rc6 and 615.78.08. Runtime
+D3 is back to "Enabled (fine-grained)".
+
+Signed-off-by: treshaun <71833988+treshaun@users.noreply.github.com>
+---
+ kernel-open/nvidia/nv-pci.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/kernel-open/nvidia/nv-pci.c b/kernel-open/nvidia/nv-pci.c
+index 48d8b78..54b19d1 100644
+--- a/kernel-open/nvidia/nv-pci.c
++++ b/kernel-open/nvidia/nv-pci.c
+@@ -36,6 +36,8 @@
+ #include <linux/completion.h>
+ #include <linux/iommu.h>
+ #include <linux/kthread.h>
++#include <linux/fs_struct.h>
++#include <linux/version.h>
+ 
+ #include <linux/clk.h>
+ #include <linux/device.h>
+@@ -439,7 +441,18 @@ static void nv_get_pci_sysfs_config
+                    NV_PCI_SLOT_NUMBER(pci_dev));
+     if (ret > 0 && ret < sizeof(filename))
+     {
+-        struct file *file = filp_open(filename, O_RDONLY, 0);
++        struct file *file;
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
++        /*
++         * On 7.3+ kthreads have an empty root, and probe can run in the
++         * nv-probe kthread. Look the path up from the userspace root.
++         */
++        scoped_with_init_fs()
++            file = filp_open(filename, O_RDONLY, 0);
++#else
++        file = filp_open(filename, O_RDONLY, 0);
++#endif
+         if (!IS_ERR(file))
+         {
+ #if defined(NV_SEQ_READ_ITER_PRESENT)
+-- 
+2.56.0
+
