@@ -1,7 +1,7 @@
 # Shared prepare functions sourced by both install.sh and PKGBUILD.
 
 # Active driver series
-_current_nvidia=("615" "595" "580" "570" "470")
+_current_nvidia=("615" "595" "580")
 
 # Vulkan dev series
 _vulkandev_nvidia="595.44.16"
@@ -11,6 +11,7 @@ _eol_nvidia=(
   "610 series: 610.57.04"
   "590 series: 590.48.01"
   "575 series: 575.64.05"
+  "570 series: 570.211.01"
   "565 series: 565.77"
   "560 series: 560.35.03"
   "555 series: 555.58.02"
@@ -23,6 +24,7 @@ _eol_nvidia=(
   "515 series: 515.86.01"
   "510 series: 510.85.02"
   "495 series: 495.46"
+  "470 series: 470.256.02 (LTS kernel recommended)"
   "465 series: 465.31"
   "460 series: 460.91.03"
   "455 series: 455.45.01"
@@ -405,11 +407,9 @@ _set_driver_version() {
       warning "Could not resolve version for series ${_series} — skipping."
       continue
     fi
-    local _suffix=""
-    [[ "${_series}" = "470" ]] && _suffix=" (LTS kernel recommended)"
-    _DRIVERS+=( "${_series} series: ${_ver}${_suffix}|regular" )
+    _DRIVERS+=( "${_series} series: ${_ver}|regular" )
   done
-  _DRIVERS+=( "Older series|older" "Custom version (396.xx or higher)|custom" )
+  _DRIVERS+=( "Older series (EOL and legacy drivers)|older" "Custom version (396.xx or higher)|custom" )
 
   # Resolve 'latest' alias
   if [[ "${_driver_version}" = "latest" ]]; then
