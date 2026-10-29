@@ -56,6 +56,13 @@ if [[ "${_lib32:-true}" = "true" ]]; then
   _pkgname_array+=("lib32-${_branchname}-utils-tkg")
 fi
 
+if [[ "${_flatpak:-false}" = "true" ]]; then
+  _pkgname_array+=("flatpak-${_branchname}-tkg")
+  if [[ "${_lib32:-true}" = "true" ]]; then
+    _pkgname_array+=("lib32-flatpak-${_branchname}-tkg")
+  fi
+fi
+
 if [[ "${_opencl:-true}" = "true" ]]; then
   _pkgname_array+=("opencl-${_branchname}-tkg")
   if [[ "${_lib32:-true}" = "true" ]]; then
@@ -93,7 +100,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver="${_driver_version}"
-pkgrel=300
+pkgrel=301
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -265,6 +272,43 @@ package_${_branchname}-utils-tkg() {
   nvidia-utils-tkg
 }
 EOF
+
+flatpak-nvidia-tkg() {
+  pkgdesc="NVIDIA driver extension for Flatpak, matching the host driver"
+  depends=('flatpak' "${_branchname}-utils-tkg=${pkgver}")
+  provides=("flatpak-nvidia=${pkgver}" "flatpak-nvidia-tkg=${pkgver}")
+  conflicts=('flatpak-nvidia' 'flatpak-nvidia-tkg' 'flatpak-host-driver-tkg')
+  optdepends=()
+
+  cd "${_pkg}"
+
+  _install_flatpak
+}
+lib32-flatpak-nvidia-tkg() {
+  pkgdesc="NVIDIA driver extension for Flatpak, matching the host driver (32-bit)"
+  depends=("flatpak-${_branchname}-tkg=${pkgver}" "lib32-${_branchname}-utils-tkg=${pkgver}")
+  provides=("lib32-flatpak-nvidia=${pkgver}" "lib32-flatpak-nvidia-tkg=${pkgver}")
+  conflicts=('lib32-flatpak-nvidia' 'lib32-flatpak-nvidia-tkg' 'flatpak-host-driver-tkg')
+  optdepends=()
+
+  cd "${_pkg}"
+
+  _install_lib32_flatpak
+}
+if [[ "${_flatpak:-false}" = "true" ]]; then
+source /dev/stdin <<EOF
+package_flatpak-${_branchname}-tkg() {
+  flatpak-nvidia-tkg
+}
+EOF
+  if [[ "${_lib32:-true}" = "true" ]]; then
+source /dev/stdin <<EOF
+package_lib32-flatpak-${_branchname}-tkg() {
+  lib32-flatpak-nvidia-tkg
+}
+EOF
+  fi
+fi
 
 nvidia-settings-tkg() {
   pkgdesc='Tool for configuring the NVIDIA graphics driver'
