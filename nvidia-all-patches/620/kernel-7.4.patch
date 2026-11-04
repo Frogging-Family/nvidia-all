@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?utf-8?q?Christian_K=C3=BChn?= <damachin3@proton.me>
+Date: Wed, 04 Nov 2026 18:25:18 +0100
+Subject: [PATCH] nvidia-uvm: adapt HMM VMA checks for Linux 7.4
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Linux 7.4 removes VM_SPECIAL and is_vm_hugetlb_page(). Use vma_test_any()
+with the same four flags as the old VM_SPECIAL mask, and vma_is_hugetlb()
+for the hugetlb test.
+
+Signed-off-by: Christian Kühn <damachin3@proton.me>
+---
+ kernel-open/nvidia-uvm/uvm_hmm.c |    8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
+index 6f38ef4..97f8544 100644
+--- a/kernel-open/nvidia-uvm/uvm_hmm.c
++++ b/kernel-open/nvidia-uvm/uvm_hmm.c
+@@ -4042,7 +4042,15 @@ bool uvm_hmm_must_use_sysmem(uvm_va_block_t *va_block,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 4, 0)
++    return !vma_is_anonymous(vma) ||
++           vma_test_any(vma, VMA_IO_BIT, VMA_DONTEXPAND_BIT,
++                        VMA_PFNMAP_BIT, VMA_MIXEDMAP_BIT) ||
++           vma_is_dax(vma) ||
++           vma_is_hugetlb(vma);
++#else
+     return !vma_is_anonymous(vma) ||
+            (vma->vm_flags & VM_SPECIAL) ||
+            vma_is_dax(vma) ||
+            is_vm_hugetlb_page(vma);
++#endif
+ }
+ 
+ static NV_STATUS hmm_ats_pte_snapshot_locked(uvm_va_block_t *va_block,
+-- 
+2.56.0

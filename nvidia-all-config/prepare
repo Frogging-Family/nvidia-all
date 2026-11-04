@@ -1,7 +1,7 @@
 # Shared prepare functions sourced by both install.sh and PKGBUILD.
 
 # Active driver series
-_current_nvidia=("615" "595" "580")
+_current_nvidia=("620" "615" "595" "580")
 
 # Vulkan dev series
 _vulkandev_nvidia="595.44.16"
