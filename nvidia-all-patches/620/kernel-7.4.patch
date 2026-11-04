@@ -1,19 +1,93 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?utf-8?q?Christian_K=C3=BChn?= <damachin3@proton.me>
 Date: Wed, 04 Nov 2026 18:25:18 +0100
-Subject: [PATCH] nvidia-uvm: adapt HMM VMA checks for Linux 7.4
+Subject: [PATCH] Adapt DRM fbdev headers and HMM VMA checks for Linux 7.4
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Linux 7.4 removes VM_SPECIAL and is_vm_hugetlb_page(). Use vma_test_any()
+Linux 7.4 moves drm_fb_helper.h to drm/clients/drm_fbdev_helper.h. Detect
+the new header and use it in the DRM driver and fbdev conftests.
+
+Linux 7.4 also removes VM_SPECIAL and is_vm_hugetlb_page(). Use vma_test_any()
 with the same four flags as the old VM_SPECIAL mask, and vma_is_hugetlb()
 for the hugetlb test.
 
 Signed-off-by: Christian Kühn <damachin3@proton.me>
 ---
- kernel-open/nvidia-uvm/uvm_hmm.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ kernel-open/conftest.sh                 | 12 ++++++++++++
+ kernel-open/header-presence-tests.mk    |  1 +
+ kernel-open/nvidia-drm/nvidia-drm-drv.c  |  4 ++++
+ kernel-open/nvidia-uvm/uvm_hmm.c         |  8 ++++++++
+ 4 files changed, 25 insertions(+)
+
+diff --git a/kernel-open/conftest.sh b/kernel-open/conftest.sh
+--- a/kernel-open/conftest.sh
++++ b/kernel-open/conftest.sh
+@@ -4554,7 +4554,11 @@ compile_test() {
+             # in v6.11.
+             #
+             CODE="
++            #if defined(NV_DRM_CLIENTS_DRM_FBDEV_HELPER_H_PRESENT)
++            #include <drm/clients/drm_fbdev_helper.h>
++            #else
+             #include <drm/drm_fb_helper.h>
++            #endif
+             #if defined(NV_DRM_DRM_FBDEV_GENERIC_H_PRESENT)
+             #include <drm/drm_fbdev_generic.h>
+             #endif
+@@ -4574,7 +4578,11 @@ compile_test() {
+             # 1000634477d8 ("drm/fbdev-ttm:Convert to client-setup") in v6.13.
+             #
+             CODE="
++            #if defined(NV_DRM_CLIENTS_DRM_FBDEV_HELPER_H_PRESENT)
++            #include <drm/clients/drm_fbdev_helper.h>
++            #else
+             #include <drm/drm_fb_helper.h>
++            #endif
+             #if defined(NV_DRM_DRM_FBDEV_TTM_H_PRESENT)
+             #include <drm/drm_fbdev_ttm.h>
+             #endif
+@@ -4596,7 +4604,11 @@ compile_test() {
+             # in linux-next b86711c6d6e2.
+             #
+             CODE="
++            #if defined(NV_DRM_CLIENTS_DRM_FBDEV_HELPER_H_PRESENT)
++            #include <drm/clients/drm_fbdev_helper.h>
++            #else
+             #include <drm/drm_fb_helper.h>
++            #endif
+             #if defined(NV_DRM_DRM_CLIENT_SETUP_H_PRESENT)
+             #include <drm/drm_client_setup.h>
+             #elif defined(NV_DRM_CLIENTS_DRM_CLIENT_SETUP_H_PRESENT)
+
+diff --git a/kernel-open/header-presence-tests.mk b/kernel-open/header-presence-tests.mk
+--- a/kernel-open/header-presence-tests.mk
++++ b/kernel-open/header-presence-tests.mk
+@@ -14,6 +14,7 @@ NV_HEADER_PRESENCE_TESTS = \
+   drm/drm_client_setup.h \
+   drm/drm_probe_helper.h \
+   drm/clients/drm_client_setup.h \
++  drm/clients/drm_fbdev_helper.h \
+   dt-bindings/interconnect/tegra_icc_id.h \
+   generated/autoconf.h \
+   generated/compile.h \
+
+diff --git a/kernel-open/nvidia-drm/nvidia-drm-drv.c b/kernel-open/nvidia-drm/nvidia-drm-drv.c
+--- a/kernel-open/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel-open/nvidia-drm/nvidia-drm-drv.c
+@@ -64,7 +64,11 @@
+ #endif
+
+ #if defined(NV_DRM_FBDEV_AVAILABLE)
++#if defined(NV_DRM_CLIENTS_DRM_FBDEV_HELPER_H_PRESENT)
++#include <drm/clients/drm_fbdev_helper.h>
++#else
+ #include <drm/drm_fb_helper.h>
++#endif
+ #endif
+
+ #if defined(NV_DRM_DRM_CLIENT_SETUP_H_PRESENT)
 
 diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
 index 6f38ef4..97f8544 100644
