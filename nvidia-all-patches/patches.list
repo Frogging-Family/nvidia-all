@@ -451,7 +451,7 @@ open     615/kernel-7.3-sysfs.patch                                             
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Restore sysfs access from probe kthreads on Linux 7.3+.
-open     620/kernel-7.3-sysfs.patch                                                    -        -           620.70.06    620.70.06    1      .
+open     620/kernel-7.3-7.4-sysfs.patch                                                -        -           620.70.06    620.70.06    1      .
 
 # Linux 7.4 moves the DRM fbdev header and replaces HMM VMA checks.
 open     620/kernel-7.4.patch                                                          7.4      7.4.9999    620.70.06    620.70.06    1      .

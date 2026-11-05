@@ -93,7 +93,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver="${_driver_version}"
-pkgrel=300
+pkgrel=301
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
@@ -105,7 +105,7 @@ optdepends=('linux-lts-headers: Build the module for LTS Arch kernel'
             'clang: Required when kernel was built with Clang'
             'llvm: Required when kernel was built with Clang (llvm-strip)'
             'lld: Required when kernel was built with Clang (ld.lld)')
-options=('!strip' '!debug')
+options=('!strip')
 
 # Installer name
 _pkg="NVIDIA-Linux-x86_64-${pkgver}"

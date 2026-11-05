@@ -17,8 +17,8 @@ Signed-off-by: Christian Kühn <damachin3@proton.me>
 ---
  kernel-open/conftest.sh                 | 12 ++++++++++++
  kernel-open/header-presence-tests.mk    |  1 +
- kernel-open/nvidia-drm/nvidia-drm-drv.c  |  4 ++++
- kernel-open/nvidia-uvm/uvm_hmm.c         |  8 ++++++++
+ kernel-open/nvidia-drm/nvidia-drm-drv.c |  4 ++++
+ kernel-open/nvidia-uvm/uvm_hmm.c        |  8 ++++++++
  4 files changed, 25 insertions(+)
 
 diff --git a/kernel-open/conftest.sh b/kernel-open/conftest.sh
@@ -60,7 +60,6 @@ diff --git a/kernel-open/conftest.sh b/kernel-open/conftest.sh
              #if defined(NV_DRM_DRM_CLIENT_SETUP_H_PRESENT)
              #include <drm/drm_client_setup.h>
              #elif defined(NV_DRM_CLIENTS_DRM_CLIENT_SETUP_H_PRESENT)
-
 diff --git a/kernel-open/header-presence-tests.mk b/kernel-open/header-presence-tests.mk
 --- a/kernel-open/header-presence-tests.mk
 +++ b/kernel-open/header-presence-tests.mk
@@ -72,7 +71,6 @@ diff --git a/kernel-open/header-presence-tests.mk b/kernel-open/header-presence-
    dt-bindings/interconnect/tegra_icc_id.h \
    generated/autoconf.h \
    generated/compile.h \
-
 diff --git a/kernel-open/nvidia-drm/nvidia-drm-drv.c b/kernel-open/nvidia-drm/nvidia-drm-drv.c
 --- a/kernel-open/nvidia-drm/nvidia-drm-drv.c
 +++ b/kernel-open/nvidia-drm/nvidia-drm-drv.c
@@ -88,7 +86,6 @@ diff --git a/kernel-open/nvidia-drm/nvidia-drm-drv.c b/kernel-open/nvidia-drm/nv
  #endif
 
  #if defined(NV_DRM_DRM_CLIENT_SETUP_H_PRESENT)
-
 diff --git a/kernel-open/nvidia-uvm/uvm_hmm.c b/kernel-open/nvidia-uvm/uvm_hmm.c
 index 6f38ef4..97f8544 100644
 --- a/kernel-open/nvidia-uvm/uvm_hmm.c
@@ -107,7 +104,7 @@ index 6f38ef4..97f8544 100644
             is_vm_hugetlb_page(vma);
 +#endif
  }
- 
+
  static NV_STATUS hmm_ats_pte_snapshot_locked(uvm_va_block_t *va_block,
--- 
+--
 2.56.0

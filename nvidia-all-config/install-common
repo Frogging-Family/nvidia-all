@@ -195,6 +195,9 @@ _install_utils() {
       install -D -m755 libnvidia-ngx-builtin-*.so.* -t "${pkgdir}/usr/lib"
       install -D -m755 ngx-builtins/nvngx_dlssd.dll "${pkgdir}/usr/lib/nvidia/wine/nvngx_dlssd.dll"
       install -D -m755 nvngx_update.exe "${pkgdir}/usr/lib/nvidia/wine/nvngx_update.exe"
+      # _nvngx.dll also looks for the bundled model in ngx-builtins.
+      install -d "${pkgdir}/usr/lib/nvidia/wine/ngx-builtins"
+      ln -s ../nvngx_dlssd.dll "${pkgdir}/usr/lib/nvidia/wine/ngx-builtins/nvngx_dlssd.dll"
     fi
   fi
   if (( ${pkgver%%.*} >= 455 )); then
