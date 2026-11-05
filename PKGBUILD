@@ -97,7 +97,7 @@ pkgrel=301
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')
-makedepends=('linux-headers' 'patchelf' 'pciutils')
+makedepends=('patchelf' 'pciutils')
 if [[ "${_nvsettings:-true}" = "true" ]]; then
   makedepends+=('jansson' 'gtk3' 'libxv' 'libvdpau' 'libxext' 'vulkan-headers')
 fi
