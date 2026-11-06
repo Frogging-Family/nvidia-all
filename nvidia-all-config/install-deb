@@ -61,43 +61,66 @@ _deb_relocate_elfs() {
 _deb_build_metadata() {
   local _installed_pkgs=""
 
+  # Driver utilities
   _NV_META[nvidia-utils-tkg_depends_deb]="libc6, libglvnd0, libgl1-mesa-glx | libgl1, libvulkan1, libx11-6, libxext6, libwayland-client0"
   _NV_META[nvidia-utils-tkg_provides_deb]="nvidia-utils (= ${pkgver}), libgl1-nvidia-glvnd-glx, nvidia-libgl, vulkan-driver, opengl-driver"
   _NV_META[nvidia-utils-tkg_conflicts_deb]="nvidia-utils, nvidia-libgl, libgl1-nvidia-legacy-390xx-glx, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
   _NV_META[nvidia-utils-tkg_replaces_deb]="nvidia-libgl, libgl1-nvidia-glvnd-glx, nvidia-egl-icd, libglx-nvidia0, libgles-nvidia1, libgles-nvidia2, libnvidia-allocator1, libnvidia-cfg1, libnvidia-encode1, libnvidia-fbc1, nvidia-vulkan-icd"
+
   _NV_META[lib32-nvidia-utils-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), gcc-multilib, libglvnd0:i386, libvulkan1:i386, libnvidia-egl-wayland1:i386"
   _NV_META[lib32-nvidia-utils-tkg_provides_deb]="lib32-nvidia-utils (= ${pkgver}), lib32-nvidia-libgl, lib32-vulkan-driver, lib32-opengl-driver"
   _NV_META[lib32-nvidia-utils-tkg_conflicts_deb]="lib32-nvidia-utils, lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
   _NV_META[lib32-nvidia-utils-tkg_replaces_deb]="lib32-nvidia-libgl, nvidia-egl-icd:i386, libglx-nvidia0:i386, libgles-nvidia1:i386, libgles-nvidia2:i386, libnvidia-allocator1:i386, libnvidia-encode1:i386, libnvidia-fbc1:i386"
+
+  # Flatpak extensions
+  _NV_META["flatpak-nvidia-tkg_depends_deb"]="flatpak, nvidia-utils-tkg (= ${pkgver})"
+  _NV_META["flatpak-nvidia-tkg_provides_deb"]="flatpak-nvidia (= ${pkgver})"
+  _NV_META["flatpak-nvidia-tkg_conflicts_deb"]="flatpak-nvidia, flatpak-host-driver-tkg"
+
+  _NV_META["lib32-flatpak-nvidia-tkg_depends_deb"]="flatpak-nvidia-tkg (= ${pkgver}), lib32-nvidia-utils-tkg (= ${pkgver})"
+  _NV_META["lib32-flatpak-nvidia-tkg_provides_deb"]="lib32-flatpak-nvidia (= ${pkgver})"
+  _NV_META["lib32-flatpak-nvidia-tkg_conflicts_deb"]="lib32-flatpak-nvidia, flatpak-host-driver-tkg"
+
+  # Kernel module sources (DKMS)
   _NV_META[nvidia-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
   _NV_META[nvidia-dkms-tkg_provides_deb]="nvidia-kernel-dkms (= ${pkgver}), nvidia-kernel-${pkgver}, nvidia-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
   _NV_META[nvidia-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-dkms-tkg_replaces_deb]="nvidia-open-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+
   _NV_META[nvidia-open-dkms-tkg_depends_deb]="dkms (>= 3.0.11), nvidia-utils-tkg (= ${pkgver}), pahole"
   _NV_META[nvidia-open-dkms-tkg_provides_deb]="nvidia-open-kernel-dkms (= ${pkgver}), nvidia-open-kernel-${pkgver}, nvidia-open-dkms (= ${pkgver}), nvidia-dkms-kernel, NVIDIA-MODULE"
   _NV_META[nvidia-open-dkms-tkg_conflicts_deb]="nvidia-kernel-dkms, nvidia-dkms, nvidia-open-dkms, nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg, nvidia-dkms-kernel"
   _NV_META[nvidia-open-dkms-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-tkg, nvidia-open-tkg"
+
+  # Prebuilt kernel modules
   _NV_META[nvidia-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
   _NV_META[nvidia-tkg_provides_deb]="nvidia (= ${pkgver}), nvidia-kernel-${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-open-tkg"
   _NV_META[nvidia-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-open-tkg"
+
   _NV_META[nvidia-open-tkg_depends_deb]="nvidia-utils-tkg (= ${pkgver}), libglvnd0"
   _NV_META[nvidia-open-tkg_provides_deb]="nvidia-open (= ${pkgver}), nvidia-open-kernel-${pkgver}, NVIDIA-MODULE"
   _NV_META[nvidia-open-tkg_conflicts_deb]="nvidia-96xx, nvidia-173xx, nvidia, nvidia-dkms, nvidia-dkms-tkg, nvidia-open, nvidia-open-dkms, nvidia-open-dkms-tkg, nvidia-tkg"
   _NV_META[nvidia-open-tkg_replaces_deb]="nvidia-dkms-tkg, nvidia-open-dkms-tkg, nvidia-tkg"
+
+  # OpenCL
   _NV_META[opencl-nvidia-tkg_depends_deb]="zlib1g, nvidia-utils-tkg (= ${pkgver})"
   _NV_META[opencl-nvidia-tkg_provides_deb]="opencl-nvidia (= ${pkgver}), opencl-driver, opencl-icd"
   _NV_META[opencl-nvidia-tkg_conflicts_deb]="opencl-nvidia, nvidia-opencl-icd, libcuda1"
   _NV_META[opencl-nvidia-tkg_replaces_deb]="opencl-nvidia, nvidia-opencl-icd, libcuda1"
+
   _NV_META[lib32-opencl-nvidia-tkg_depends_deb]="zlib1g:i386, gcc-multilib, opencl-nvidia-tkg (= ${pkgver})"
   _NV_META[lib32-opencl-nvidia-tkg_provides_deb]="lib32-opencl-nvidia (= ${pkgver}), lib32-opencl-driver, lib32-opencl-icd"
   _NV_META[lib32-opencl-nvidia-tkg_conflicts_deb]="lib32-opencl-nvidia"
+
+  # NVIDIA Settings
   _NV_META[nvidia-settings-tkg_depends_deb]="nvidia-utils-tkg (>= ${pkgver}), libc6, libcairo2, libgdk-pixbuf-2.0-0, libglib2.0-0 | libglib2.0-0t64, libgtk-3-0 | libgtk-3-0t64, libjansson4, libpango-1.0-0, libpangocairo-1.0-0, libwayland-client0, libx11-6, libxext6, libxxf86vm1, libxnvctrl0"
   _NV_META[nvidia-settings-tkg_recommends_deb]="libxv1 | libxv1t64, libvdpau1 | libvdpau1t64"
   _NV_META[nvidia-settings-tkg_provides_deb]="nvidia-settings (= ${pkgver})"
   _NV_META[nvidia-settings-tkg_conflicts_deb]="nvidia-settings"
   _NV_META[nvidia-settings-tkg_replaces_deb]="nvidia-settings"
 
+  # GSP firmware
   if (( ${pkgver%%.*} >= 465 )); then
     _NV_META[nvidia-utils-tkg_provides_deb]+=", firmware-nvidia-gsp (= ${pkgver}), firmware-nvidia-gsp-${pkgver}"
     _NV_META[nvidia-utils-tkg_conflicts_deb]+=", firmware-nvidia-gsp, firmware-nvidia-gsp-${pkgver}"
@@ -228,15 +251,18 @@ _deb_builder() {
     _mode=initramfs
   fi
 
-  _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
-  _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
-  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
-    _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
-    chmod 755 "${_debdir}/DEBIAN/prerm"
-  fi
-  _deb_postrm "${_debdir}"
-  if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
-    _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
+  # Flatpak extensions do not change host libraries, modules or initramfs.
+  if [[ "${_pkgname}" != *flatpak-nvidia-tkg ]]; then
+    _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+    _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
+    if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+      _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
+      chmod 755 "${_debdir}/DEBIAN/prerm"
+    fi
+    _deb_postrm "${_debdir}"
+    if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
+      _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
+    fi
   fi
 
   {

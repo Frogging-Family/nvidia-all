@@ -222,6 +222,18 @@ _stage_lib32_utils() {
   _relocate_elfs "${pkgdir}"
 }
 
+# staging Flatpak driver extensions
+_stage_flatpak() {
+  cd "${srcdir}/${_pkg}" || return
+  # Flatpak has its own runtime layout; do not relocate these libraries.
+  _install_flatpak
+}
+
+_stage_lib32_flatpak() {
+  cd "${srcdir}/${_pkg}" || return
+  _install_lib32_flatpak
+}
+
 # staging OpenCL ICD and libraries
 _stage_opencl() {
   cd "${srcdir}/${_pkg}"
@@ -339,6 +351,8 @@ _stage_package() {
     nvidia-settings-tkg) [[ "${_nvsettings:-true}" == "true" ]] && _stage_settings ;;
     lib32-nvidia-utils-tkg) [[ "${_lib32:-true}" == "true" ]] && _stage_lib32_utils ;;
     lib32-opencl-nvidia-tkg) [[ "${_opencl:-true}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_opencl ;;
+    flatpak-nvidia-tkg) [[ "${_flatpak:-false}" == "true" ]] && _stage_flatpak ;;
+    lib32-flatpak-nvidia-tkg) [[ "${_flatpak:-false}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_flatpak ;;
     nvidia-tkg|nvidia-open-tkg) _stage_kmod ;;
     *) warning "No staging function for ${pkgname} — skipping." ;;
   esac
@@ -365,6 +379,8 @@ declare -A _NV_META
 _build_metadata() {
   _NV_META[nvidia-utils-tkg_desc]="NVIDIA driver utilities and libraries"
   _NV_META[lib32-nvidia-utils-tkg_desc]="NVIDIA driver utilities and libraries (32-bit)"
+  _NV_META[flatpak-nvidia-tkg_desc]="NVIDIA driver extension for Flatpak, matching the host driver"
+  _NV_META[lib32-flatpak-nvidia-tkg_desc]="NVIDIA driver extension for Flatpak, matching the host driver (32-bit)"
   _NV_META[nvidia-dkms-tkg_desc]="NVIDIA kernel module sources (DKMS)"
   _NV_META[nvidia-open-dkms-tkg_desc]="NVIDIA open kernel module sources (DKMS)"
   _NV_META[nvidia-tkg_desc]="NVIDIA kernel modules (prebuilt)"
@@ -389,6 +405,10 @@ _build_pkg_list() {
   fi
   _list+=("nvidia-utils-tkg")
   [[ "${_lib32:-false}" == "true" ]] && _list+=("lib32-nvidia-utils-tkg")
+  if [[ "${_flatpak:-false}" == "true" ]]; then
+    _list+=("flatpak-nvidia-tkg")
+    [[ "${_lib32:-false}" == "true" ]] && _list+=("lib32-flatpak-nvidia-tkg")
+  fi
   [[ "${_opencl:-false}" == "true" ]] && _list+=("opencl-nvidia-tkg")
   [[ "${_opencl:-false}" == "true" && "${_lib32:-false}" == "true" ]] && _list+=("lib32-opencl-nvidia-tkg")
   [[ "${_nvsettings:-false}" == "true" ]] && _list+=("nvidia-settings-tkg")
