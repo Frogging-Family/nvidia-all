@@ -438,6 +438,7 @@ _render_pkg_template() {
   _content="${_content//@KERNELS@/${_tmpl_kernels:-}}"
   _content="${_content//@PKGNAME@/${_tmpl_pkgname:-}}"
   _content="${_content//@PKGVER@/${pkgver}}"
+  _content="${_content//@PKGREL@/${_pkgrel}}"
   _content="${_content//@DESCRIPTION@/${_tmpl_description:-NVIDIA driver package}}"
   _content="${_content//@INSTALLED_SIZE@/${_tmpl_installed_size:-}}"
   _content="${_content//@DKMS_NAME@/${_tmpl_dkms_name:-}}"
@@ -510,10 +511,10 @@ for _pkgname in "${_packages[@]}"; do
   msg2 "Packaging ${_pkgname}"
   if [[ "$PKG_FORMAT" == "deb" ]]; then
     _deb_builder "${_pkgname}" "${_pkgstage}" "${_distdir}"
-    _built_pkg_files+=("${_distdir}/${_pkgname}_${pkgver}_amd64.deb")
+    _built_pkg_files+=("${_distdir}/${_pkgname}_${pkgver}-${_pkgrel}_amd64.deb")
   else
     _rpm_builder "${_pkgname}" "${_pkgstage}" "${_distdir}"
-    _built_pkg_files+=("${_distdir}/${_pkgname}-${pkgver}-1.x86_64.rpm")
+    _built_pkg_files+=("${_distdir}/${_pkgname}-${pkgver}-${_pkgrel}.x86_64.rpm")
   fi
 
   rm -rf "${_pkgstage}"

@@ -1,7 +1,7 @@
 Name: @PKGNAME@
-Epoch: 300
+Epoch: @PKGREL@
 Version: @PKGVER@
-Release: 1%{?dist}
+Release: @PKGREL@%{?dist}
 Summary: @DESCRIPTION@
 License: custom:NVIDIA
 URL: https://github.com/Frogging-Family/nvidia-all

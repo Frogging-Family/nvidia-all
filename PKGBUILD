@@ -93,7 +93,7 @@ fi
 
 pkgname=("${_pkgname_array[@]}")
 pkgver="${_driver_version}"
-pkgrel=301
+pkgrel="${_pkgrel}"
 arch=('x86_64')
 url="http://www.nvidia.com/"
 license=('custom:NVIDIA')

@@ -1,5 +1,8 @@
 # Shared prepare functions sourced by both install.sh and PKGBUILD.
 
+# Package revision for Arch pkgrel, DEB revision and RPM epoch/release.
+_pkgrel=302
+
 # Active driver series
 _current_nvidia=("620" "615" "595" "580")
 
