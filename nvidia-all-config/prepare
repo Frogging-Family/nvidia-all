@@ -1420,11 +1420,6 @@ _nv_srcprep() {
       _dkms_prep "${_open_dkms_srcdir}/kernel-open/dkms.conf" 5 "kernel-open"
     fi
 
-    if [[ "${_gcc15_fix}" = "true" ]]; then
-      printf '\n[PATCH] Applying gcc-15.diff to bundled kernel-open...\n' >> "${_where}/logs/prepare.log.txt"
-      ( set -o pipefail; cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
-    fi
-
   # ! closed-source module prep
   else
     cd "${srcdir}/${_pkg}"
