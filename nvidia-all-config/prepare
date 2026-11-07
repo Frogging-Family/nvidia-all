@@ -1265,7 +1265,7 @@ _nv_open_srcprep() {
   if [[ "${_gcc15_fix}" = "true" ]]; then
     msg2 "Applying gcc-15.diff to kernel-open (open source)..."
     printf '\n[PATCH] Applying gcc-15.diff to kernel-open (open source)...\n' >> "${_where}/logs/prepare.log.txt"
-    ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+    ( set -o pipefail; cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
   fi
 
   _apply_user_patches "${_open_srcdir}" "nvidia-open-${pkgver}"
@@ -1383,7 +1383,7 @@ _nv_srcprep() {
   if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
     msg2 "Applying libxnvctrl_so.diff to nvidia-settings-${pkgver}..."
     printf '\n[PATCH] Applying libxnvctrl_so.diff to nvidia-settings-%s...\n' "${pkgver}" >> "${_where}/logs/prepare.log.txt"
-    patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt"
+    ( set -o pipefail; patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt" )
   fi
 
   if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
@@ -1422,7 +1422,7 @@ _nv_srcprep() {
 
     if [[ "${_gcc15_fix}" = "true" ]]; then
       printf '\n[PATCH] Applying gcc-15.diff to bundled kernel-open...\n' >> "${_where}/logs/prepare.log.txt"
-      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+      ( set -o pipefail; cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
     fi
 
   # ! closed-source module prep
