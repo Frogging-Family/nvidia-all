@@ -2,11 +2,10 @@
 Operation=Install
 Operation=Upgrade
 Operation=Remove
-Type=Package
-Target=nvidia-tkg
-Target=nvidia-dev-tkg
-Target=nvidia-dev-open-tkg
-Target=nvidia-open-tkg
+Type=Path
+Target=usr/lib/modules/*/extramodules/nvidia*.ko*
+Target=usr/lib/modprobe.d/nvidia*.conf
+Target=usr/lib/nvidia-tkg/module-sign
 
 [Action]
 Description=Sign Nvidia modules and refresh initramfs
