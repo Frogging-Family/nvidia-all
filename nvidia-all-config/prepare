@@ -1,7 +1,7 @@
 # Shared prepare functions sourced by both install.sh and PKGBUILD.
 
 # Package revision for Arch pkgrel, DEB revision and RPM epoch/release.
-_pkgrel=302
+_pkgrel=303
 
 # Active driver series
 _current_nvidia=("620" "615" "595" "580")
@@ -873,6 +873,7 @@ _detect_kernels() {
   local -A _seen=()
 
   mkdir -p "${_where}/logs"
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   # resolve _target_kernel package name to kernel version string
   if [[ -n "${_target_kernel:-}" ]]; then
@@ -967,6 +968,7 @@ _detect_kernels() {
 _build_flags() {
   local _kernel="$1"
   BUILD_FLAGS=() # GCC by default, no need to set explicitly
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
     BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
@@ -978,15 +980,17 @@ _build_flags() {
 
 # _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
 # TYPE: open | dkms | closed
-#   open   — ${srcdir}/${_srcbase}-${pkgver}
+#   open   — optional third argument, or ${srcdir}/${_srcbase}-${pkgver}
 #   dkms   — ${srcdir}/${_pkg}
 #   closed — ${srcdir}/${_pkg}/kernel-${_kernel}, or ${_pkg} if no kernel
+# Optional fourth argument describes the target for logging only.
 _apply_patches() {
   local _type="$1"
   local _kernel="${2:-}"
+  local _patch_target="${4:-${_kernel:+kernel ${_kernel}}}"
   local _basedir
   case "${_type}" in
-    open) _basedir="${srcdir}/${_srcbase}-${pkgver}" ;;
+    open) _basedir="${3:-${srcdir}/${_srcbase}-${pkgver}}" ;;
     closed)
       if [[ -n "${_kernel}" ]]; then
         _basedir="${srcdir}/${_pkg}/kernel-${_kernel}"
@@ -1051,8 +1055,8 @@ _apply_patches() {
       continue
     fi
 
-    # Open modules share one prepared source tree across all target kernels.
-    # Process each matching kernel patch once even when several kernels select it.
+    # A shared Open DKMS tree may select the same patch for several kernels.
+    # Process each matching kernel patch once per prepared source tree.
     if [[ "${_type}" = "open" && -n "${_kernel}" ]]; then
       if [[ ":${_open_kernel_patches_done:-}:" = *":${_file}:"* ]]; then
         continue
@@ -1061,13 +1065,13 @@ _apply_patches() {
     fi
 
     local _msg
-    if [[ -n "${_kernel}" ]]; then
-      _msg="Applying ${_file} (${_type}, kernel ${_kernel}, driver ${pkgver})..."
+    if [[ -n "${_patch_target}" ]]; then
+      _msg="Applying ${_file} (${_type}, ${_patch_target}, driver ${pkgver})..."
     else
       _msg="Applying ${_file} (${_type}, driver ${pkgver})..."
     fi
     msg2 "${_msg}"
-    echo "[PATCH] ${_msg}" >> "${_where}/logs/prepare.log.txt"
+    printf '\n[PATCH] %s\n' "${_msg}" >> "${_where}/logs/prepare.log.txt"
 
     # Abort on patch error if _abort_on_patch_error=true
     local _patch_status
@@ -1076,8 +1080,8 @@ _apply_patches() {
 
     if (( _patch_status != 0 )); then
       local _err_msg="Failed applying ${_file} (${_type}, driver ${pkgver})"
-      if [[ -n "${_kernel}" ]]; then
-        _err_msg="Failed applying ${_file} (${_type}, kernel ${_kernel}, driver ${pkgver})"
+      if [[ -n "${_patch_target}" ]]; then
+        _err_msg="Failed applying ${_file} (${_type}, ${_patch_target}, driver ${pkgver})"
       fi
 
       warning "######################################################"
@@ -1120,7 +1124,7 @@ _user_patcher() {
     fi
   done
 
-  echo "[PATCH] nvidia-all user patches (${_userpatch_target_local}), if any:" >> "${_where}"/logs/prepare.log.txt
+  printf '\n[PATCH] nvidia-all user patches (%s), if any:\n' "${_userpatch_target_local}" >> "${_where}"/logs/prepare.log.txt
 
   local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
@@ -1137,7 +1141,7 @@ _user_patcher() {
           msg2 "Reverting your own ${_userpatch_target_local} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          echo "[PATCH] Reverting user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          printf '\n[PATCH] Reverting user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
           ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
@@ -1164,7 +1168,7 @@ _user_patcher() {
           msg2 "Applying your own ${_userpatch_target_local} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          echo "[PATCH] Applying user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          printf '\n[PATCH] Applying user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
           ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
@@ -1189,7 +1193,7 @@ _apply_user_patches() {
 
   if [[ ! -d "${_nv_userpatch_dir}" ]]; then
     mkdir -p "${_where}/logs"
-    echo "[PATCH] Userpatch dir not found for ${_target_label}: ${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
+    printf '\n[PATCH] Userpatch dir not found for %s: %s\n' "${_target_label}" "${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1237,6 +1241,48 @@ _dkms_prep() {
       printf 'BUILT_MODULE_LOCATION[%s]="%s"\n' "${_idx}" "${_module_location}" >> "${_conf}"
     fi
   done
+}
+
+_nv_open_srcprep() {
+  local _open_srcdir="$1"
+  shift
+  local _kernel
+  local _open_kernel_patches_done=""
+  local _patch_target="DKMS"
+  if (( $# == 1 )); then
+    _patch_target="kernel $1"
+  elif (( $# > 1 )); then
+    _patch_target="kernels $*"
+  fi
+
+  cd "${_open_srcdir}"
+
+  _apply_patches "open" "" "${_open_srcdir}" "${_patch_target}" || _die "Could not prepare open NVIDIA sources."
+  for _kernel in "$@"; do
+    _apply_patches "open" "${_kernel}" "${_open_srcdir}" || _die "Could not prepare open NVIDIA sources for ${_kernel}."
+  done
+
+  if [[ "${_gcc15_fix}" = "true" ]]; then
+    msg2 "Applying gcc-15.diff to kernel-open (open source)..."
+    printf '\n[PATCH] Applying gcc-15.diff to kernel-open (open source)...\n' >> "${_where}/logs/prepare.log.txt"
+    ( set -o pipefail; cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+  fi
+
+  _apply_user_patches "${_open_srcdir}" "nvidia-open-${pkgver}"
+
+  # populate utils.mk build metadata
+  if grep -q '^NV_BUILD_USER' utils.mk; then
+    sed -i "s/^NV_BUILD_USER.*/NV_BUILD_USER := ${_whoami}/" utils.mk
+    sed -i "s/^NV_BUILD_HOST.*/NV_BUILD_HOST := ${_hostname}/" utils.mk
+  else
+    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}/" utils.mk
+    if grep -q '^HOSTNAME' utils.mk; then
+      sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}/" utils.mk
+    else
+      sed -i "s/^[[:space:]]*HOSTNAME[[:space:]]*=.*/  HOSTNAME = ${_hostname}/" utils.mk
+    fi
+  fi
+  sed -i 's/^DATE.*/DATE = date -r $(VERSION_MK)/' utils.mk
 }
 
 _nv_srcprep() {
@@ -1336,7 +1382,8 @@ _nv_srcprep() {
 
   if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
     msg2 "Applying libxnvctrl_so.diff to nvidia-settings-${pkgver}..."
-    patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt"
+    printf '\n[PATCH] Applying libxnvctrl_so.diff to nvidia-settings-%s...\n' "${pkgver}" >> "${_where}/logs/prepare.log.txt"
+    ( set -o pipefail; patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt" )
   fi
 
   if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
@@ -1346,54 +1393,32 @@ _nv_srcprep() {
 
   # ! open-source module prep
   if [[ "${_open_source_modules}" = "true" ]]; then
-    local _open_kernel_patches_done=""
-
-    cd "${srcdir}/${_srcbase}-${pkgver}"
-
-    # static open patches
-    _apply_patches "open" || return 1
-
-    # open patches
+    local _kernel _open_srcdir="${srcdir}/${_srcbase}-${pkgver}"
+    local _open_kernel_srcdir _open_dkms_srcdir="${srcdir}/open-gpu-kernel-modules-dkms"
     local -a _kernels
     mapfile -t _kernels < <(_detect_kernels)
 
-    for _kernel in "${_kernels[@]}"; do
-      _apply_patches "open" "${_kernel}" || return 1
-    done
-
-    # GCC 15
-    if [[ "${_gcc15_fix}" = "true" ]]; then
-      msg2 "Applying gcc-15.diff to kernel-open (open source)..."
-      ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
-      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+    # Each non-DKMS kernel gets a pristine copy and only its matching patches.
+    if [[ "${_dkms}" != "true" ]]; then
+      for _kernel in "${_kernels[@]}"; do
+        _open_kernel_srcdir="${_open_srcdir}-${_kernel}"
+        rm -rf -- "${_open_kernel_srcdir}"
+        cp -a "${_open_srcdir}" "${_open_kernel_srcdir}"
+        _nv_open_srcprep "${_open_kernel_srcdir}" "${_kernel}"
+      done
     fi
 
-    # user patches to open modules
-    _apply_user_patches "${srcdir}/${_srcbase}-${pkgver}" "nvidia-open-${pkgver}"
+    # DKMS retains one shared source tree, also when building both variants.
+    if [[ "${_dkms}" = "true" || "${_dkms}" = "full" ]]; then
+      rm -rf -- "${_open_dkms_srcdir}"
+      cp -a "${_open_srcdir}" "${_open_dkms_srcdir}"
+      _nv_open_srcprep "${_open_dkms_srcdir}" "${_kernels[@]}"
 
-    # populate utils.mk build metadata
-    if grep -q '^NV_BUILD_USER' utils.mk; then
-      sed -i "s/^NV_BUILD_USER.*/NV_BUILD_USER := ${_whoami}/" utils.mk
-      sed -i "s/^NV_BUILD_HOST.*/NV_BUILD_HOST := ${_hostname}/" utils.mk
-    else
-      sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}/" utils.mk
-      if grep -q '^HOSTNAME' utils.mk; then
-        sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}/" utils.mk
-      else
-        sed -i "s/^[[:space:]]*HOSTNAME[[:space:]]*=.*/  HOSTNAME = ${_hostname}/" utils.mk
+      if [[ ! -f "${_open_dkms_srcdir}/kernel-open/dkms.conf" ]]; then
+        _die "Open module DKMS configuration not found: ${_open_dkms_srcdir}/kernel-open/dkms.conf"
       fi
+      _dkms_prep "${_open_dkms_srcdir}/kernel-open/dkms.conf" 5 "kernel-open"
     fi
-    sed -i 's/^DATE.*/DATE = date -r $(VERSION_MK)/' utils.mk
-
-    if [[ ! -f "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" ]]; then
-      error "Open module DKMS configuration not found: ${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf"
-      return 1
-    fi
-    _dkms_prep "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" 5 "kernel-open"
-
-    # copy for DKMS
-    rm -rf -- "${srcdir}/open-gpu-kernel-modules-dkms"
-    cp -r "${srcdir}/${_srcbase}-${pkgver}" "${srcdir}/open-gpu-kernel-modules-dkms"
 
   # ! closed-source module prep
   else
@@ -1493,6 +1518,7 @@ _nv_srcprep() {
 }
 
 _nv_build() {
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
   if [[ "${_libxnvctrl}" = "true" ]]; then
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
@@ -1520,8 +1546,6 @@ _nv_build() {
   fi
 
   if [[ "${_open_source_modules}" = "true" ]]; then
-    cd "${_srcbase}-${pkgver}"
-
     # per-kernel output dirs
     rm -rf "${srcdir}/open-kmods"
     mkdir -p "${srcdir}/open-kmods"
@@ -1544,6 +1568,7 @@ _nv_build() {
     local _label="Nvidia"
     if [[ "${_open_source_modules}" = "true" ]]; then
       _label="open NVIDIA"
+      cd "${srcdir}/${_srcbase}-${pkgver}-${_kernel}"
     else
       cd "${srcdir}/${_pkg}/kernel-${_kernel}"
     fi
