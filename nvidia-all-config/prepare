@@ -978,24 +978,20 @@ _build_flags() {
 
 # _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
 # TYPE: open | dkms | closed
-#   open   — ${srcdir}/${_srcbase}-${pkgver}
+#   open   — optional third argument, or ${srcdir}/${_srcbase}-${pkgver}
 #   dkms   — ${srcdir}/${_pkg}
 #   closed — ${srcdir}/${_pkg}/kernel-${_kernel}, or ${_pkg} if no kernel
 _apply_patches() {
   local _type="$1"
   local _kernel="${2:-}"
   local _basedir
-  case "${_type}" in
-    open) _basedir="${srcdir}/${_srcbase}-${pkgver}" ;;
-    closed)
-      if [[ -n "${_kernel}" ]]; then
-        _basedir="${srcdir}/${_pkg}/kernel-${_kernel}"
-      else
-        _basedir="${srcdir}/${_pkg}"
-      fi
-      ;;
-    *) _basedir="${srcdir}/${_pkg}" ;;
-  esac
+  if [[ "${_type}" = "open" ]]; then
+    _basedir="${3:-${srcdir}/${_srcbase}-${pkgver}}"
+  elif [[ "${_type}" = "closed" && -n "${_kernel}" ]]; then
+    _basedir="${srcdir}/${_pkg}/kernel-${_kernel}"
+  else
+    _basedir="${srcdir}/${_pkg}"
+  fi
   local _list="${_where}/nvidia-all-patches/patches.list"
 
   if [[ ! -f "${_list}" ]]; then
@@ -1051,8 +1047,8 @@ _apply_patches() {
       continue
     fi
 
-    # Open modules share one prepared source tree across all target kernels.
-    # Process each matching kernel patch once even when several kernels select it.
+    # A shared Open DKMS tree may select the same patch for several kernels.
+    # Process each matching kernel patch once per prepared source tree.
     if [[ "${_type}" = "open" && -n "${_kernel}" ]]; then
       if [[ ":${_open_kernel_patches_done:-}:" = *":${_file}:"* ]]; then
         continue
@@ -1239,6 +1235,41 @@ _dkms_prep() {
   done
 }
 
+_nv_open_srcprep() {
+  local _open_srcdir="$1"
+  shift
+  local _kernel
+  local _open_kernel_patches_done=""
+
+  cd "${_open_srcdir}"
+
+  _apply_patches "open" "" "${_open_srcdir}" || _die "Could not prepare open NVIDIA sources."
+  for _kernel in "$@"; do
+    _apply_patches "open" "${_kernel}" "${_open_srcdir}" || _die "Could not prepare open NVIDIA sources for ${_kernel}."
+  done
+
+  if [[ "${_gcc15_fix}" = "true" ]]; then
+    msg2 "Applying gcc-15.diff to kernel-open (open source)..."
+    ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+  fi
+
+  _apply_user_patches "${_open_srcdir}" "nvidia-open-${pkgver}"
+
+  # populate utils.mk build metadata
+  if grep -q '^NV_BUILD_USER' utils.mk; then
+    sed -i "s/^NV_BUILD_USER.*/NV_BUILD_USER := ${_whoami}/" utils.mk
+    sed -i "s/^NV_BUILD_HOST.*/NV_BUILD_HOST := ${_hostname}/" utils.mk
+  else
+    sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}/" utils.mk
+    if grep -q '^HOSTNAME' utils.mk; then
+      sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}/" utils.mk
+    else
+      sed -i "s/^[[:space:]]*HOSTNAME[[:space:]]*=.*/  HOSTNAME = ${_hostname}/" utils.mk
+    fi
+  fi
+  sed -i 's/^DATE.*/DATE = date -r $(VERSION_MK)/' utils.mk
+}
+
 _nv_srcprep() {
   local _system_gcc _kernel_gcc _system_clang _kernel_clang _continue
   local _hostname="linux" _whoami="builder"
@@ -1346,54 +1377,32 @@ _nv_srcprep() {
 
   # ! open-source module prep
   if [[ "${_open_source_modules}" = "true" ]]; then
-    local _open_kernel_patches_done=""
-
-    cd "${srcdir}/${_srcbase}-${pkgver}"
-
-    # static open patches
-    _apply_patches "open" || return 1
-
-    # open patches
+    local _kernel _open_srcdir="${srcdir}/${_srcbase}-${pkgver}"
+    local _open_kernel_srcdir _open_dkms_srcdir="${srcdir}/open-gpu-kernel-modules-dkms"
     local -a _kernels
     mapfile -t _kernels < <(_detect_kernels)
 
-    for _kernel in "${_kernels[@]}"; do
-      _apply_patches "open" "${_kernel}" || return 1
-    done
-
-    # GCC 15
-    if [[ "${_gcc15_fix}" = "true" ]]; then
-      msg2 "Applying gcc-15.diff to kernel-open (open source)..."
-      ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
-      ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
+    # Each non-DKMS kernel gets a pristine copy and only its matching patches.
+    if [[ "${_dkms}" != "true" ]]; then
+      for _kernel in "${_kernels[@]}"; do
+        _open_kernel_srcdir="${_open_srcdir}-${_kernel}"
+        rm -rf -- "${_open_kernel_srcdir}"
+        cp -a "${_open_srcdir}" "${_open_kernel_srcdir}"
+        _nv_open_srcprep "${_open_kernel_srcdir}" "${_kernel}"
+      done
     fi
 
-    # user patches to open modules
-    _apply_user_patches "${srcdir}/${_srcbase}-${pkgver}" "nvidia-open-${pkgver}"
+    # DKMS retains one shared source tree, also when building both variants.
+    if [[ "${_dkms}" = "true" || "${_dkms}" = "full" ]]; then
+      rm -rf -- "${_open_dkms_srcdir}"
+      cp -a "${_open_srcdir}" "${_open_dkms_srcdir}"
+      _nv_open_srcprep "${_open_dkms_srcdir}" "${_kernels[@]}"
 
-    # populate utils.mk build metadata
-    if grep -q '^NV_BUILD_USER' utils.mk; then
-      sed -i "s/^NV_BUILD_USER.*/NV_BUILD_USER := ${_whoami}/" utils.mk
-      sed -i "s/^NV_BUILD_HOST.*/NV_BUILD_HOST := ${_hostname}/" utils.mk
-    else
-      sed -i "s/^WHOAMI.*/WHOAMI = echo ${_whoami}/" utils.mk
-      if grep -q '^HOSTNAME' utils.mk; then
-        sed -i "s/^HOSTNAME.*/HOSTNAME = echo ${_hostname}/" utils.mk
-      else
-        sed -i "s/^[[:space:]]*HOSTNAME[[:space:]]*=.*/  HOSTNAME = ${_hostname}/" utils.mk
+      if [[ ! -f "${_open_dkms_srcdir}/kernel-open/dkms.conf" ]]; then
+        _die "Open module DKMS configuration not found: ${_open_dkms_srcdir}/kernel-open/dkms.conf"
       fi
+      _dkms_prep "${_open_dkms_srcdir}/kernel-open/dkms.conf" 5 "kernel-open"
     fi
-    sed -i 's/^DATE.*/DATE = date -r $(VERSION_MK)/' utils.mk
-
-    if [[ ! -f "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" ]]; then
-      error "Open module DKMS configuration not found: ${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf"
-      return 1
-    fi
-    _dkms_prep "${srcdir}/${_srcbase}-${pkgver}/kernel-open/dkms.conf" 5 "kernel-open"
-
-    # copy for DKMS
-    rm -rf -- "${srcdir}/open-gpu-kernel-modules-dkms"
-    cp -r "${srcdir}/${_srcbase}-${pkgver}" "${srcdir}/open-gpu-kernel-modules-dkms"
 
   # ! closed-source module prep
   else
@@ -1520,8 +1529,6 @@ _nv_build() {
   fi
 
   if [[ "${_open_source_modules}" = "true" ]]; then
-    cd "${_srcbase}-${pkgver}"
-
     # per-kernel output dirs
     rm -rf "${srcdir}/open-kmods"
     mkdir -p "${srcdir}/open-kmods"
@@ -1544,6 +1551,7 @@ _nv_build() {
     local _label="Nvidia"
     if [[ "${_open_source_modules}" = "true" ]]; then
       _label="open NVIDIA"
+      cd "${srcdir}/${_srcbase}-${pkgver}-${_kernel}"
     else
       cd "${srcdir}/${_pkg}/kernel-${_kernel}"
     fi
