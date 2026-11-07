@@ -20,6 +20,7 @@ _frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINE
 _autoaddpatch="false"
 
 _pkgname_array=()
+declare -gA _module_kernels=()
 
 # optional series in pkgname
 if [[ "${_series_in_pkgname}" = "true" ]]; then
@@ -40,13 +41,18 @@ else
 fi
 
 if [[ "${_build_utils_package_only:-false}" != "true" ]]; then
-  if [[ "${_dkms}" = "full" ]]; then
+  if [[ "${_dkms}" = "true" || "${_dkms}" = "full" ]]; then
     _pkgname_array+=("${__branchname}-dkms-tkg")
-    _pkgname_array+=("${__branchname}-tkg")
-  elif [[ "${_dkms}" = "true" ]]; then
-    _pkgname_array+=("${__branchname}-dkms-tkg")
-  else
-    _pkgname_array+=("${__branchname}-tkg")
+  fi
+  if [[ "${_dkms}" = "false" || "${_dkms}" = "full" ]]; then
+    _kernel_list=$(_detect_kernels) || _die "Could not detect target kernels."
+    while IFS= read -r _kernel; do
+      _kernel_pkgname=$(pacman -Qqo "/usr/lib/modules/${_kernel}/pkgbase") || _die "Could not determine kernel package for ${_kernel}."
+      _module_pkgname="${_kernel_pkgname}-${__branchname}-tkg"
+      [[ -z "${_module_kernels[${_module_pkgname}]:-}" ]] || _die "Multiple kernel versions found for ${_kernel_pkgname}."
+      _module_kernels["${_module_pkgname}"]="${_kernel}"
+      _pkgname_array+=("${_module_pkgname}")
+    done <<< "${_kernel_list}"
   fi
 fi
 
@@ -266,6 +272,26 @@ nvidia-utils-tkg() {
   fi
 
   _install_utils
+
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
+      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
+  fi
+
+  if [[ "${_dkms}" != "true" && "${_disable_libalpm_hook}" != "true" ]]; then
+    if [[ "${_module_signing:-autodetect}" = "true" ]] ||
+      {
+        [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
+          command -v mokutil >/dev/null 2>&1 &&
+          mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
+      }; then
+      msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
+      install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
+      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
+    else
+      install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
+    fi
+  fi
 }
 source /dev/stdin <<EOF
 package_${_branchname}-utils-tkg() {
@@ -312,7 +338,7 @@ fi
 
 nvidia-settings-tkg() {
   pkgdesc='Tool for configuring the NVIDIA graphics driver'
-  depends=("nvidia-utils-tkg>=${pkgver}" 'jansson' 'gtk3' 'libxv' 'libvdpau')
+  depends=('nvidia-utils-tkg' 'jansson' 'gtk3' 'libxv' 'libvdpau')
   if [[ "${_libxnvctrl:-external}" = "true" ]]; then
     depends+=("${_branchname}-libxnvctrl-tkg")
   elif [[ "${_libxnvctrl:-external}" = "external" ]]; then
@@ -357,69 +383,37 @@ fi
 
 if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
   nvidia-tkg() {
-  if [[ "${_open_source_modules}" = "true" ]]; then
-    pkgdesc="Open NVIDIA kernel modules for all installed kernels"
-    depends=('linux' "nvidia-utils-tkg=${pkgver}")
-    conflicts=('NVIDIA-MODULE' 'nvidia-tkg')
-    provides=('NVIDIA-MODULE')
-
-    cd "${_srcbase}-${pkgver}"
-
-    local _kernel
-    local -a _kernels
-    mapfile -t _kernels < <(_detect_kernels)
-
-    for _kernel in "${_kernels[@]}"; do
+    local _kernel="${_module_kernels[${pkgname}]}"
+    local _kernel_pkgname="${pkgname%-${__branchname}-tkg}"
+    depends=("${_kernel_pkgname}" "${_branchname}-utils-tkg=${pkgver}")
+    provides=('NVIDIA-MODULE' "${_kernel_pkgname}-nvidia")
+    conflicts=("${_kernel_pkgname}-nvidia" "${_kernel_pkgname}-nvidia-open" "${_kernel_pkgname}-nvidia-580xx"
+               "${_branchname}-tkg" "${_branchname}-open-tkg" 'nvidia-dkms' 'nvidia-open-dkms')
+    # Also replace regular/dev packages built without the per-kernel provide.
+    if [[ "${_driver_branch}" = "vulkandev" ]]; then
+      conflicts+=("${_kernel_pkgname}-nvidia-tkg" "${_kernel_pkgname}-nvidia-open-tkg")
+    else
+      conflicts+=("${_kernel_pkgname}-nvidia-dev-tkg" "${_kernel_pkgname}-nvidia-dev-open-tkg")
+    fi
+    if [[ "${_kernel_pkgname}" = "linux" ]]; then
+      conflicts+=('nvidia' 'nvidia-open')
+    elif [[ "${_kernel_pkgname}" = "linux-lts" ]]; then
+      conflicts+=('nvidia-lts' 'nvidia-open-lts')
+    fi
+    if [[ "${_open_source_modules}" = "true" ]]; then
+      pkgdesc="Open NVIDIA kernel modules for ${_kernel_pkgname}"
+      conflicts+=("${_kernel_pkgname}-${_branchname}-tkg")
       msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
-      if [[ ! -d "${srcdir}/open-kmods/${_kernel}" ]]; then
-        error "Missing staged open kernel modules for ${_kernel} in ${srcdir}/open-kmods/${_kernel}"
-        return 1
-      fi
       install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${srcdir}/open-kmods/${_kernel}"/*.ko
-      # Strip debug symbols per-kernel
       if grep -q "CONFIG_CC_IS_CLANG=y" /usr/lib/modules/${_kernel}/build/.config 2>/dev/null; then
         find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec llvm-strip --strip-debug {} +
       else
         find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec strip --strip-debug {} +
       fi
-      _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-    done
-
-    # Force module to load even on unsupported GPUs
-    mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-    echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
-      install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
-
-    install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}"
-
-    if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-      if [[ "${_module_signing:-autodetect}" = "true" ]] ||
-        {
-          [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
-            command -v mokutil >/dev/null 2>&1 &&
-            mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
-        }; then
-        msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
-        install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-      else
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-      fi
+      install -Dm644 "${_srcbase}-${pkgver}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}"
     else
-      msg2 "Skipping initramfs update hook due to user config"
-    fi
-  else
-    pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries)"
-    depends=("nvidia-utils-tkg=${pkgver}" 'libglvnd')
-    provides=("nvidia=${pkgver}" "nvidia-tkg>=${pkgver}")
-    conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
-    install=nvidia-all-config/system/nvidia.install
-
-    local _kernel
-    local -a _kernels
-    mapfile -t _kernels < <(_detect_kernels)
-
-    for _kernel in "${_kernels[@]}"; do
+      pkgdesc="NVIDIA kernel modules for ${_kernel_pkgname}"
+      conflicts+=("${_kernel_pkgname}-${_branchname}-open-tkg")
       msg2 "Installing NVIDIA modules for kernel: ${_kernel}"
       install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       local _peer_module
@@ -427,32 +421,17 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
         [[ -e "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]] && \
           install -D -m644 "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
       done
-      _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-    done
-
-    if [[ ! "${_disable_libalpm_hook}" == "true" ]]; then
-      if [[ "${_module_signing:-autodetect}" = "true" ]] ||
-        {
-          [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
-            command -v mokutil >/dev/null 2>&1 &&
-            mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
-        }; then
-        msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
-        install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-      else
-        install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-      fi
-    else
-      msg2 "Skipping initramfs update hook due to user config"
+      install -Dm644 "${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
     fi
-  fi
-}
+    _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+  }
+  for _module_pkgname in "${!_module_kernels[@]}"; do
 source /dev/stdin <<EOF
-package_${__branchname}-tkg() {
+package_${_module_pkgname}() {
   nvidia-tkg
 }
 EOF
+  done
 fi
 
 lib32-opencl-nvidia-tkg() {
@@ -493,7 +472,7 @@ EOF
 if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
   nvidia-dkms-tkg() {
     if [[ "${_open_source_modules}" = "true" ]]; then
-      depends=('dkms' "nvidia-utils-tkg=${pkgver}")
+      depends=('dkms' "${_branchname}-utils-tkg=${pkgver}")
       conflicts=('nvidia-open' 'NVIDIA-MODULE' 'nvidia-dkms')
       provides=('nvidia-open' 'NVIDIA-MODULE')
 
@@ -501,17 +480,12 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
       cp -dr --no-preserve='ownership' open-gpu-kernel-modules-dkms "${pkgdir}/usr/src/nvidia-$pkgver"
       mv "${pkgdir}/usr/src/nvidia-$pkgver/kernel-open/dkms.conf" "${pkgdir}/usr/src/nvidia-$pkgver/dkms.conf"
 
-      # Force module to load even on unsupported GPUs
-      mkdir -p "${pkgdir}/usr/lib/modprobe.d"
-      echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
-        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
-
       install -Dm644 "${_srcbase}-${pkgver}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}"
     else
       pkgdesc="NVIDIA kernel module sources (DKMS)"
-      depends=('dkms' "nvidia-utils-tkg=${pkgver}" 'nvidia-libgl' 'pahole')
+      depends=('dkms' "${_branchname}-utils-tkg=${pkgver}" 'nvidia-libgl' 'pahole')
       provides=("nvidia=${pkgver}" 'nvidia-dkms' "nvidia-dkms-tkg=${pkgver}" 'NVIDIA-MODULE')
-      conflicts=('nvidia' 'nvidia-dkms')
+      conflicts=('nvidia' 'nvidia-dkms' 'NVIDIA-MODULE')
 
       cd "${_pkg}"
 
@@ -520,6 +494,7 @@ if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
 
       install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
     fi
+    conflicts+=("${_branchname}-tkg" "${_branchname}-open-tkg")
   }
 source /dev/stdin <<EOF
 package_${__branchname}-dkms-tkg() {
