@@ -176,6 +176,12 @@ kernels update.
 Choose regular packages only if you specifically want prebuilt non-DKMS modules
 for your workflow.
 
+On Arch, nvidia-all builds one regular module package per target kernel.
+The package name includes the kernel package name, even when only one kernel is installed.
+For example: `linux-nvidia-tkg`, `linux-lts-nvidia-tkg`, or `linux73-tkg-eevdf-nvidia-open-tkg`.
+
+DKMS package names do not include a kernel prefix, for example `nvidia-dkms-tkg` or `nvidia-open-dkms-tkg`.
+
 ---
 
 ## Important customization.cfg options and paths

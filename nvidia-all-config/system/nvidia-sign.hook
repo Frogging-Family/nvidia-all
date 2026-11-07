@@ -2,14 +2,13 @@
 Operation=Install
 Operation=Upgrade
 Operation=Remove
-Type=Package
-Target=nvidia-tkg
-Target=nvidia-dev-tkg
-Target=nvidia-dev-open-tkg
-Target=nvidia-open-tkg
+Type=Path
+Target=usr/lib/modules/*/extramodules/nvidia*.ko*
+Target=usr/lib/modprobe.d/nvidia*.conf
+Target=usr/lib/nvidia-tkg/module-sign
 
 [Action]
 Description=Sign Nvidia modules and refresh initramfs
 When=PostTransaction
 NeedsTargets
-Exec=/bin/sh -c 'if [ -x /usr/lib/nvidia-tkg/module-sign ]; then /usr/lib/nvidia-tkg/module-sign --required || echo "WARNING: NVIDIA module signing failed; continuing initramfs update. NVIDIA modules may fail to load if signatures are enforced." >&2; fi; if command -v mkinitcpio >/dev/null 2>&1 && find /etc/mkinitcpio.d -maxdepth 1 -type f -name "*.preset" -print -quit 2>/dev/null | grep -q .; then exec mkinitcpio -P; elif command -v kernel-install >/dev/null 2>&1 && kernel-install inspect --json=short 2>/dev/null | grep -Eq "\"Layout\":\"(uki|bls)\""; then exec kernel-install add-all; elif [ -x /usr/lib/booster/regenerate_images ]; then exec /usr/lib/booster/regenerate_images; elif command -v dracut >/dev/null 2>&1; then exec dracut --regenerate-all --force; else echo "WARNING: No initramfs generator found; update initramfs manually." >&2; fi'
+Exec=/bin/sh -c 'if [ -x /usr/lib/nvidia-tkg/module-sign ]; then /usr/lib/nvidia-tkg/module-sign --required || echo "WARNING: NVIDIA module signing failed; continuing initramfs update. NVIDIA modules may fail to load if signatures are enforced." >&2; fi; if command -v mkinitcpio >/dev/null 2>&1 && find /etc/mkinitcpio.d -maxdepth 1 -type f -name "*.preset" -print -quit 2>/dev/null | grep -q .; then exec mkinitcpio -P; elif command -v kernel-install >/dev/null 2>&1 && (for _image in /usr/lib/modules/*/vmlinuz; do [ -f "${_image}" ] || continue; _kernel="${_image%/vmlinuz}"; kernel-install inspect --json=short "${_kernel##*/}" "${_image}" 2>/dev/null | grep -Eq "\"Layout\":\"(uki|bls)\"" && exit 0; done; exit 1); then exec kernel-install add-all; elif [ -x /usr/lib/booster/regenerate_images ]; then exec /usr/lib/booster/regenerate_images; elif command -v dracut >/dev/null 2>&1; then exec dracut --regenerate-all --force; else echo "WARNING: No initramfs generator found; update initramfs manually." >&2; fi'
