@@ -873,6 +873,7 @@ _detect_kernels() {
   local -A _seen=()
 
   mkdir -p "${_where}/logs"
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   # resolve _target_kernel package name to kernel version string
   if [[ -n "${_target_kernel:-}" ]]; then
@@ -967,6 +968,7 @@ _detect_kernels() {
 _build_flags() {
   local _kernel="$1"
   BUILD_FLAGS=() # GCC by default, no need to set explicitly
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
     BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
@@ -1067,7 +1069,7 @@ _apply_patches() {
       _msg="Applying ${_file} (${_type}, driver ${pkgver})..."
     fi
     msg2 "${_msg}"
-    echo "[PATCH] ${_msg}" >> "${_where}/logs/prepare.log.txt"
+    printf '\n[PATCH] %s\n' "${_msg}" >> "${_where}/logs/prepare.log.txt"
 
     # Abort on patch error if _abort_on_patch_error=true
     local _patch_status
@@ -1120,7 +1122,7 @@ _user_patcher() {
     fi
   done
 
-  echo "[PATCH] nvidia-all user patches (${_userpatch_target_local}), if any:" >> "${_where}"/logs/prepare.log.txt
+  printf '\n[PATCH] nvidia-all user patches (%s), if any:\n' "${_userpatch_target_local}" >> "${_where}"/logs/prepare.log.txt
 
   local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
@@ -1137,7 +1139,7 @@ _user_patcher() {
           msg2 "Reverting your own ${_userpatch_target_local} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          echo "[PATCH] Reverting user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          printf '\n[PATCH] Reverting user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
           ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
@@ -1164,7 +1166,7 @@ _user_patcher() {
           msg2 "Applying your own ${_userpatch_target_local} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          echo "[PATCH] Applying user patch ${_f##*/} on ${_userpatch_target_local} (${_userpatch_apply_dir})... ###" >> "${_where}"/logs/prepare.log.txt
+          printf '\n[PATCH] Applying user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
           ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
@@ -1189,7 +1191,7 @@ _apply_user_patches() {
 
   if [[ ! -d "${_nv_userpatch_dir}" ]]; then
     mkdir -p "${_where}/logs"
-    echo "[PATCH] Userpatch dir not found for ${_target_label}: ${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
+    printf '\n[PATCH] Userpatch dir not found for %s: %s\n' "${_target_label}" "${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1254,6 +1256,7 @@ _nv_open_srcprep() {
 
   if [[ "${_gcc15_fix}" = "true" ]]; then
     msg2 "Applying gcc-15.diff to kernel-open (open source)..."
+    printf '\n[PATCH] Applying gcc-15.diff to kernel-open (open source)...\n' >> "${_where}/logs/prepare.log.txt"
     ( cd kernel-open && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
   fi
 
@@ -1371,6 +1374,7 @@ _nv_srcprep() {
 
   if [[ "${_libxnvctrl}" = "true" ]] && [[ "${_driver_branch}" != "vulkandev" ]]; then
     msg2 "Applying libxnvctrl_so.diff to nvidia-settings-${pkgver}..."
+    printf '\n[PATCH] Applying libxnvctrl_so.diff to nvidia-settings-%s...\n' "${pkgver}" >> "${_where}/logs/prepare.log.txt"
     patch -Np1 -d "${srcdir}/nvidia-settings-${pkgver}" -i "${_where}/nvidia-all-patches/all/nvidia-settings-libxnvctrl_so.patch" |& tee -a "${_where}/logs/prepare.log.txt"
   fi
 
@@ -1409,6 +1413,7 @@ _nv_srcprep() {
     fi
 
     if [[ "${_gcc15_fix}" = "true" ]]; then
+      printf '\n[PATCH] Applying gcc-15.diff to bundled kernel-open...\n' >> "${_where}/logs/prepare.log.txt"
       ( cd "${srcdir}/${_pkg}/kernel-open" && patch -Np2 -i "${_where}/nvidia-all-patches/all/gcc-15.diff" |& tee -a "${_where}/logs/prepare.log.txt" )
     fi
 
@@ -1510,6 +1515,7 @@ _nv_srcprep() {
 }
 
 _nv_build() {
+  printf '\n' >> "${_where}/logs/prepare.log.txt"
   if [[ "${_libxnvctrl}" = "true" ]]; then
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
