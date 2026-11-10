@@ -41,10 +41,9 @@ else
 fi
 
 if [[ "${_build_utils_package_only:-false}" != "true" ]]; then
-  if [[ "${_dkms}" = "true" || "${_dkms}" = "full" ]]; then
+  if [[ "${_dkms}" = "true" ]]; then
     _pkgname_array+=("${__branchname}-dkms-tkg")
-  fi
-  if [[ "${_dkms}" = "false" || "${_dkms}" = "full" ]]; then
+  else
     _kernel_list=$(_detect_kernels) || _die "Could not detect target kernels."
     while IFS= read -r _kernel; do
       _kernel_pkgname=$(pacman -Qqo "/usr/lib/modules/${_kernel}/pkgbase") || _die "Could not determine kernel package for ${_kernel}."
@@ -370,7 +369,7 @@ package_${_branchname}-libxnvctrl-tkg() {
 EOF
 fi
 
-if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
+if [[ "${_dkms}" = "false" ]]; then
   nvidia-tkg() {
     local _kernel="${_module_kernels[${pkgname}]}"
     local _kernel_pkgname="${pkgname%-${__branchname}-tkg}"
@@ -446,7 +445,7 @@ package_lib32-${_branchname}-utils-tkg() {
 }
 EOF
 
-if [[ "${_dkms}" = "true" ]] || [[ "${_dkms}" = "full" ]]; then
+if [[ "${_dkms}" = "true" ]]; then
   nvidia-dkms-tkg() {
     if [[ "${_open_source_modules}" = "true" ]]; then
       depends=('dkms' "${_branchname}-utils-tkg=${pkgver}")
