@@ -206,8 +206,13 @@ _deb_prerm() {
 }
 
 _deb_postrm() {
-  local _debdir="$1"
+  local _debdir="$1" _mode="${2:-}"
   _write_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.in"
+  if [[ "${_mode}" == "kmod" ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.kmod.in"
+  elif [[ "${_mode}" == "dkms" || "${_mode}" == "initramfs" ]]; then
+    _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.initramfs.in"
+  fi
   chmod 755 "${_debdir}/DEBIAN/postrm"
 }
 
@@ -247,7 +252,7 @@ _deb_builder() {
       _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
       chmod 755 "${_debdir}/DEBIAN/prerm"
     fi
-    _deb_postrm "${_debdir}"
+    _deb_postrm "${_debdir}" "${_mode}"
     if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
       _append_pkg_template "${_debdir}/DEBIAN/postrm" "deb/postrm.services.in"
     fi

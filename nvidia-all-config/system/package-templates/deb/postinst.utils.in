@@ -14,10 +14,13 @@ elif [ "$1" = abort-remove ] || [ "$1" = abort-deconfigure ]; then
   _nv_services_restore
 fi
 
-if command -v update-initramfs >/dev/null 2>&1; then
-  update-initramfs -u -k all
-elif command -v dracut >/dev/null 2>&1; then
-  dracut --force
+if [ "$1" = configure ]; then
+  if command -v update-initramfs >/dev/null 2>&1; then
+    # -u alone activates the initramfs-tools dpkg trigger.
+    update-initramfs -u
+  elif command -v dracut >/dev/null 2>&1; then
+    dracut --force
+  fi
 fi
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload

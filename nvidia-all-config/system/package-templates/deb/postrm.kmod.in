@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+if [ "$1" != remove ] && [ "$1" != purge ]; then
+  exit 0
+fi
+if command -v depmod >/dev/null 2>&1; then
+  for moddir in /lib/modules/*; do
+    [ -d "$moddir" ] || continue
+    kver=${moddir##*/}
+    depmod -a "$kver"
+  done
+fi
+if command -v update-initramfs >/dev/null 2>&1; then
+  update-initramfs -u -k all
+elif command -v dracut >/dev/null 2>&1; then
+  dracut --force
+fi

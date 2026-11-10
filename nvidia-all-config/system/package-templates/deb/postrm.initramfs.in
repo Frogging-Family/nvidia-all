@@ -1,0 +1,8 @@
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+  if command -v update-initramfs >/dev/null 2>&1; then
+    # Let initramfs-tools defer the update through its dpkg trigger.
+    update-initramfs -u
+  elif command -v dracut >/dev/null 2>&1; then
+    dracut --force
+  fi
+fi
