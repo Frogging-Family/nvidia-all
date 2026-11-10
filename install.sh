@@ -84,15 +84,21 @@ msg2 "Detected distro family: ${_NV_DISTRO_FAMILY}"
 _distro_prompt() {
   # If _distro is already set in customization.cfg, skip the prompt
   if [[ -n "${_distro:-}" ]]; then
-    case "${_distro}" in
-      Debian)  _NV_PKG_TARGET="debian" ; return 0 ;;
-      Ubuntu)  _NV_PKG_TARGET="ubuntu" ; return 0 ;;
-      Fedora)  _NV_PKG_TARGET="fedora" ; return 0 ;;
-      Suse)    _NV_PKG_TARGET="suse"   ; return 0 ;;
-      *)
-        warning "_distro='${_distro}' is not a valid value. Valid values: Debian, Ubuntu, Fedora, Suse — prompting..."
-        ;;
-    esac
+    if [[ "${_distro}" = "Debian" ]]; then
+      _NV_PKG_TARGET="debian"
+      return 0
+    elif [[ "${_distro}" = "Ubuntu" ]]; then
+      _NV_PKG_TARGET="ubuntu"
+      return 0
+    elif [[ "${_distro}" = "Fedora" ]]; then
+      _NV_PKG_TARGET="fedora"
+      return 0
+    elif [[ "${_distro}" = "Suse" ]]; then
+      _NV_PKG_TARGET="suse"
+      return 0
+    else
+      warning "_distro='${_distro}' is not a valid value. Valid values: Debian, Ubuntu, Fedora, Suse — prompting..."
+    fi
   fi
 
   # Unknown distros are not supported
@@ -128,19 +134,17 @@ _distro_prompt() {
   esac
   msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
   _prompt_from_array "Debian" "Ubuntu" "Fedora" "Suse"
-  case "${_selected_value}" in
-    "Debian")
-      _NV_PKG_TARGET="debian" ;;
-    "Ubuntu")
-      _NV_PKG_TARGET="ubuntu" ;;
-    "Fedora")
-      _NV_PKG_TARGET="fedora" ;;
-    "Suse")
-      _NV_PKG_TARGET="suse" ;;
-    *)
-      _die "Unsupported distribution. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
-      ;;
-  esac
+  if [[ "${_selected_value}" = "Debian" ]]; then
+    _NV_PKG_TARGET="debian"
+  elif [[ "${_selected_value}" = "Ubuntu" ]]; then
+    _NV_PKG_TARGET="ubuntu"
+  elif [[ "${_selected_value}" = "Fedora" ]]; then
+    _NV_PKG_TARGET="fedora"
+  elif [[ "${_selected_value}" = "Suse" ]]; then
+    _NV_PKG_TARGET="suse"
+  else
+    _die "Unsupported distribution. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
+  fi
 }
 _distro_prompt
 
@@ -159,19 +163,18 @@ _install_dependencies() {
 _install_dependencies
 
 _install_mode() {
-  case "${_NV_PKG_TARGET}" in
-    debian|ubuntu|fedora|suse) ;;
-    *) return 0 ;;
-  esac
+  if [[ "${_NV_PKG_TARGET}" != "debian" && "${_NV_PKG_TARGET}" != "ubuntu" &&
+        "${_NV_PKG_TARGET}" != "fedora" && "${_NV_PKG_TARGET}" != "suse" ]]; then
+    return 0
+  fi
 
   # Build a native distro package
   if [[ -z "${PKG_FORMAT:-}" ]]; then
-    case "${_NV_PKG_TARGET}" in
-      debian|ubuntu)
-        PKG_FORMAT="deb" ;;
-      fedora|suse)
-        PKG_FORMAT="rpm" ;;
-    esac
+    if [[ "${_NV_PKG_TARGET}" = "debian" || "${_NV_PKG_TARGET}" = "ubuntu" ]]; then
+      PKG_FORMAT="deb"
+    elif [[ "${_NV_PKG_TARGET}" = "fedora" || "${_NV_PKG_TARGET}" = "suse" ]]; then
+      PKG_FORMAT="rpm"
+    fi
   fi
   msg2 "Package format: ${PKG_FORMAT}"
 
@@ -181,19 +184,21 @@ _install_mode() {
     _build_utils_package_only="false"
   fi
 
-  case "$PKG_FORMAT" in
-    deb) _deb_install_build_tools ;;
-    rpm) _rpm_install_build_tools ;;
-  esac
+  if [[ "$PKG_FORMAT" = "deb" ]]; then
+    _deb_install_build_tools
+  elif [[ "$PKG_FORMAT" = "rpm" ]]; then
+    _rpm_install_build_tools
+  fi
 }
 _install_mode
 
 # Relocate ELF shared libraries to the distribution-canonical library prefix
 _relocate_elfs() {
-  case "${_NV_PKG_TARGET:-}" in
-    debian|ubuntu) _deb_relocate_elfs "$1" ;;
-    fedora|suse) _rpm_relocate_elfs "$1" ;;
-  esac
+  if [[ "${_NV_PKG_TARGET:-}" = "debian" || "${_NV_PKG_TARGET:-}" = "ubuntu" ]]; then
+    _deb_relocate_elfs "$1"
+  elif [[ "${_NV_PKG_TARGET:-}" = "fedora" || "${_NV_PKG_TARGET:-}" = "suse" ]]; then
+    _rpm_relocate_elfs "$1"
+  fi
 }
 
 # staging utilities
@@ -321,18 +326,27 @@ _stage_package() {
   source "${_where}/nvidia-all-config/prepare"
   source "${_where}/nvidia-all-config/install-common"
 
-  case "${pkgname}" in
-    nvidia-dkms-tkg|nvidia-open-dkms-tkg) _stage_dkms ;;
-    nvidia-utils-tkg) _stage_utils ;;
-    opencl-nvidia-tkg) [[ "${_opencl:-true}" == "true" ]] && _stage_opencl ;;
-    nvidia-settings-tkg) [[ "${_nvsettings:-true}" == "true" ]] && _stage_settings ;;
-    lib32-nvidia-utils-tkg) [[ "${_lib32:-true}" == "true" ]] && _stage_lib32_utils ;;
-    lib32-opencl-nvidia-tkg) [[ "${_opencl:-true}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_opencl ;;
-    flatpak-nvidia-tkg) [[ "${_flatpak:-false}" == "true" ]] && _stage_flatpak ;;
-    lib32-flatpak-nvidia-tkg) [[ "${_flatpak:-false}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_flatpak ;;
-    nvidia-tkg|nvidia-open-tkg) _stage_kmod ;;
-    *) warning "No staging function for ${pkgname} — skipping." ;;
-  esac
+  if [[ "${pkgname}" = "nvidia-dkms-tkg" || "${pkgname}" = "nvidia-open-dkms-tkg" ]]; then
+    _stage_dkms
+  elif [[ "${pkgname}" = "nvidia-utils-tkg" ]]; then
+    _stage_utils
+  elif [[ "${pkgname}" = "opencl-nvidia-tkg" ]]; then
+    [[ "${_opencl:-true}" == "true" ]] && _stage_opencl
+  elif [[ "${pkgname}" = "nvidia-settings-tkg" ]]; then
+    [[ "${_nvsettings:-true}" == "true" ]] && _stage_settings
+  elif [[ "${pkgname}" = "lib32-nvidia-utils-tkg" ]]; then
+    [[ "${_lib32:-true}" == "true" ]] && _stage_lib32_utils
+  elif [[ "${pkgname}" = "lib32-opencl-nvidia-tkg" ]]; then
+    [[ "${_opencl:-true}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_opencl
+  elif [[ "${pkgname}" = "flatpak-nvidia-tkg" ]]; then
+    [[ "${_flatpak:-false}" == "true" ]] && _stage_flatpak
+  elif [[ "${pkgname}" = "lib32-flatpak-nvidia-tkg" ]]; then
+    [[ "${_flatpak:-false}" == "true" && "${_lib32:-true}" == "true" ]] && _stage_lib32_flatpak
+  elif [[ "${pkgname}" = "nvidia-tkg" || "${pkgname}" = "nvidia-open-tkg" ]]; then
+    _stage_kmod
+  else
+    warning "No staging function for ${pkgname} — skipping."
+  fi
 }
 
 # Read a shell assignment from a dkms.conf file without sourcing it
@@ -515,10 +529,11 @@ msg2 "Packages from current run:"
 printf '  %s\n' "${_built_pkg_files[@]}"
 plain ""
 
-case "$PKG_FORMAT" in
-  rpm) _rpm_install_packages ;;
-  deb) _deb_install_packages ;;
-esac
+if [[ "$PKG_FORMAT" = "rpm" ]]; then
+  _rpm_install_packages
+elif [[ "$PKG_FORMAT" = "deb" ]]; then
+  _deb_install_packages
+fi
 exit 0
 
 # vim: set ft=sh ts=2 sw=2 et:

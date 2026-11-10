@@ -331,18 +331,18 @@ _detect_distro() {
   fi
   _NV_DISTRO_ID="${_id:-generic}"
   local _combined="${_id} ${_id_like}"
-  case "${_combined}" in
-    *debian*|*ubuntu*)
-      _NV_DISTRO_FAMILY="debian"  ;;
-    *fedora*|*rhel*|*centos*)
-      _NV_DISTRO_FAMILY="fedora"  ;;
-    *suse*)
-      _NV_DISTRO_FAMILY="suse"    ;;
-    *arch*|*manjaro*|*endeavouros*|*cachyos*)
-      _NV_DISTRO_FAMILY="arch"    ;;
-    *)
-      _NV_DISTRO_FAMILY="generic" ;;
-  esac
+  if [[ "${_combined}" == *debian* || "${_combined}" == *ubuntu* ]]; then
+    _NV_DISTRO_FAMILY="debian"
+  elif [[ "${_combined}" == *fedora* || "${_combined}" == *rhel* || "${_combined}" == *centos* ]]; then
+    _NV_DISTRO_FAMILY="fedora"
+  elif [[ "${_combined}" == *suse* ]]; then
+    _NV_DISTRO_FAMILY="suse"
+  elif [[ "${_combined}" == *arch* || "${_combined}" == *manjaro* ||
+          "${_combined}" == *endeavouros* || "${_combined}" == *cachyos* ]]; then
+    _NV_DISTRO_FAMILY="arch"
+  else
+    _NV_DISTRO_FAMILY="generic"
+  fi
 }
 
 # Older driver series
@@ -397,18 +397,14 @@ _set_driver_version() {
 
   # Resolve 'latest' alias
   if [[ "${_driver_version}" = "latest" ]]; then
-    case "${_driver_branch:-}" in
-      regular)
-        _driver_version="$(_ver_from_entry "${_DRIVERS[${_DRIVER_LATEST_IDX}]}")"
-        ;;
-      vulkandev)
-        _driver_version="${_vulkandev_nvidia}"
-        ;;
-      *)
-        error '"latest" driver specified without valid _driver_branch. Set _driver_branch in customization.cfg.'
-        return 1
-        ;;
-    esac
+    if [[ "${_driver_branch:-}" = "regular" ]]; then
+      _driver_version="$(_ver_from_entry "${_DRIVERS[${_DRIVER_LATEST_IDX}]}")"
+    elif [[ "${_driver_branch:-}" = "vulkandev" ]]; then
+      _driver_version="${_vulkandev_nvidia}"
+    else
+      error '"latest" driver specified without valid _driver_branch. Set _driver_branch in customization.cfg.'
+      return 1
+    fi
     echo "_driver_version='${_driver_version}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
     echo "_driver_branch='${_driver_branch}'"   >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
     return 0
@@ -441,11 +437,14 @@ _set_driver_version() {
   _e="${_DRIVERS[${_selected_index}]}"
   local _br="${_e##*|}"
 
-  case "${_br}" in
-    older)  _select_older_driver  ;;
-    custom) _select_custom_driver ;;
-    *)      _driver_version="$(_ver_from_entry "${_e}")"; _driver_branch="${_br}" ;;
-  esac
+  if [[ "${_br}" = "older" ]]; then
+    _select_older_driver
+  elif [[ "${_br}" = "custom" ]]; then
+    _select_custom_driver
+  else
+    _driver_version="$(_ver_from_entry "${_e}")"
+    _driver_branch="${_br}"
+  fi
 
   echo "_driver_version='${_driver_version}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
   echo "_driver_branch='${_driver_branch}'"   >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
@@ -580,17 +579,13 @@ _runfile_source() {
 _tarball_source() {
   local _ver="$1" _srcbase="$2"
 
-  case "${_srcbase}" in
-    NVIDIA-kernel-module-source)
-      echo "${_srcbase}-${_ver}.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/${_srcbase}-${_ver}.tar.xz"
-      ;;
-    open-gpu-kernel-modules)
-      echo "${_srcbase}-${_ver}.tar.gz::https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/${_ver}"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  if [[ "${_srcbase}" = "NVIDIA-kernel-module-source" ]]; then
+    echo "${_srcbase}-${_ver}.tar.xz::https://download.nvidia.com/XFree86/NVIDIA-kernel-module-source/${_srcbase}-${_ver}.tar.xz"
+  elif [[ "${_srcbase}" = "open-gpu-kernel-modules" ]]; then
+    echo "${_srcbase}-${_ver}.tar.gz::https://codeload.github.com/NVIDIA/open-gpu-kernel-modules/tar.gz/refs/tags/${_ver}"
+  else
+    return 1
+  fi
 }
 
 _url_status() {
@@ -1252,14 +1247,12 @@ _dkms_prep() {
   local -a _modules=("nvidia" "nvidia-uvm" "nvidia-modeset" "nvidia-drm" "nvidia-peermem" "nvidia-ib-peermem-stub")
   local _pkg_name="nvidia" _dest _idx
 
-  case "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" in
-    debian|ubuntu)
-      _dest="/updates/dkms"
-      ;;
-    *)
-      _dest="/kernel/drivers/video"
-      ;;
-  esac
+  if [[ "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "debian" ||
+        "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "ubuntu" ]]; then
+    _dest="/updates/dkms"
+  else
+    _dest="/kernel/drivers/video"
+  fi
 
   # update existing key or append
   if grep -q "^PACKAGE_NAME=" "${_conf}"; then
