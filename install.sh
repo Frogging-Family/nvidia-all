@@ -400,7 +400,7 @@ _pkg_template_path() {
 _render_pkg_template() {
   local _template="$1" _content _include _marker _path _snippet
   local _tmpl_kernels="${_package_kernels:-}"
-  if [[ "${_dkms:-false}" == true && -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+  if [[ "${_dkms:-false}" == true && -z "${_kerneloverride:-}" ]]; then
     _tmpl_kernels=""
   fi
   _content="$(<"$(_pkg_template_path "${_template}")")"
@@ -450,7 +450,7 @@ _append_pkg_template() {
 # Verify every selected kernel before reporting a completed DKMS installation.
 _verify_dkms_install() {
   local _verify_kernels="${_package_kernels:-}" _build _kernel _status
-  if [[ -z "${_kerneloverride:-}" && -z "${_target_kernel:-}" ]]; then
+  if [[ -z "${_kerneloverride:-}" ]]; then
     _verify_kernels=""
     for _build in /usr/lib/modules/*/build; do
       [[ -d "${_build}" ]] || continue
