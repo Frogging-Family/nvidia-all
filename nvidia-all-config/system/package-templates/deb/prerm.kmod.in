@@ -1,11 +1,9 @@
 #!/bin/sh
 set -e
-case "$1" in
-  remove|upgrade|deconfigure)
-    for moddir in /lib/modules/*; do
-      [ -d "$moddir" ] || continue
-      kver=${moddir##*/}
-      depmod -a "$kver"
-    done
-    ;;
-esac
+if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+  for moddir in /lib/modules/*; do
+    [ -d "$moddir" ] || continue
+    kver=${moddir##*/}
+    depmod -a "$kver"
+  done
+fi

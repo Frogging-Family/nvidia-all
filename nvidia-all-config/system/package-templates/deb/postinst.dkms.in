@@ -5,16 +5,15 @@ DKMS_VERSION=@PKGVER@
 
 @KERNEL_FUNCTIONS@
 
-case "$1" in
-  configure|abort-upgrade|abort-remove|abort-deconfigure)
-    if [ -f /etc/dkms/no-autoinstall ]; then
-      echo "WARNING: DKMS autoinstall is disabled by /etc/dkms/no-autoinstall." >&2
-      exit 0
-    fi
-    # dkms install adds and builds missing modules, including on error recovery.
-    _nv_install_dkms
-    if [ -d /run/systemd/system ]; then
-      systemctl daemon-reload
-    fi
-    ;;
-esac
+if [ "$1" = configure ] || [ "$1" = abort-upgrade ] ||
+   [ "$1" = abort-remove ] || [ "$1" = abort-deconfigure ]; then
+  if [ -f /etc/dkms/no-autoinstall ]; then
+    echo "WARNING: DKMS autoinstall is disabled by /etc/dkms/no-autoinstall." >&2
+    exit 0
+  fi
+  # dkms install adds and builds missing modules, including on error recovery.
+  _nv_install_dkms
+  if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+  fi
+fi

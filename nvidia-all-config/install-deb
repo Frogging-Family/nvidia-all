@@ -193,18 +193,14 @@ _deb_postinst() {
 _deb_prerm() {
   local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}"
 
-  case "${_mode}" in
-    dkms)
-      _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" \
-        _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.dkms.in"
-      ;;
-    kmod)
-      _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.kmod.in"
-      ;;
-    *)
-      return 0
-      ;;
-  esac
+  if [[ "${_mode}" = "dkms" ]]; then
+    _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" \
+      _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.dkms.in"
+  elif [[ "${_mode}" = "kmod" ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.kmod.in"
+  else
+    return 0
+  fi
 
   chmod 755 "${_debdir}/DEBIAN/prerm"
 }

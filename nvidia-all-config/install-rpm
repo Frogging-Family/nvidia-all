@@ -10,37 +10,33 @@ _rpm_install_prerequisites() {
 _rpm_install_dependencies() {
   local -a _kernels=("$@")
 
-  case "${_NV_PKG_TARGET}" in
-    fedora)
-      local _kver
-      for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
-        sudo dnf install -y "kernel-devel-${_kver}"
-      done
+  if [[ "${_NV_PKG_TARGET}" = "fedora" ]]; then
+    local _kver
+    for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
+      sudo dnf install -y "kernel-devel-${_kver}"
+    done
 
-      sudo dnf install -y kernel-headers dkms gcc gcc-c++ make bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      ;;
-    suse)
-      local _kver
-      for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
-        sudo zypper install -y "kernel-devel-${_kver}"
-      done
+    sudo dnf install -y kernel-headers dkms gcc gcc-c++ make bsdtar libarchive patchelf libXext-devel libglvnd-devel curl pciutils mokutil
+  elif [[ "${_NV_PKG_TARGET}" = "suse" ]]; then
+    local _kver
+    for _kver in "${_kernels[@]+"${_kernels[@]}"}"; do
+      sudo zypper install -y "kernel-devel-${_kver}"
+    done
 
-      sudo zypper install -y dkms gcc gcc-c++ make libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
-      ;;
-  esac
+    sudo zypper install -y dkms gcc gcc-c++ make libarchive-tools patchelf libXext-devel libglvnd-devel curl pciutils mokutil
+  fi
 }
 
 _rpm_install_build_tools() {
   if ! command -v rpmbuild &>/dev/null; then
     msg2 "rpmbuild not found — installing required build tools..."
-    case "${_NV_PKG_TARGET}" in
-      fedora)
-        sudo dnf install rpmdevtools ;;
-      suse)
-        sudo zypper install rpm-build ;;
-      *)
-        _die "Don't know how to install rpmbuild on this system." ;;
-    esac
+    if [[ "${_NV_PKG_TARGET}" = "fedora" ]]; then
+      sudo dnf install rpmdevtools
+    elif [[ "${_NV_PKG_TARGET}" = "suse" ]]; then
+      sudo zypper install rpm-build
+    else
+      _die "Don't know how to install rpmbuild on this system."
+    fi
   fi
 }
 
@@ -239,25 +235,22 @@ _rpm_builder() {
 _rpm_install_packages() {
   _rpm_install_cmd=(sudo rpm -Uvh --force --nodeps "${_built_pkg_files[@]}")
   _rpm_reinstall_cmd=()
-  case "${_NV_PKG_TARGET:-}" in
-    fedora)
-      _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_built_pkg_files[@]}")
-      # DNF install skips identical packages, including a failed posttrans.
-      _rpm_reinstall_files=()
-      for _pkgfile in "${_built_pkg_files[@]}"; do
-        _rpm_nevra="$(rpm -qp --queryformat '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "${_pkgfile}")"
-        if rpm -q --quiet "${_rpm_nevra}"; then
-          _rpm_reinstall_files+=("${_pkgfile}")
-        fi
-      done
-      if (( ${#_rpm_reinstall_files[@]} )); then
-        _rpm_reinstall_cmd=(sudo dnf reinstall --nogpgcheck --allowerasing "${_rpm_reinstall_files[@]}")
+  if [[ "${_NV_PKG_TARGET:-}" = "fedora" ]]; then
+    _rpm_install_cmd=(sudo dnf install --nogpgcheck --allowerasing "${_built_pkg_files[@]}")
+    # DNF install skips identical packages, including a failed posttrans.
+    _rpm_reinstall_files=()
+    for _pkgfile in "${_built_pkg_files[@]}"; do
+      _rpm_nevra="$(rpm -qp --queryformat '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "${_pkgfile}")"
+      if rpm -q --quiet "${_rpm_nevra}"; then
+        _rpm_reinstall_files+=("${_pkgfile}")
       fi
-      ;;
-    suse)
-      _rpm_install_cmd=(sudo zypper --no-gpg-checks install --force -y "${_built_pkg_files[@]}")
-      ;;
-  esac
+    done
+    if (( ${#_rpm_reinstall_files[@]} )); then
+      _rpm_reinstall_cmd=(sudo dnf reinstall --nogpgcheck --allowerasing "${_rpm_reinstall_files[@]}")
+    fi
+  elif [[ "${_NV_PKG_TARGET:-}" = "suse" ]]; then
+    _rpm_install_cmd=(sudo zypper --no-gpg-checks install --force -y "${_built_pkg_files[@]}")
+  fi
 
   _rpm_install_hint=""
   _arg=""
