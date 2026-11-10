@@ -201,6 +201,9 @@ _frogminer_bootstrap() {
   fi
 
   source "${1:-${_where}/BIG_UGLY_FROGMINER}"
+  if [[ "${_dkms:-}" != "true" && "${_dkms:-}" != "false" ]]; then
+    _die "_dkms must be true or false. Leave it empty for interactive selection."
+  fi
 }
 
 _prompt_from_array() {
@@ -1459,10 +1462,8 @@ _nv_srcprep() {
         cp -a "${_open_srcdir}" "${_open_kernel_srcdir}"
         _nv_open_srcprep "${_open_kernel_srcdir}" "${_kernel}"
       done
-    fi
-
-    # DKMS retains one shared source tree, also when building both variants.
-    if [[ "${_dkms}" = "true" || "${_dkms}" = "full" ]]; then
+    else
+      # DKMS retains one shared source tree.
       rm -rf -- "${_open_dkms_srcdir}"
       cp -a "${_open_srcdir}" "${_open_dkms_srcdir}"
       _nv_open_srcprep "${_open_dkms_srcdir}" "${_kernels[@]}"

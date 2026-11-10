@@ -144,11 +144,6 @@ _distro_prompt() {
 }
 _distro_prompt
 
-# Package targets disallow building/installing DKMS and prebuilt module variants together
-if [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu|fedora|suse)$ ]] && [[ "${_dkms:-false}" == "full" ]]; then
-  _die "_dkms=full is not supported on ${_NV_PKG_TARGET}. Choose exactly one module variant: _dkms=true (DKMS) or _dkms=false (prebuilt)."
-fi
-
 # Install build dependencies
 _install_dependencies() {
   msg2 "Installing build dependencies for ${_NV_PKG_TARGET}..."
