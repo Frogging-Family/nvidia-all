@@ -8,11 +8,7 @@ srcdir="${_where}"
 
 # Command used for superuser privileges (`sudo`, `doas`, `su`)
 if [[ ! -x "$(command -v sudo)" ]]; then
-  if [[ -x "$(command -v doas)" ]]; then
-    sudo() { doas "$@"; }
-  elif [[ -x "$(command -v su)" && -x "$(command -v xargs)" ]]; then
-    sudo() { echo "$@" | xargs -I {} su -c '{}'; }
-  fi
+  sudo() { "${_where}/nvidia-all-config/run-root" "$@"; }
 fi
 
 msg2() {
@@ -272,36 +268,22 @@ _stage_kmod() {
   mapfile -t _kernels < <(_detect_kernels)
   local _kernel
 
-  install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
-
   for _kernel in "${_kernels[@]}"; do
     msg2 "Staging kernel modules for ${_kernel}..."
 
     # Open-source modules.
     if [[ "${_open_source_modules:-}" = "true" ]]; then
-      [[ -d "${srcdir}/open-kmods/${_kernel}" ]] || { error "Missing open kmods for ${_kernel}"; return 1; }
-
-      install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${srcdir}/open-kmods/${_kernel}"/*.ko
-
       # Force module to load even on unsupported GPUs
       mkdir -p "${pkgdir}/usr/lib/modprobe.d"
       echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
         install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
     # Closed-source modules.
     else
-      install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      local _peer_module
-      for _peer_module in nvidia-peermem nvidia-ib-peermem-stub; do
-        if [[ -e "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]]; then
-          install -D -m644 "${srcdir}/${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-        fi
-      done
-
       # Enable NVIDIA DRM KMS for proprietary modules.
       _stage_closed_drm_kms
     fi
 
-    _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+    _install_kernel_modules "${_kernel}"
   done
 }
 
@@ -433,7 +415,6 @@ _render_pkg_template() {
     REMOVE_FUNCTIONS:common/kmod-remove.in \
     SERVICE_FUNCTIONS:common/nvidia-services.in \
     KMOD_POSTINST:common/kmod-postinst.in \
-    SECURE_BOOT:common/secure-boot-autodetect.in \
     FEDORA_DKMS_POSTTRANS:rpm/dkms-fedora-posttrans.in \
     FEDORA_DKMS_PREUN:rpm/dkms-fedora-preun.in \
     FEDORA_KMOD_POSTTRANS:rpm/kmod-fedora-scriptlets.in \
@@ -442,15 +423,9 @@ _render_pkg_template() {
     _marker="@${_include%%:*}@"
     [[ "${_content}" == *"${_marker}"* ]] || continue
     _path="${_include#*:}"
-    case "${_include%%:*}" in
-      SECURE_BOOT)
-        case "${_module_signing:-autodetect}" in
-          false) _path="" ;;
-          true) _path="common/secure-boot-forced.in" ;;
-        esac
-        ;;
-      FEDORA_*) [[ "${_NV_PKG_TARGET:-}" == fedora ]] || _path="" ;;
-    esac
+    if [[ "${_include}" == FEDORA_* && "${_NV_PKG_TARGET:-}" != fedora ]]; then
+      _path=""
+    fi
     _snippet=""
     [[ -z "${_path}" ]] || _snippet="$(_render_pkg_template "${_path}")"
     _content="${_content//"${_marker}"/"${_snippet}"}"

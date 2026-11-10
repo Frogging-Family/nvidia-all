@@ -1,6 +1,0 @@
-for kver in $kernels; do
-  /usr/lib/nvidia-tkg/module-sign --required "$kver" || {
-    echo "ERROR: NVIDIA module signing failed for $kver." >&2
-    exit 1
-  }
-done

@@ -203,29 +203,6 @@ _frogminer_bootstrap() {
   source "${1:-${_where}/BIG_UGLY_FROGMINER}"
 }
 
-# Compress .ko modules in-place according to kernel config. Uses zstd by default if supported, then falls back to xz or gzip.
-_compress_modules_for_kernel() {
-  local -a _compress_cmd=()
-
-  if [[ -r "/usr/lib/modules/$1/build/.config" ]]; then
-    if grep -q '^CONFIG_MODULE_COMPRESS_ZSTD=y' "/usr/lib/modules/$1/build/.config"; then
-      _compress_cmd=(zstd -19 --rm -f -q)
-    elif grep -q '^CONFIG_MODULE_COMPRESS_XZ=y' "/usr/lib/modules/$1/build/.config"; then
-      _compress_cmd=(xz)
-    elif grep -q '^CONFIG_MODULE_COMPRESS_GZIP=y' "/usr/lib/modules/$1/build/.config"; then
-      _compress_cmd=(gzip -n)
-    elif ! grep -q '^CONFIG_MODULE_COMPRESS=y' "/usr/lib/modules/$1/build/.config"; then
-      return 0
-    fi
-  fi
-
-  if ((${#_compress_cmd[@]})); then
-    find "$2" -name '*.ko' -exec "${_compress_cmd[@]}" {} + && return 0
-  fi
-
-  find "$2" -name '*.ko' -exec zstd -19 --rm -f -q {} + 2>/dev/null || find "$2" -name '*.ko' -exec xz {} + 2>/dev/null || find "$2" -name '*.ko' -exec gzip -n {} +
-}
-
 _prompt_from_array() {
   # Prompt from array; set _default_index for default on empty input.
   # If _set_default="true", auto-selects _default_index without user interaction.
@@ -978,6 +955,86 @@ _build_flags() {
   fi
 }
 
+_module_signing_pair_exists() {
+  if [[ -f "$1" && -f "$2" ]]; then
+    return 0
+  fi
+  "${_where}/nvidia-all-config/run-root" test -f "$1" &&
+    "${_where}/nvidia-all-config/run-root" test -f "$2"
+}
+
+# Kbuild signs during modules_install; run-root handles protected keys.
+_module_signing_flags() {
+  MODULE_SIGNING_FLAGS=(CONFIG_MODULE_SIG_ALL=)
+  local _kernel="$1"
+  if [[ "${_module_signing:-autodetect}" = false ]]; then
+    return
+  fi
+
+  local _kbuild="/usr/lib/modules/${_kernel}/build"
+  if ! grep -q 'CONFIG_MODULE_SIG=y' "${_kbuild}/.config" 2>/dev/null; then
+    [[ "${_module_signing:-autodetect}" != true ]] || _die "Kernel ${_kernel} does not support module signing."
+    return
+  fi
+
+  local _key="${_module_signing_key:-}" _cert="${_module_signing_cert:-}"
+  if [[ -z "${_key}" && -z "${_cert}" ]]; then
+    _key=$(sed -n 's/^CONFIG_MODULE_SIG_KEY="\([^"]*\)"$/\1/p' "${_kbuild}/.config")
+    [[ -n "${_key}" ]] || _key=certs/signing_key.pem
+    [[ "${_key}" = /* ]] || _key="${_kbuild}/${_key}"
+    _cert="${_kbuild}/certs/signing_key.x509"
+    local _pair
+    for _pair in \
+      "${_key}:${_cert}" \
+      "${_kbuild}/certs/signing_key.pem:${_kbuild}/certs/signing_key.x509" \
+      "/etc/pki/akmods/private/private_key.priv:/etc/pki/akmods/certs/public_key.der" \
+      "/var/lib/dkms/mok.key:/var/lib/dkms/mok.pub" \
+      "/var/lib/shim-signed/mok/MOK.priv:/var/lib/shim-signed/mok/MOK.der"; do
+      if _module_signing_pair_exists "${_pair%%:*}" "${_pair#*:}"; then
+        _key="${_pair%%:*}"
+        _cert="${_pair#*:}"
+        break
+      fi
+    done
+  fi
+
+  if [[ "${_module_signing:-autodetect}" != true ]] && ! _module_signing_pair_exists "${_key}" "${_cert}"; then
+    msg2 "Skipping module signing for ${_kernel}: no key/certificate pair found."
+    return
+  fi
+
+  local _hash _arg _sign_cmd=""
+  _hash=$(sed -n 's/^CONFIG_MODULE_SIG_HASH="\([^"]*\)"$/\1/p' "${_kbuild}/.config")
+  # Quote paths for the shell and escape dollar signs for make.
+  for _arg in "${_where}/nvidia-all-config/run-root" "${_kbuild}/scripts/sign-file" "${_hash}" "${_key}" "${_cert}"; do
+    _arg="${_arg//\'/\'\\\'\'}"
+    _arg="${_arg//\$/\$\$}"
+    _sign_cmd+="${_sign_cmd:+ }'${_arg}'"
+  done
+  _sign_cmd+=" \"\$@\""
+  # External-module signing failures must abort instead of Kbuild's default || true.
+  MODULE_SIGNING_FLAGS=(CONFIG_MODULE_SIG_ALL=y "cmd_sign=${_sign_cmd}")
+  msg2 "Module signing enabled for ${_kernel}."
+  echo "[INFO] Module signing enabled for ${_kernel}." >> "${_where}/logs/prepare.log.txt"
+}
+
+_install_kernel_modules() {
+  local _kernel="$1"
+  local _module_src="${srcdir}/${_pkg}/kernel-${_kernel}"
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    _module_src="${srcdir}/${_srcbase}-${pkgver}-${_kernel}/kernel-open"
+  fi
+  _build_flags "${_kernel}"
+  _module_signing_flags "${_kernel}"
+  ( set -o pipefail
+    make -j1 -C "${_module_src}" "${BUILD_FLAGS[@]}" \
+      IGNORE_CC_MISMATCH=yes IGNORE_XEN_PRESENCE=1 IGNORE_PREEMPT_RT_PRESENCE=1 \
+      KERNEL_UNAME="${_kernel}" INSTALL_MOD_PATH="${pkgdir}/usr" INSTALL_MOD_DIR=extramodules \
+      INSTALL_MOD_STRIP=1 "${MODULE_SIGNING_FLAGS[@]}" DEPMOD=/doesnt/exist \
+      modules_install 2>&1 | tee -a "${_where}/logs/build.log"
+  ) || _die "Could not install NVIDIA modules for ${_kernel}."
+}
+
 # _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
 # TYPE: open | dkms | closed
 #   open   — optional third argument, or ${srcdir}/${_srcbase}-${pkgver}
@@ -1541,12 +1598,6 @@ _nv_build() {
     return 0
   fi
 
-  if [[ "${_open_source_modules}" = "true" ]]; then
-    # per-kernel output dirs
-    rm -rf "${srcdir}/open-kmods"
-    mkdir -p "${srcdir}/open-kmods"
-  fi
-
   local _kernel
   local -a _kernels
   mapfile -t _kernels < <(_detect_kernels)
@@ -1578,12 +1629,6 @@ _nv_build() {
       return "${_build_status}"
     }
     echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
-
-    if [[ "${_open_source_modules}" = "true" ]]; then
-      local _open_kmods_dir="${srcdir}/open-kmods/${_kernel}"
-      mkdir -p "${_open_kmods_dir}"
-      install -m644 -t "${_open_kmods_dir}" kernel-open/*.ko
-    fi
   done
 }
 

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+unset LD_PRELOAD LD_LIBRARY_PATH
+
+if type -P sudo >/dev/null; then
+  exec sudo "$@"
+elif type -P doas >/dev/null; then
+  exec doas "$@"
+else
+  _command=""
+  for _arg in "$@"; do
+    _arg="${_arg//\'/\'\\\'\'}"
+    _command+="'${_arg}' "
+  done
+  exec su -c "${_command}"
+fi
