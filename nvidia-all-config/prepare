@@ -44,6 +44,7 @@ _eol_nvidia=(
 _deprecated_config_vars=(
   "_modprobe_mobile"
   "_logging_use_script"
+  "_target_kernel"
 )
 
 # Check if the driver version supports open source modules.
@@ -855,43 +856,34 @@ _detect_kernels() {
   mkdir -p "${_where}/logs"
   printf '\n' >> "${_where}/logs/prepare.log.txt"
 
-  # resolve _target_kernel package name to kernel version string
-  if [[ -n "${_target_kernel:-}" ]]; then
-    local _mod_dir _pkgbase_file _ver_file _resolved_kernel=""
-    for _mod_dir in /usr/lib/modules/*/; do
-      _pkgbase_file="${_mod_dir}pkgbase"
-      if [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_target_kernel}" ]]; then
-        _ver_file="${_mod_dir}build/version"
-        [[ -f "${_ver_file}" ]] || _ver_file="${_mod_dir}extramodules/version"
-        if [[ -f "${_ver_file}" ]]; then
-          _resolved_kernel="$(cat "${_ver_file}")"
-          break
-        fi
+  # Accept either a kernel package name or a full kernel release.
+  if [[ -n "${_kerneloverride:-}" ]]; then
+    local _mod_dir _pkgbase_file
+    for _mod_dir in /usr/lib/modules/*; do
+      [[ -d "${_mod_dir}/build" ]] || continue
+      _pkgbase_file="${_mod_dir}/pkgbase"
+      if [[ "${_mod_dir##*/}" = "${_kerneloverride}" ]] ||
+         [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_kerneloverride}" ]]; then
+        _candidates=("${_mod_dir##*/}")
+        break
       fi
     done
-    if [[ -n "${_resolved_kernel}" ]]; then
-      _kerneloverride="${_resolved_kernel}"
-      msg2 "_target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >&2
-      echo "[INFO] _target_kernel '${_target_kernel}' resolved to: ${_kerneloverride}" >> "${_where}/logs/prepare.log.txt"
+    if [[ ${#_candidates[@]} -gt 0 ]]; then
+      msg2 "_kerneloverride '${_kerneloverride}' resolved to: ${_candidates[0]}" >&2
+      echo "[INFO] _kerneloverride '${_kerneloverride}' resolved to: ${_candidates[0]}" >> "${_where}/logs/prepare.log.txt"
     else
-      error "_target_kernel: no installed kernel found for package '${_target_kernel}'. Is it installed with its headers?" >&2
-      echo "[ERROR] _target_kernel: no installed kernel found for package '${_target_kernel}'." >> "${_where}/logs/prepare.log.txt"
+      error "_kerneloverride: no installed kernel with headers found for '${_kerneloverride}'." >&2
+      echo "[ERROR] _kerneloverride: no installed kernel with headers found for '${_kerneloverride}'." >> "${_where}/logs/prepare.log.txt"
       return 1
     fi
-  fi
-
-  if [[ -n "${_kerneloverride:-}" ]]; then
-    _candidates=("${_kerneloverride}")
   else
     if [[ ! -t 0 ]]; then
       while IFS= read -r _path; do
-        case "${_path}" in
-          usr/lib/modules/*/vmlinuz | usr/lib/modules/*/extramodules/*)
-            _kver="${_path#usr/lib/modules/}"
-            _kver="${_kver%%/*}"
-            _candidates+=("${_kver}")
-            ;;
-        esac
+        if [[ "${_path}" == usr/lib/modules/*/vmlinuz || "${_path}" == usr/lib/modules/*/extramodules/* ]]; then
+          _kver="${_path#usr/lib/modules/}"
+          _kver="${_kver%%/*}"
+          _candidates+=("${_kver}")
+        fi
       done
     fi
 
