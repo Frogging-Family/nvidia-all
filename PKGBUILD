@@ -279,18 +279,7 @@ nvidia-utils-tkg() {
   fi
 
   if [[ "${_dkms}" != "true" && "${_disable_libalpm_hook}" != "true" ]]; then
-    if [[ "${_module_signing:-autodetect}" = "true" ]] ||
-      {
-        [[ "${_module_signing:-autodetect}" = "autodetect" ]] &&
-          command -v mokutil >/dev/null 2>&1 &&
-          mokutil --sb-state 2>/dev/null | grep -qi 'secure boot enabled'
-      }; then
-      msg2 "Secure Boot is active or module signing is enabled — installing module signing and initramfs update hook"
-      install -Dm755 "${_where}/nvidia-all-config/module-sign" "${pkgdir}/usr/lib/nvidia-tkg/module-sign"
-      install -Dm644 "${_where}/nvidia-all-config/system/nvidia-sign.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-    else
-      install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
-    fi
+    install -Dm644 "${_where}/nvidia-all-config/system/nvidia.hook" "${pkgdir}/usr/share/libalpm/hooks/nvidia.hook"
   fi
 }
 source /dev/stdin <<EOF
@@ -404,26 +393,14 @@ if [[ "${_dkms}" = "false" ]] || [[ "${_dkms}" = "full" ]]; then
       pkgdesc="Open NVIDIA kernel modules for ${_kernel_pkgname}"
       conflicts+=("${_kernel_pkgname}-${_branchname}-tkg")
       msg2 "Installing open NVIDIA modules for kernel: ${_kernel}"
-      install -Dt "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -m644 "${srcdir}/open-kmods/${_kernel}"/*.ko
-      if grep -q "CONFIG_CC_IS_CLANG=y" /usr/lib/modules/${_kernel}/build/.config 2>/dev/null; then
-        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec llvm-strip --strip-debug {} +
-      else
-        find "${pkgdir}/usr/lib/modules/${_kernel}/extramodules" -name '*.ko' -exec strip --strip-debug {} +
-      fi
       install -Dm644 "${_srcbase}-${pkgver}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}"
     else
       pkgdesc="NVIDIA kernel modules for ${_kernel_pkgname}"
       conflicts+=("${_kernel_pkgname}-${_branchname}-open-tkg")
       msg2 "Installing NVIDIA modules for kernel: ${_kernel}"
-      install -D -m644 "${_pkg}/kernel-${_kernel}/"nvidia{,-drm,-modeset,-uvm}.ko -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      local _peer_module
-      for _peer_module in nvidia-peermem nvidia-ib-peermem-stub; do
-        [[ -e "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" ]] && \
-          install -D -m644 "${_pkg}/kernel-${_kernel}/${_peer_module}.ko" -t "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
-      done
       install -Dm644 "${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
     fi
-    _compress_modules_for_kernel "${_kernel}" "${pkgdir}/usr/lib/modules/${_kernel}/extramodules"
+    _install_kernel_modules "${_kernel}"
   }
   for _module_pkgname in "${!_module_kernels[@]}"; do
 source /dev/stdin <<EOF

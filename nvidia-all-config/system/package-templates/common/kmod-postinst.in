@@ -5,8 +5,6 @@ for kver in $kernels; do
   depmod -a "$kver"
 done
 
-@SECURE_BOOT@
-
 for kver in $kernels; do
   _nv_refresh_initramfs "$kver"
 done

@@ -3,6 +3,7 @@
 We've added installer support for multiple distributions, but it is still in an early stage. If you encounter any issues or have suggestions for improvement, please report them. If the driver misbehaves, make sure you know how to revert to your distro's packaged driver. See [Uninstall and revert](#uninstall-and-revert) below.
 
 Tested:
+
 - Fedora 44 - kernel 7.x, NVIDIA 615 series (DKMS/KMOD)
 - Ubuntu 26.04 - kernel 7.x, NVIDIA 615 series (DKMS/KMOD)
 
@@ -34,7 +35,8 @@ and other customization features.
     - [DKMS build stopped working after a kernel update](#dkms-build-stopped-working-after-a-kernel-update)
     - [GCC/Clang mismatch warning](#gccclang-mismatch-warning)
     - [Optimus/hybrid laptops](#optimushybrid-laptops)
-    - [Secure Boot enabled](#secure-boot-enabled)
+    - [Module signing](#module-signing)
+    - [Secure Boot](#secure-boot)
     - [Download fails](#download-fails)
 
 ## What nvidia-all adds
@@ -239,10 +241,15 @@ kernel and not mixed between different compilers. Align your toolchain or rebuil
 Hardware and OEM implementations vary. If needed, use dedicated hybrid tooling
 and consult NVIDIA PRIME render offload documentation.
 
-### Secure Boot enabled
-Secure Boot must be configured on your system. See your distribution’s documentation for setup instructions.
-For non-DKMS packages, `_module_signing` signs the NVIDIA modules in `extramodules` using an existing private key and certificate. The target kernel must trust that certificate; signing alone does not establish trust. nvidia-all does not create signing keys or enroll certificates in MOK. DKMS packages use the system's DKMS signing configuration independently of this option.
-If the driver fails to load, test once with Secure Boot disabled.
+### Module signing
+
+For non-DKMS packages, `_module_signing` signs modules through Kbuild.
+With `true` or `autodetect`, signing uses `sudo` to read protected keys. Enter your password if prompted.
+The target kernel must trust the certificate.
+
+### Secure Boot
+
+If Secure Boot is enabled, and driver fails to load, test once with Secure Boot disabled. See your distribution’s documentation for setup instructions.
 
 ### Download fails
 
