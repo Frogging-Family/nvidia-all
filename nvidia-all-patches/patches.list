@@ -413,6 +413,11 @@ open     580/kernel-7.0.patch                                                   
 dkms     580/kernel-7.0.patch                                                          7.0      7.0.9999    580          580.142      1      kernel-dkms
 closed   580/kernel-7.0.patch                                                          7.0      7.0.9999    580          580.142      1      .
 
+# Linux 7.4 DRM fbdev header and atomic state compatibility.
+open     580/kernel-7.4.patch                                                          7.4      7.4.9999    580          580.9999     1      kernel-open
+dkms     580/kernel-7.4.patch                                                          7.4      7.4.9999    580          580.9999     1      kernel-dkms
+closed   580/kernel-7.4.patch                                                          7.4      7.4.9999    580          580.9999     1      .
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SERIES 590–595
