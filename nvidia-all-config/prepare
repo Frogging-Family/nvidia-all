@@ -1020,7 +1020,7 @@ _install_kernel_modules() {
     make -j1 -C "${_module_src}" "${BUILD_FLAGS[@]}" \
       IGNORE_CC_MISMATCH=yes IGNORE_XEN_PRESENCE=1 IGNORE_PREEMPT_RT_PRESENCE=1 \
       KERNEL_UNAME="${_kernel}" INSTALL_MOD_PATH="${pkgdir}/usr" INSTALL_MOD_DIR=extramodules \
-      INSTALL_MOD_STRIP=1 "${MODULE_SIGNING_FLAGS[@]}" DEPMOD=/doesnt/exist \
+      INSTALL_MOD_STRIP=1 "${MODULE_SIGNING_FLAGS[@]}" DEPMOD=true \
       modules_install 2>&1 | tee -a "${_where}/logs/build.log"
   ) || _die "Could not install NVIDIA modules for ${_kernel}."
 }
