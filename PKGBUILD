@@ -113,11 +113,10 @@ makedepends=('patchelf' 'pciutils')
 if [[ "${_nvsettings:-true}" = "true" ]]; then
   makedepends+=('jansson' 'gtk3' 'libxv' 'libvdpau' 'libxext' 'vulkan-headers')
 fi
-optdepends=('linux-lts-headers: Build the module for LTS Arch kernel'
-            'clang: Required when kernel was built with Clang'
+optdepends=('clang: Required when kernel was built with Clang'
             'llvm: Required when kernel was built with Clang (llvm-strip)'
             'lld: Required when kernel was built with Clang (ld.lld)')
-options=('!strip')
+options=('!strip' '!debug')
 
 # Installer name
 _pkg="NVIDIA-Linux-x86_64-${pkgver}"
