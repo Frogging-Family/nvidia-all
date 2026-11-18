@@ -398,7 +398,7 @@ if [[ "${_dkms}" = "false" ]]; then
       msg2 "Installing NVIDIA modules for kernel: ${_kernel}"
       install -Dm644 "${_pkg}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
     fi
-    _install_kernel_modules "${_kernel}"
+    _nv_install "${_kernel}"
   }
   for _module_pkgname in "${!_module_kernels[@]}"; do
 source /dev/stdin <<EOF

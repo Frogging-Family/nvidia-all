@@ -938,24 +938,23 @@ _build_flags() {
   printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
-    BUILD_FLAGS+=(CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1)
+    BUILD_FLAGS+=(CC=clang CXX=clang++ LD=ld.lld LLVM=1 LLVM_IAS=1)
     echo "[INFO] _build_flags: Clang kernel detected for ${_kernel} — using ${BUILD_FLAGS[*]}" >> "${_where}/logs/prepare.log.txt"
   else
     echo "[INFO] _build_flags: GCC kernel detected for ${_kernel} — using default build flags" >> "${_where}/logs/prepare.log.txt"
   fi
-}
 
-_module_signing_pair_exists() {
-  if [[ -f "$1" && -f "$2" ]]; then
-    return 0
-  fi
-  "${_where}/nvidia-all-config/run-root" test -f "$1" &&
-    "${_where}/nvidia-all-config/run-root" test -f "$2"
+  BUILD_FLAGS+=(
+    IGNORE_CC_MISMATCH=yes
+    IGNORE_XEN_PRESENCE=1
+    IGNORE_PREEMPT_RT_PRESENCE=1
+    KERNEL_UNAME="${_kernel}"
+  )
 }
 
 # Kbuild signs during modules_install; run-root handles protected keys.
-_module_signing_flags() {
-  MODULE_SIGNING_FLAGS=(CONFIG_MODULE_SIG_ALL=)
+_sign_flags() {
+  SIGN_FLAGS=(CONFIG_MODULE_SIG_ALL=)
   local _kernel="$1"
   if [[ "${_module_signing:-autodetect}" = false ]]; then
     return
@@ -968,27 +967,40 @@ _module_signing_flags() {
   fi
 
   local _key="${_module_signing_key:-}" _cert="${_module_signing_cert:-}"
+  local -a _pairs=()
   if [[ -z "${_key}" && -z "${_cert}" ]]; then
     _key=$(sed -n 's/^CONFIG_MODULE_SIG_KEY="\([^"]*\)"$/\1/p' "${_kbuild}/.config")
     [[ -n "${_key}" ]] || _key=certs/signing_key.pem
     [[ "${_key}" = /* ]] || _key="${_kbuild}/${_key}"
     _cert="${_kbuild}/certs/signing_key.x509"
-    local _pair
-    for _pair in \
-      "${_key}:${_cert}" \
-      "${_kbuild}/certs/signing_key.pem:${_kbuild}/certs/signing_key.x509" \
-      "/etc/pki/akmods/private/private_key.priv:/etc/pki/akmods/certs/public_key.der" \
-      "/var/lib/dkms/mok.key:/var/lib/dkms/mok.pub" \
-      "/var/lib/shim-signed/mok/MOK.priv:/var/lib/shim-signed/mok/MOK.der"; do
-      if _module_signing_pair_exists "${_pair%%:*}" "${_pair#*:}"; then
-        _key="${_pair%%:*}"
-        _cert="${_pair#*:}"
-        break
-      fi
-    done
+    _pairs=("${_key}" "${_cert}")
+    if [[ "${_key}" != "${_kbuild}/certs/signing_key.pem" ]]; then
+      _pairs+=("${_kbuild}/certs/signing_key.pem" "${_cert}")
+    fi
+    _pairs+=(
+      "/etc/pki/akmods/private/private_key.priv" "/etc/pki/akmods/certs/public_key.der"
+      "/var/lib/dkms/mok.key" "/var/lib/dkms/mok.pub"
+      "/var/lib/shim-signed/mok/MOK.priv" "/var/lib/shim-signed/mok/MOK.der"
+    )
+  elif [[ "${_module_signing:-autodetect}" != true ]]; then
+    _pairs=("${_key}" "${_cert}")
   fi
 
-  if [[ "${_module_signing:-autodetect}" != true ]] && ! _module_signing_pair_exists "${_key}" "${_cert}"; then
+  local _index _candidate_key _candidate_cert _found=false
+  for (( _index = 0; _index < ${#_pairs[@]}; _index += 2 )); do
+    _candidate_key="${_pairs[_index]}"
+    _candidate_cert="${_pairs[_index+1]}"
+    if [[ -f "${_candidate_key}" && -f "${_candidate_cert}" ]] ||
+       { "${_where}/nvidia-all-config/run-root" test -f "${_candidate_key}" &&
+         "${_where}/nvidia-all-config/run-root" test -f "${_candidate_cert}"; }; then
+      _key="${_candidate_key}"
+      _cert="${_candidate_cert}"
+      _found=true
+      break
+    fi
+  done
+
+  if [[ "${_module_signing:-autodetect}" != true && "${_found}" = false ]]; then
     msg2 "Skipping module signing for ${_kernel}: no key/certificate pair found."
     return
   fi
@@ -1003,26 +1015,9 @@ _module_signing_flags() {
   done
   _sign_cmd+=" \"\$@\""
   # External-module signing failures must abort instead of Kbuild's default || true.
-  MODULE_SIGNING_FLAGS=(CONFIG_MODULE_SIG_ALL=y "cmd_sign=${_sign_cmd}")
+  SIGN_FLAGS=(CONFIG_MODULE_SIG_ALL=y "cmd_sign=${_sign_cmd}")
   msg2 "Module signing enabled for ${_kernel}."
   echo "[INFO] Module signing enabled for ${_kernel}." >> "${_where}/logs/prepare.log.txt"
-}
-
-_install_kernel_modules() {
-  local _kernel="$1"
-  local _module_src="${srcdir}/${_pkg}/kernel-${_kernel}"
-  if [[ "${_open_source_modules}" = "true" ]]; then
-    _module_src="${srcdir}/${_srcbase}-${pkgver}-${_kernel}/kernel-open"
-  fi
-  _build_flags "${_kernel}"
-  _module_signing_flags "${_kernel}"
-  ( set -o pipefail
-    make -j1 -C "${_module_src}" "${BUILD_FLAGS[@]}" \
-      IGNORE_CC_MISMATCH=yes IGNORE_XEN_PRESENCE=1 IGNORE_PREEMPT_RT_PRESENCE=1 \
-      KERNEL_UNAME="${_kernel}" INSTALL_MOD_PATH="${pkgdir}/usr" INSTALL_MOD_DIR=extramodules \
-      INSTALL_MOD_STRIP=1 "${MODULE_SIGNING_FLAGS[@]}" DEPMOD=true \
-      modules_install 2>&1 | tee -a "${_where}/logs/build.log"
-  ) || _die "Could not install NVIDIA modules for ${_kernel}."
 }
 
 # _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
@@ -1556,18 +1551,17 @@ _nv_srcprep() {
   fi
 }
 
+# Build the NVIDIA kernel modules for each detected kernel
 _nv_build() {
   printf '\n' >> "${_where}/logs/prepare.log.txt"
   if [[ "${_libxnvctrl}" = "true" ]]; then
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
     echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
     cd "${srcdir}/nvidia-settings-${pkgver}"
-    ( set -o pipefail; time make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so 2>&1 | tee -a "${_where}/logs/build.log" ) || {
-      local _build_status=$?
-      error "Building libXNVCtrl.so failed (exit ${_build_status})."
-      echo "[ERROR] _nv_build: building libXNVCtrl.so failed (exit ${_build_status})" >> "${_where}/logs/prepare.log.txt"
-      return "${_build_status}"
-    }
+    (
+      set -o pipefail
+      make -C src PREFIX=/usr NV_USE_BUNDLED_LIBJANSSON=0 OUTPUTDIR=out out/libXNVCtrl.so |& tee -a "${_where}/logs/build.log.txt"
+    )
     cd "${srcdir}"
   fi
 
@@ -1591,13 +1585,6 @@ _nv_build() {
   for _kernel in "${_kernels[@]}"; do
     _build_flags "${_kernel}"
 
-    local MODULE_FLAGS=(
-      IGNORE_CC_MISMATCH=yes
-      IGNORE_XEN_PRESENCE=1
-      IGNORE_PREEMPT_RT_PRESENCE=1
-      KERNEL_UNAME="${_kernel}"
-    )
-
     local _label="Nvidia"
     if [[ "${_open_source_modules}" = "true" ]]; then
       _label="open NVIDIA"
@@ -1607,15 +1594,34 @@ _nv_build() {
     fi
 
     msg2 "Building ${_label} module for ${_kernel}..."
-    echo "[BUILD] _nv_build: building ${_label} module for kernel ${_kernel}" >> "${_where}/logs/prepare.log.txt"
-    ( set -o pipefail; export CFLAGS='' CXXFLAGS='' LDFLAGS=''; time make -j"$(nproc)" "${BUILD_FLAGS[@]}" "${MODULE_FLAGS[@]}" modules 2>&1 | tee -a "${_where}/logs/build.log" ) || {
-      local _build_status=$?
-      error "Building ${_label} module for ${_kernel} failed (exit ${_build_status})."
-      echo "[ERROR] _nv_build: building ${_label} module for kernel ${_kernel} failed (exit ${_build_status})" >> "${_where}/logs/prepare.log.txt"
-      return "${_build_status}"
-    }
-    echo "[OK] _nv_build: ${_label} module for kernel ${_kernel} built successfully" >> "${_where}/logs/prepare.log.txt"
+    (
+      set -o pipefail
+      export CFLAGS='' CXXFLAGS='' LDFLAGS=''
+      time make -j"$(nproc)" "${BUILD_FLAGS[@]}" modules |& tee -a "${_where}/logs/build.log.txt"
+    )
   done
+}
+
+# Install the NVIDIA kernel modules for each detected kernel
+_nv_install() {
+  local _kernel="$1"
+  local _module_src="${srcdir}/${_pkg}/kernel-${_kernel}"
+  if [[ "${_open_source_modules}" = "true" ]]; then
+    _module_src="${srcdir}/${_srcbase}-${pkgver}-${_kernel}/kernel-open"
+  fi
+  _build_flags "${_kernel}"
+  _sign_flags "${_kernel}"
+  (
+    set -o pipefail
+    BUILD_FLAGS+=(
+      INSTALL_MOD_PATH="${pkgdir}/usr"
+      INSTALL_MOD_DIR=extramodules
+      INSTALL_MOD_STRIP=1
+      "${SIGN_FLAGS[@]}"
+      DEPMOD=true
+    )
+    make -j1 -C "${_module_src}" "${BUILD_FLAGS[@]}" modules_install |& tee -a "${_where}/logs/build.log.txt"
+  )
 }
 
 # Clean on exit

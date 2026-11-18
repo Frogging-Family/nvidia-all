@@ -278,7 +278,7 @@ _stage_kmod() {
       _stage_closed_drm_kms
     fi
 
-    _install_kernel_modules "${_kernel}"
+    _nv_install "${_kernel}"
   done
 }
 
