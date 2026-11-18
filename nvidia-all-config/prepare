@@ -313,14 +313,14 @@ _prompt_nvidia_options() {
   msg2 "Selected NVIDIA options: blacklist_nouveau=${_blacklist_nouveau}, limit_vram_usage=${_limit_vram_usage}, cuda_no_stable_perf_limit=${_cuda_no_stable_perf_limit}, cuda_disable_perf_boost=${_cuda_disable_perf_boost}, nvidia_patch_enc_fbc=${_nvidia_patch_enc_fbc}, dsc_dp_fix=${_dsc_dp_fix}"
 
   # Export selected options to BIG_UGLY_FROGMINER for use in PKGBUILD and install.sh
-  cat >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}" <<EOF
-_blacklist_nouveau='${_blacklist_nouveau:-}'
-_limit_vram_usage='${_limit_vram_usage:-}'
-_cuda_no_stable_perf_limit='${_cuda_no_stable_perf_limit:-}'
-_cuda_disable_perf_boost='${_cuda_disable_perf_boost:-}'
-_nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'
-_dsc_dp_fix='${_dsc_dp_fix:-}'
-EOF
+  printf '%s\n' \
+    "_blacklist_nouveau='${_blacklist_nouveau:-}'" \
+    "_limit_vram_usage='${_limit_vram_usage:-}'" \
+    "_cuda_no_stable_perf_limit='${_cuda_no_stable_perf_limit:-}'" \
+    "_cuda_disable_perf_boost='${_cuda_disable_perf_boost:-}'" \
+    "_nvidia_patch_enc_fbc='${_nvidia_patch_enc_fbc:-}'" \
+    "_dsc_dp_fix='${_dsc_dp_fix:-}'" \
+    >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
 }
 
 # Detect distro family
@@ -848,7 +848,7 @@ _detect_kernels() {
     for _mod_dir in /usr/lib/modules/*; do
       [[ -d "${_mod_dir}/build" ]] || continue
       _pkgbase_file="${_mod_dir}/pkgbase"
-      if [[ "${_mod_dir##*/}" = "${_kerneloverride}" ]] || [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_kerneloverride}" ]]; then
+      if [[ "${_mod_dir##*/}" = "${_kerneloverride}" ]] || [[ -f "${_pkgbase_file}" && "$(<"${_pkgbase_file}")" = "${_kerneloverride}" ]]; then
         _candidates=("${_mod_dir##*/}")
         break
       fi
