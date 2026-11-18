@@ -154,6 +154,7 @@ aggregate_user_config() {
 
   local _env="$(declare -p -x)"
 
+  printf '[CONFIG] Base: %s\n' "${_cfg}" >> "${_where}/logs/prepare.log.txt"
   source "$_cfg"
   eval "$_env"
 
@@ -487,19 +488,18 @@ _detect_open_modules() {
   mkdir -p "${_where}/logs"
 
   if [[ ! -f "${_noopen_pciids}" ]]; then
-    echo "[INFO] _detect_open_modules: noopen PCI ID list not found — skipping" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
   if ! command -v lspci &>/dev/null; then
     msg2 "lspci not found — skipping GPU-based open module auto-detection."
-    echo "[INFO] _detect_open_modules: lspci not available — skipping" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
   local -a _gpu_ids=()
   local -a _gpu_names=()
-  local _id _line _gpu_name
+  local _id _line _gpu_name _pci_devices
+  _pci_devices=$(lspci -nn -d 10de::03xx) || return 0
   while IFS= read -r _line; do
     [[ "${_line}" =~ (10de:[0-9a-fA-F]+) ]] || continue
     _id="${BASH_REMATCH[1]}"
@@ -511,12 +511,9 @@ _detect_open_modules() {
     [[ -z "${_gpu_name}" ]] && _gpu_name="NVIDIA (${_id,,})"
     _gpu_ids+=("${_id,,}")
     _gpu_names+=("${_gpu_name}")
-  done < <(lspci -nn 2>/dev/null | grep -Ei 'VGA compatible controller|3D controller|Display controller' || true)
+  done <<< "${_pci_devices}"
 
-  if [[ ${#_gpu_ids[@]} -eq 0 ]]; then
-    echo "[INFO] _detect_open_modules: no NVIDIA GPU found via lspci — skipping" >> "${_where}/logs/prepare.log.txt"
-    return 0
-  fi
+  [[ ${#_gpu_ids[@]} -gt 0 ]] || return 0
 
   local _incompatible=false
   local _requires_open=false
@@ -530,9 +527,6 @@ _detect_open_modules() {
     if grep -qiF "${_id}" "${_noopen_pciids}"; then
       _incompatible=true
       msg2 "GPU (${_gpu_name}) is NOT supported by open source modules."
-      echo "[INFO] _detect_open_modules: ${_id} found in noopen blocklist" >> "${_where}/logs/prepare.log.txt"
-    else
-      echo "[INFO] _detect_open_modules: ${_id} supports open source modules" >> "${_where}/logs/prepare.log.txt"
     fi
   done
 
@@ -542,7 +536,6 @@ _detect_open_modules() {
   elif [[ "${_incompatible}" = "true" ]]; then
     _open_source_modules="false"
     msg2 "Auto-selecting closed source modules (GPU not compatible with open modules)."
-    echo "[INFO] _detect_open_modules: auto-selected closed modules" >> "${_where}/logs/prepare.log.txt"
   else
     _open_source_modules="true"
     if [[ ${#_gpu_names[@]} -eq 1 ]]; then
@@ -553,7 +546,6 @@ _detect_open_modules() {
       _gpu_name_list="${_gpu_name_list%, }"
       msg2 "Detected compatible NVIDIA GPUs: ${_gpu_name_list} — auto-selecting open modules."
     fi
-    echo "[INFO] _detect_open_modules: auto-selected open modules" >> "${_where}/logs/prepare.log.txt"
   fi
 }
 
@@ -618,7 +610,7 @@ _set_open_modules() {
   msg2 "Checking open driver availability..."
   for _candidate in NVIDIA-kernel-module-source open-gpu-kernel-modules; do
     _candidate_source="$(_tarball_source "${_driver_version}" "${_candidate}")" || continue
-    if [[ "$(_url_status "${_candidate_source##*::}" || true)" = 2* ]]; then
+    if [[ "$(_url_status "${_candidate_source##*::}")" = 2* ]]; then
       _srcbase="${_candidate}"
       break
     fi
@@ -841,7 +833,7 @@ _create_links() {
   done
 }
 
-# List installed kernel
+# List buildable kernels
 _detect_kernels() {
   local _path _kver
   local -a _candidates=()
@@ -849,7 +841,6 @@ _detect_kernels() {
   local -A _seen=()
 
   mkdir -p "${_where}/logs"
-  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   # Accept either a kernel package name or a full kernel release.
   if [[ -n "${_kerneloverride:-}" ]]; then
@@ -857,15 +848,13 @@ _detect_kernels() {
     for _mod_dir in /usr/lib/modules/*; do
       [[ -d "${_mod_dir}/build" ]] || continue
       _pkgbase_file="${_mod_dir}/pkgbase"
-      if [[ "${_mod_dir##*/}" = "${_kerneloverride}" ]] ||
-         [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_kerneloverride}" ]]; then
+      if [[ "${_mod_dir##*/}" = "${_kerneloverride}" ]] || [[ -f "${_pkgbase_file}" && "$(cat "${_pkgbase_file}")" = "${_kerneloverride}" ]]; then
         _candidates=("${_mod_dir##*/}")
         break
       fi
     done
     if [[ ${#_candidates[@]} -gt 0 ]]; then
       msg2 "_kerneloverride '${_kerneloverride}' resolved to: ${_candidates[0]}" >&2
-      echo "[INFO] _kerneloverride '${_kerneloverride}' resolved to: ${_candidates[0]}" >> "${_where}/logs/prepare.log.txt"
     else
       error "_kerneloverride: no installed kernel with headers found for '${_kerneloverride}'." >&2
       echo "[ERROR] _kerneloverride: no installed kernel with headers found for '${_kerneloverride}'." >> "${_where}/logs/prepare.log.txt"
@@ -906,20 +895,15 @@ _detect_kernels() {
 
     if [[ -d "/usr/lib/modules/${_kver}/build" ]]; then
       _result+=("${_kver}")
-      echo "[INFO] _detect_kernels: found buildable kernel: ${_kver}" >> "${_where}/logs/prepare.log.txt"
-    else
-      echo "[INFO] _detect_kernels: skipping ${_kver} — missing /usr/lib/modules/${_kver}/build" >> "${_where}/logs/prepare.log.txt"
     fi
   done
 
   if [[ ${#_result[@]} -eq 0 ]]; then
     # fallback to running kernel
     if [[ -d "/usr/lib/modules/$(uname -r)/build" ]]; then
-      echo "[INFO] _detect_kernels: falling back to running kernel: $(uname -r)" >> "${_where}/logs/prepare.log.txt"
       _result+=("$(uname -r)")
     else
       if [[ "${_dkms:-false}" == "true" ]]; then
-        echo "[INFO] _detect_kernels: DKMS mode — skipping kernel header check" >> "${_where}/logs/prepare.log.txt"
         return 0
       fi
       error "Could not detect buildable kernel version. Set _kerneloverride in customization.cfg." >&2
@@ -935,13 +919,9 @@ _detect_kernels() {
 _build_flags() {
   local _kernel="$1"
   BUILD_FLAGS=() # GCC by default, no need to set explicitly
-  printf '\n' >> "${_where}/logs/prepare.log.txt"
 
   if grep -q "CONFIG_CC_IS_CLANG=y" "/usr/lib/modules/${_kernel}/build/.config" 2>/dev/null; then
     BUILD_FLAGS+=(CC=clang CXX=clang++ LD=ld.lld LLVM=1 LLVM_IAS=1)
-    echo "[INFO] _build_flags: Clang kernel detected for ${_kernel} — using ${BUILD_FLAGS[*]}" >> "${_where}/logs/prepare.log.txt"
-  else
-    echo "[INFO] _build_flags: GCC kernel detected for ${_kernel} — using default build flags" >> "${_where}/logs/prepare.log.txt"
   fi
 
   BUILD_FLAGS+=(
@@ -1017,7 +997,6 @@ _sign_flags() {
   # External-module signing failures must abort instead of Kbuild's default || true.
   SIGN_FLAGS=(CONFIG_MODULE_SIG_ALL=y "cmd_sign=${_sign_cmd}")
   msg2 "Module signing enabled for ${_kernel}."
-  echo "[INFO] Module signing enabled for ${_kernel}." >> "${_where}/logs/prepare.log.txt"
 }
 
 # _apply_patches from patches.list, with filtering based on type (open/dkms/closed), kernel version, driver version, and optional flags.
@@ -1160,8 +1139,6 @@ _user_patcher() {
     fi
   done
 
-  printf '\n[PATCH] nvidia-all user patches (%s), if any:\n' "${_userpatch_target_local}" >> "${_where}"/logs/prepare.log.txt
-
   local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
     if [ "${_user_patches_no_confirm}" != "true" ]; then
@@ -1184,8 +1161,6 @@ _user_patcher() {
     else
       echo "[PATCH] User declined to apply revert patches" >> "${_where}"/logs/prepare.log.txt
     fi
-  else
-    echo "[PATCH] No user revert patches found" >> "${_where}"/logs/prepare.log.txt
   fi
 
   _CONDITION=""
@@ -1211,8 +1186,6 @@ _user_patcher() {
     else
       echo "[PATCH] User declined to apply patches" >> "${_where}"/logs/prepare.log.txt
     fi
-  else
-    echo "[PATCH] No user patches found" >> "${_where}"/logs/prepare.log.txt
   fi
 }
 
@@ -1227,11 +1200,7 @@ _apply_user_patches() {
   _userpatch_apply_dir="${_apply_dir}"
   _userpatch_ext="my"
 
-  if [[ ! -d "${_nv_userpatch_dir}" ]]; then
-    mkdir -p "${_where}/logs"
-    printf '\n[PATCH] Userpatch dir not found for %s: %s\n' "${_target_label}" "${_nv_userpatch_dir}" >> "${_where}/logs/prepare.log.txt"
-    return 0
-  fi
+  [[ -d "${_nv_userpatch_dir}" ]] || return 0
 
   _user_patcher
 }
@@ -1292,7 +1261,7 @@ _nv_open_srcprep() {
   cd "${_open_srcdir}"
 
   msg2 "Preparing open NVIDIA sources for ${_patch_target}..."
-  printf '\n[INFO] Preparing open NVIDIA sources for %s...\n' "${_patch_target}" >> "${_where}/logs/prepare.log.txt"
+  printf '\n[PATCH] Open module target: %s\n' "${_patch_target}" >> "${_where}/logs/prepare.log.txt"
   _apply_patches "open" "" "${_open_srcdir}" || _die "Could not prepare open NVIDIA sources."
   for _kernel in "$@"; do
     _apply_patches "open" "${_kernel}" "${_open_srcdir}" || _die "Could not prepare open NVIDIA sources for ${_kernel}."
@@ -1348,7 +1317,6 @@ _nv_srcprep() {
     [[ -d "${_stale_dir}" ]] || continue
     [[ "${_stale_dir}" == "${srcdir}/${_pkg}" ]] && continue
     msg2 "Removing stale NVIDIA source directory: ${_stale_dir##*/}"
-    echo "[CLEANUP] removing stale NVIDIA source directory: ${_stale_dir##*/}" >> "${_where}/logs/prepare.log.txt"
     rm -rf -- "${_stale_dir}"
   done
   shopt -u nullglob
@@ -1427,12 +1395,21 @@ _nv_srcprep() {
     return 0
   fi
 
+  local _mod_dir
+  local -a _kernels
+  mapfile -t _kernels < <(_detect_kernels)
+  {
+    printf '[CONFIG] Target kernels: %s\n' "${_kernels[*]:-none}"
+    for _mod_dir in /usr/lib/modules/*; do
+      [[ -d "${_mod_dir}" && ! -d "${_mod_dir}/build" ]] || continue
+      printf '[CONFIG] Skipped kernel: %s (missing %s/build)\n' "${_mod_dir##*/}" "${_mod_dir}"
+    done
+  } >> "${_where}/logs/prepare.log.txt"
+
   # ! open-source module prep
   if [[ "${_open_source_modules}" = "true" ]]; then
     local _kernel _open_srcdir="${srcdir}/${_srcbase}-${pkgver}"
     local _open_kernel_srcdir _open_dkms_srcdir="${srcdir}/open-gpu-kernel-modules-dkms"
-    local -a _kernels
-    mapfile -t _kernels < <(_detect_kernels)
 
     # Each non-DKMS kernel gets a pristine copy and only its matching patches.
     if [[ "${_dkms}" != "true" ]]; then
@@ -1489,9 +1466,6 @@ _nv_srcprep() {
     fi
 
     # closed patches
-    local -a _kernels
-    mapfile -t _kernels < <(_detect_kernels)
-
     _apply_patches "closed"
     _apply_user_patches "${srcdir}/${_pkg}" "nvidia-closed-${pkgver}"
 
@@ -1518,7 +1492,11 @@ _nv_srcprep() {
             # sed for the moving parts - Fix "redefinition of 'list_is_first'" (< 418.56 + 5.1+)
             sed -i "s/static inline int list_is_first(const struct list_head \*list,/#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)\nstatic inline int list_is_first(const struct list_head \*list,/g" "${srcdir}/${_pkg}/kernel-${_kernel}/common/inc/nv-list-helpers.h"
             sed -i "s/                                const struct list_head \*head)/                                const struct list_head \*head)\n#else\nstatic inline int nv_list_is_first(const struct list_head \*list,\n                                   const struct list_head \*head)\n#endif/g" "${srcdir}/${_pkg}/kernel-${_kernel}/common/inc/nv-list-helpers.h"
-            patch -Np2 -i "${_where}/nvidia-all-patches/all/list_is_first.diff"
+            printf '\n[PATCH] Applying list_is_first.diff for %s...\n' "${_kernel}" >> "${_where}/logs/prepare.log.txt"
+            (
+              set -o pipefail
+              patch -Np2 -i "${_where}/nvidia-all-patches/all/list_is_first.diff" |& tee -a "${_where}/logs/prepare.log.txt"
+            )
             cd ..
           fi
         fi
@@ -1553,10 +1531,8 @@ _nv_srcprep() {
 
 # Build the NVIDIA kernel modules for each detected kernel
 _nv_build() {
-  printf '\n' >> "${_where}/logs/prepare.log.txt"
   if [[ "${_libxnvctrl}" = "true" ]]; then
     msg2 "_libxnvctrl=true - building libXNVCtrl.so from nvidia-settings sources..."
-    echo "[INFO] _nv_build: building libXNVCtrl.so from nvidia-settings sources" >> "${_where}/logs/prepare.log.txt"
     cd "${srcdir}/nvidia-settings-${pkgver}"
     (
       set -o pipefail
@@ -1567,14 +1543,12 @@ _nv_build() {
 
   if [[ "${_build_utils_package_only:-false}" = "true" ]]; then
     msg2 "_build_utils_package_only=true - skipping kernel module build steps."
-    echo "[INFO] _nv_build: _build_utils_package_only=true — skipping kernel module build steps" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
   # skip for DKMS
   if [[ "${_dkms}" = "true" ]]; then
     msg2 "_dkms=true - skipping kernel module build steps (handled by DKMS)."
-    echo "[INFO] _nv_build: _dkms=true — skipping kernel module build steps (handled by DKMS)" >> "${_where}/logs/prepare.log.txt"
     return 0
   fi
 
@@ -1594,6 +1568,7 @@ _nv_build() {
     fi
 
     msg2 "Building ${_label} module for ${_kernel}..."
+    printf '[BUILD] Kbuild flags: %s\n' "${BUILD_FLAGS[*]}" >> "${_where}/logs/build.log.txt"
     (
       set -o pipefail
       export CFLAGS='' CXXFLAGS='' LDFLAGS=''
@@ -1676,7 +1651,9 @@ _exit_cleanup() {
   {
     head -n1 /etc/os-release
     echo "#################"
-    echo "NVIDIA driver: ${_driver_version:-unknown} (${_driver_branch:-unknown})"
+    if command -v lspci &>/dev/null; then
+      lspci -nn -d 10de::03xx 2>&1
+    fi
     echo "#################"
     gcc --version 2>&1 | head -n1
     if command -v clang &>/dev/null; then

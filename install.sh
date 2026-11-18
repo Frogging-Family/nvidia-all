@@ -31,7 +31,7 @@ plain() {
 _run_package_install() (
   set -o pipefail
   mkdir -p "${_where}/logs"
-  "$@" 2>&1 | tee -a "${_where}/logs/install.log.txt"
+  "$@" |& tee -a "${_where}/logs/install.log.txt"
 )
 
 # Set up environment and trap cleanup
