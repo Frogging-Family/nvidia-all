@@ -1497,7 +1497,7 @@ _nv_srcprep() {
     local -a _kernels
     mapfile -t _kernels < <(_detect_kernels)
 
-    _apply_patches "closed" || return 1
+    _apply_patches "closed"
     _apply_user_patches "${srcdir}/${_pkg}" "nvidia-closed-${pkgver}"
 
     for _kernel in "${_kernels[@]}"; do
@@ -1506,7 +1506,7 @@ _nv_srcprep() {
       cp -r kernel "kernel-${_kernel}"
 
       # closed per-kernel patches
-      _apply_patches "closed" "${_kernel}" || return 1
+      _apply_patches "closed" "${_kernel}"
 
       # https://bugs.archlinux.org/task/62142
       if [[ "$_62142_fix" = "true" ]]; then
@@ -1544,9 +1544,9 @@ _nv_srcprep() {
         sed -i 's/return (ops->map_resource != NULL);/return (ops \&\& ops->map_resource);/' "${srcdir}/${_pkg}/kernel-dkms/nvidia/nv-dma.c" && msg2 "Applied fix for https://bugs.archlinux.org/task/62142"
       fi
 
-      _apply_patches "dkms" || return 1
+      _apply_patches "dkms"
       for _kernel in "${_kernels[@]}"; do
-        _apply_patches "dkms" "${_kernel}" || return 1
+        _apply_patches "dkms" "${_kernel}"
       done
 
       # user patches for DKMS

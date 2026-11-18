@@ -13,26 +13,26 @@ _nv_services_configure() {
     if _nv_version "$2" 595.44.02 && { [ -z "$old_version" ] || _nv_version "$old_version" 560.35.03 || ! _nv_version "$old_version" 595.44.02; }; then
       for service in nvidia-resume nvidia-hibernate nvidia-suspend; do
         if [ -f "/usr/lib/systemd/system/$service.service" ]; then
-          systemctl enable "$service.service" || return 1
+          systemctl enable "$service.service"
         fi
       done
     elif ! _nv_version "$2" 595.44.02 && [ -n "$old_version" ] && _nv_version "$old_version" 595.44.02; then
-      _nv_services || return 1
+      _nv_services
     fi
   fi
-  mkdir -p /var/lib/nvidia-all || return 1
+  mkdir -p /var/lib/nvidia-all
   printf '%s\n' "$2" > "$state"
 }
 _nv_services() {
   if command -v systemctl >/dev/null 2>&1; then
     if [ "${1:-}" = save ]; then
-      mkdir -p /var/lib/nvidia-all || return 1
-      touch /var/lib/nvidia-all/services-before-remove || return 1
+      mkdir -p /var/lib/nvidia-all
+      touch /var/lib/nvidia-all/services-before-remove
     fi
     for service in nvidia-resume nvidia-hibernate nvidia-suspend nvidia-suspend-then-hibernate; do
       if systemctl is-enabled --quiet "$service.service"; then
         if [ "${1:-}" = save ]; then
-          printf '%s\n' "$service.service" >> /var/lib/nvidia-all/services-before-remove || return 1
+          printf '%s\n' "$service.service" >> /var/lib/nvidia-all/services-before-remove
         fi
         systemctl disable "$service.service" || return 1
       fi
@@ -43,7 +43,7 @@ _nv_services_restore() {
   if [ -r /var/lib/nvidia-all/services-before-remove ] && command -v systemctl >/dev/null 2>&1; then
     while IFS= read -r service; do
       [ -f "/usr/lib/systemd/system/$service" ] || continue
-      systemctl enable "$service" || return 1
+      systemctl enable "$service"
     done < /var/lib/nvidia-all/services-before-remove
     rm -f /var/lib/nvidia-all/services-before-remove
   fi

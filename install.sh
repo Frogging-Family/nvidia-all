@@ -215,13 +215,13 @@ _stage_lib32_utils() {
 
 # staging Flatpak driver extensions
 _stage_flatpak() {
-  cd "${srcdir}/${_pkg}" || return
+  cd "${srcdir}/${_pkg}"
   # Flatpak has its own runtime layout; do not relocate these libraries.
   _install_flatpak
 }
 
 _stage_lib32_flatpak() {
-  cd "${srcdir}/${_pkg}" || return
+  cd "${srcdir}/${_pkg}"
   _install_lib32_flatpak
 }
 
