@@ -102,36 +102,29 @@ _distro_prompt() {
   fi
 
   # Unknown distros are not supported
-  case "${_NV_DISTRO_FAMILY}" in
-    generic|"")
-      _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
-      ;;
-  esac
+  if [[ "${_NV_DISTRO_FAMILY}" = "generic" || -z "${_NV_DISTRO_FAMILY}" ]]; then
+    _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
+  fi
 
   msg2 "Which Linux distribution are you running?"
   local _label
-  case "${_NV_DISTRO_FAMILY}" in
-    debian)
-      case "${_NV_DISTRO_ID:-}" in
-        ubuntu|linuxmint|pop|elementary|zorin)
-          _label="Ubuntu"
-          _default_index=1
-          ;;
-        *)
-          _label="Debian"
-          _default_index=0
-          ;;
-      esac
-      ;;
-    fedora)
-      _label="Fedora"
-      _default_index=2
-      ;;
-    suse)
-      _label="Suse"
-      _default_index=3
-      ;;
-  esac
+  if [[ "${_NV_DISTRO_FAMILY}" = "debian" ]]; then
+    if [[ "${_NV_DISTRO_ID:-}" = "ubuntu" || "${_NV_DISTRO_ID:-}" = "linuxmint" ||
+          "${_NV_DISTRO_ID:-}" = "pop" || "${_NV_DISTRO_ID:-}" = "elementary" ||
+          "${_NV_DISTRO_ID:-}" = "zorin" ]]; then
+      _label="Ubuntu"
+      _default_index=1
+    else
+      _label="Debian"
+      _default_index=0
+    fi
+  elif [[ "${_NV_DISTRO_FAMILY}" = "fedora" ]]; then
+    _label="Fedora"
+    _default_index=2
+  elif [[ "${_NV_DISTRO_FAMILY}" = "suse" ]]; then
+    _label="Suse"
+    _default_index=3
+  fi
   msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
   _prompt_from_array "Debian" "Ubuntu" "Fedora" "Suse"
   if [[ "${_selected_value}" = "Debian" ]]; then
@@ -154,11 +147,13 @@ _install_dependencies() {
   local -a _kernels
   mapfile -t _kernels < <(_detect_kernels)
 
-  case "${_NV_PKG_TARGET}" in
-    debian|ubuntu) _deb_install_dependencies "${_kernels[@]}" ;;
-    fedora|suse) _rpm_install_dependencies "${_kernels[@]}" ;;
-    *) _die "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported." ;;
-  esac
+  if [[ "${_NV_PKG_TARGET}" = "debian" || "${_NV_PKG_TARGET}" = "ubuntu" ]]; then
+    _deb_install_dependencies "${_kernels[@]}"
+  elif [[ "${_NV_PKG_TARGET}" = "fedora" || "${_NV_PKG_TARGET}" = "suse" ]]; then
+    _rpm_install_dependencies "${_kernels[@]}"
+  else
+    _die "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported."
+  fi
 }
 _install_dependencies
 

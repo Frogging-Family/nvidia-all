@@ -181,11 +181,13 @@ _deb_postinst() {
     return 0
   fi
 
-  case "${_mode}" in
-    kmod) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.kmod.in" ;;
-    initramfs) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.utils.in" ;;
-    *) _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.default.in" ;;
-  esac
+  if [[ "${_mode}" = "kmod" ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.kmod.in"
+  elif [[ "${_mode}" = "initramfs" ]]; then
+    _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.utils.in"
+  else
+    _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.default.in"
+  fi
 
   chmod 755 "${_debdir}/DEBIAN/postinst"
 }

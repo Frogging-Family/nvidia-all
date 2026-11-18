@@ -1,10 +1,11 @@
 # Internal RPM functions sourced by install.sh.
 
 _rpm_install_prerequisites() {
-  case "$1" in
-    dnf) sudo dnf install curl bsdtar ;;
-    zypper) sudo zypper install curl libarchive-tools ;;
-  esac
+  if [[ "$1" = "dnf" ]]; then
+    sudo dnf install curl bsdtar
+  elif [[ "$1" = "zypper" ]]; then
+    sudo zypper install curl libarchive-tools
+  fi
 }
 
 _rpm_install_dependencies() {
@@ -279,17 +280,13 @@ _rpm_install_packages() {
   fi
 
   if [[ -z "${_install_ans}" || "${_install_ans}" =~ ^[Yy] ]]; then
-    case "${_NV_PKG_TARGET:-}" in
-      fedora)
-        msg2 "Installing packages via DNF..."
-        ;;
-      suse)
-        msg2 "Installing packages via zypper..."
-        ;;
-      *)
-        msg2 "Installing packages via rpm..."
-        ;;
-    esac
+    if [[ "${_NV_PKG_TARGET:-}" = "fedora" ]]; then
+      msg2 "Installing packages via DNF..."
+    elif [[ "${_NV_PKG_TARGET:-}" = "suse" ]]; then
+      msg2 "Installing packages via zypper..."
+    else
+      msg2 "Installing packages via rpm..."
+    fi
     if [[ "${_dkms:-false}" == "true" ]]; then
       _dkms_posttrans_marker="/run/nvidia-all/dkms-${_built_dkms_name}-${pkgver}.complete"
       sudo rm -f -- "${_dkms_posttrans_marker}"
