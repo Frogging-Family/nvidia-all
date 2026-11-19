@@ -171,8 +171,7 @@ _rpm_builder() {
     fi
   fi
 
-  _tmpl_pkgname="${_pkgname}" \
-    _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
+  _tmpl_description="${_NV_META[${_pkgname}_desc]:-NVIDIA driver package}" \
     _write_pkg_template "${_outdir}/${_pkgname}.spec" "rpm/spec-preamble.in"
 
   _rpm_spec_field "${_outdir}/${_pkgname}.spec" Requires "${_NV_META[${_pkgname}_depends_rpm]:-}"

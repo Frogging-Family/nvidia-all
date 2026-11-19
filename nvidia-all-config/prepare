@@ -613,8 +613,6 @@ _set_open_modules() {
 }
 
 _validate_open_modules() {
-  local _recommended_legacy="${_nvidia_ver_map[580]:-580.159.04}"
-
   if [[ "${_open_source_modules:-}" != "false" ]]; then
     return 0
   fi

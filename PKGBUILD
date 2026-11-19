@@ -17,8 +17,6 @@ trap _exit_cleanup EXIT
 # Create BIG_UGLY_FROGMINER only on first run and save in it all settings
 _frogminer_bootstrap "${_where}/BIG_UGLY_FROGMINER" "${_where}/BIG_UGLY_FROGMINER.pending"
 
-_autoaddpatch="false"
-
 _pkgname_array=()
 declare -gA _module_kernels=()
 
@@ -436,7 +434,6 @@ lib32-nvidia-utils-tkg() {
   cd "${_pkg}/32"
 
   _install_lib32_utils
-  rm -rf "${pkgdir}"/usr/{include,share,bin}
 }
 source /dev/stdin <<EOF
 package_lib32-${_branchname}-utils-tkg() {

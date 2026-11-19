@@ -60,7 +60,7 @@ _deb_relocate_elfs() {
 
 _deb_build_metadata() {
   local _debver="${pkgver}-${_pkgrel}"
-  local _installed_pkgs=""
+  local _installed_pkgs
 
   # Driver utilities
   _NV_META[nvidia-utils-tkg_depends_deb]="libc6, libglvnd0, libgl1-mesa-glx | libgl1, libvulkan1, libx11-6, libxext6, libwayland-client0"
@@ -172,10 +172,10 @@ _deb_installed_pkg_csv() {
 }
 
 _deb_postinst() {
-  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}" _pkgname="${4:-}"
+  local _debdir="$1" _mode="${2:-}" _stagedir="${3:-}"
 
   if [[ "${_mode}" == "dkms" ]]; then
-    _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" _tmpl_pkgname="${_pkgname}" \
+    _tmpl_dkms_name="$(_staged_dkms_name "${_stagedir}")" \
       _write_pkg_template "${_debdir}/DEBIAN/postinst" "deb/postinst.dkms.in"
     chmod 755 "${_debdir}/DEBIAN/postinst"
     return 0
@@ -248,7 +248,7 @@ _deb_builder() {
 
   # Flatpak extensions do not change host libraries, modules or initramfs.
   if [[ "${_pkgname}" != *flatpak-nvidia-tkg ]]; then
-    _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}" "${_pkgname}"
+    _deb_postinst "${_debdir}" "${_mode}" "${_stagedir}"
     _deb_prerm "${_debdir}" "${_mode}" "${_stagedir}"
     if [[ "${_pkgname}" == nvidia-utils-tkg ]]; then
       _write_pkg_template "${_debdir}/DEBIAN/prerm" "deb/prerm.services.in"
