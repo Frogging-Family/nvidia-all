@@ -996,7 +996,7 @@ _apply_patches() {
 
     # kernel version range
     if [[ -n "${_kernel}" ]]; then
-      [[ "${_kmin}" != "-" ]] && (( $(vercmp "${_kernel}" "${_kmin}") < 0 )) && continue
+      (( $(vercmp "${_kernel}" "${_kmin}") < 0 )) && continue
       [[ "${_kmax}" != "-" ]] && (( $(vercmp "${_kernel}" "${_kmax}") > 0 )) && continue
     fi
 
@@ -1082,14 +1082,11 @@ _nv_user_patch_dir() {
 }
 
 _user_patcher() {
-  local _nv_userpatch_dir="${_nv_userpatch_dir:-$(_nv_user_patch_dir)}"
-  local _userpatch_target_local="${_userpatch_target:-nvidia-${pkgver}}"
-  local _userpatch_apply_dir="${_userpatch_apply_dir:-${srcdir}/${_pkg}}"
-  local _userpatch_ext_local="${_userpatch_ext:-my}"
+  local _nv_userpatch_dir="$1" _userpatch_target="$2" _userpatch_apply_dir="$3"
   local _CONDITION=""
   local _f
 
-  for _f in "${_where}"/*."${_userpatch_ext_local}"patch "${_where}"/*."${_userpatch_ext_local}"revert; do
+  for _f in "${_where}"/*.mypatch "${_where}"/*.myrevert; do
     if [ -e "${_f}" ]; then
       warning "Found userpatch file ${_f##*/} in the PKGBUILD directory."
       warning "Userpatches must now be placed in version-specific subdirectories (${_nv_userpatch_dir##*/} for this driver series)."
@@ -1098,10 +1095,10 @@ _user_patcher() {
     fi
   done
 
-  local _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"revert)
+  local _patches=("${_nv_userpatch_dir}"/*.myrevert)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
     if [ "${_user_patches_no_confirm}" != "true" ]; then
-      msg2 "Found ${#_patches[@]} 'to revert' userpatches for ${_userpatch_target_local}:"
+      msg2 "Found ${#_patches[@]} 'to revert' userpatches for ${_userpatch_target}:"
       printf '%s\n' "${_patches[@]}"
       read -rp "Do you want to install it/them? - Be careful with that ;)"$'\n> N/y : ' _CONDITION
     fi
@@ -1110,11 +1107,11 @@ _user_patcher() {
         if [ -e "${_f}" ]; then
           msg2 "######################################################"
           msg2 ""
-          msg2 "Reverting your own ${_userpatch_target_local} patch ${_f##*/}"
+          msg2 "Reverting your own ${_userpatch_target} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          printf '\n[PATCH] Reverting user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
-          ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 -R < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          printf '\n[PATCH] Reverting user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
+          ( set -o pipefail; patch -Np1 -R -d "${_userpatch_apply_dir}" -i "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered reverting user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
     else
@@ -1123,10 +1120,10 @@ _user_patcher() {
   fi
 
   _CONDITION=""
-  _patches=("${_nv_userpatch_dir}"/*."${_userpatch_ext_local}"patch)
+  _patches=("${_nv_userpatch_dir}"/*.mypatch)
   if [ ${#_patches[@]} -ge 2 ] || [ -e "${_patches[0]}" ]; then
     if [ "${_user_patches_no_confirm}" != "true" ]; then
-      msg2 "Found ${#_patches[@]} userpatches for ${_userpatch_target_local}:"
+      msg2 "Found ${#_patches[@]} userpatches for ${_userpatch_target}:"
       printf '%s\n' "${_patches[@]}"
       read -rp "Do you want to install it/them? - Be careful with that ;)"$'\n> N/y : ' _CONDITION
     fi
@@ -1135,11 +1132,11 @@ _user_patcher() {
         if [ -e "${_f}" ]; then
           msg2 "######################################################"
           msg2 ""
-          msg2 "Applying your own ${_userpatch_target_local} patch ${_f##*/}"
+          msg2 "Applying your own ${_userpatch_target} patch ${_f##*/}"
           msg2 ""
           msg2 "######################################################"
-          printf '\n[PATCH] Applying user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target_local}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
-          ( set -o pipefail; cd "${_userpatch_apply_dir}" && patch -Np1 < "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
+          printf '\n[PATCH] Applying user patch %s on %s (%s)... ###\n' "${_f##*/}" "${_userpatch_target}" "${_userpatch_apply_dir}" >> "${_where}"/logs/prepare.log.txt
+          ( set -o pipefail; patch -Np1 -d "${_userpatch_apply_dir}" -i "${_f}" |& tee -a "${_where}/logs/prepare.log.txt" ) || error "An error was encountered applying user patch ${_f##*/}. It was logged to the prepare.log.txt file."
         fi
       done
     else
@@ -1151,17 +1148,14 @@ _user_patcher() {
 _apply_user_patches() {
   local _apply_dir="$1"
   local _target_label="$2"
+  local _nv_userpatch_dir
 
   [[ "${_user_patches:-false}" == "true" ]] || return 0
 
   _nv_userpatch_dir="$(_nv_user_patch_dir)"
-  _userpatch_target="${_target_label}"
-  _userpatch_apply_dir="${_apply_dir}"
-  _userpatch_ext="my"
-
   [[ -d "${_nv_userpatch_dir}" ]] || return 0
 
-  _user_patcher
+  _user_patcher "${_nv_userpatch_dir}" "${_target_label}" "${_apply_dir}"
 }
 
 # Prepare a dkms.conf: distro-aware package name/dest, placeholder substitution, module entries
