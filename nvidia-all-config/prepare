@@ -481,11 +481,9 @@ _set_dkms() {
   echo "_dkms='${_dkms}'" >> "${_FROGMINER_TARGET:-${_where}/BIG_UGLY_FROGMINER}"
 }
 
-# Detect whether the installed NVIDIA GPU supports open source modules
+# Select open modules when all detected NVIDIA GPUs support them
 _detect_open_modules() {
   local _noopen_pciids="${_where}/nvidia-all-config/system/nvidia-kmod-noopen-pciids"
-
-  mkdir -p "${_where}/logs"
 
   if [[ ! -f "${_noopen_pciids}" ]]; then
     return 0
@@ -496,56 +494,19 @@ _detect_open_modules() {
     return 0
   fi
 
-  local -a _gpu_ids=()
-  local -a _gpu_names=()
-  local _id _line _gpu_name _pci_devices
-  _pci_devices=$(lspci -nn -d 10de::03xx) || return 0
+  local _line _found_gpu=false
   while IFS= read -r _line; do
     [[ "${_line}" =~ (10de:[0-9a-fA-F]+) ]] || continue
-    _id="${BASH_REMATCH[1]}"
-    # Prefer the model token in brackets right before the PCI ID, e.g. [GeForce RTX 3090].
-    _gpu_name="$(printf '%s' "${_line}" | sed -nE 's/.*\[([^][]+)\][[:space:]]+\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\].*/\1/p')"
-    if [[ -z "${_gpu_name}" ]]; then
-      _gpu_name="$(printf '%s' "${_line}" | sed -E 's/^[^:]+:[[:space:]]*//; s/\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\]//g; s/\(rev[^)]*\)//g; s/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+    if grep -qiF "${BASH_REMATCH[1]}" "${_noopen_pciids}"; then
+      _open_source_modules="false"
+      return 0
     fi
-    [[ -z "${_gpu_name}" ]] && _gpu_name="NVIDIA (${_id,,})"
-    _gpu_ids+=("${_id,,}")
-    _gpu_names+=("${_gpu_name}")
-  done <<< "${_pci_devices}"
+    _found_gpu=true
+  done <<< "$(lspci -nn -d 10de::03xx)"
 
-  [[ ${#_gpu_ids[@]} -gt 0 ]] || return 0
-
-  local _incompatible=false
-  local _requires_open=false
-  local _idx
-  for _idx in "${!_gpu_ids[@]}"; do
-    _id="${_gpu_ids[${_idx}]}"
-    _gpu_name="${_gpu_names[${_idx}]}"
-    if [[ "${_gpu_name}" =~ (Blackwell|RTX[[:space:]]*50|RTX[[:space:]]*PRO[[:space:]]*[0-9]|GB[0-9]{2,}) ]]; then
-      _requires_open=true
-    fi
-    if grep -qiF "${_id}" "${_noopen_pciids}"; then
-      _incompatible=true
-      msg2 "GPU (${_gpu_name}) is NOT supported by open source modules."
-    fi
-  done
-
-  if [[ "${_incompatible}" = "true" && "${_requires_open}" = "true" ]]; then
-    echo "[ERROR] _detect_open_modules: mixed open-required and noopen GPUs detected" >> "${_where}/logs/prepare.log.txt"
-    _die "Aborting due to mixed NVIDIA GPU module requirements."
-  elif [[ "${_incompatible}" = "true" ]]; then
-    _open_source_modules="false"
-    msg2 "Auto-selecting closed source modules (GPU not compatible with open modules)."
-  else
+  if [[ "${_found_gpu}" = "true" ]]; then
     _open_source_modules="true"
-    if [[ ${#_gpu_names[@]} -eq 1 ]]; then
-      msg2 "GPU ${_gpu_names[0]} is compatible with open source modules — auto-selecting open modules."
-    else
-      local _gpu_name_list
-      _gpu_name_list="$(printf '%s, ' "${_gpu_names[@]}")"
-      _gpu_name_list="${_gpu_name_list%, }"
-      msg2 "Detected compatible NVIDIA GPUs: ${_gpu_name_list} — auto-selecting open modules."
-    fi
+    msg2 "Detected GPU support for open kernel modules — selecting them automatically."
   fi
 }
 
