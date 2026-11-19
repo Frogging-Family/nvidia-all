@@ -16,7 +16,7 @@ _eglw_so_ver() {
   fi
   return 0
 }
-_sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|debian|ubuntu)$ ]]; }
+_sys_pkg_all() { [[ "${_NV_PKG_TARGET:-}" =~ ^(fedora|debian)$ ]]; }
 _sys_pkg_rpm() { [[ "${_NV_PKG_TARGET:-}" = "fedora" ]]; }
 
 # utilities and libraries package

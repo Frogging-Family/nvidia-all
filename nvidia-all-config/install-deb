@@ -119,7 +119,7 @@ _deb_build_metadata() {
   fi
 
   # Detect versioned distribution NVIDIA packages.
-  if command -v dpkg &>/dev/null && [[ "${_NV_PKG_TARGET:-}" =~ ^(debian|ubuntu)$ ]]; then
+  if command -v dpkg &>/dev/null && [[ "${_NV_PKG_TARGET:-}" = "debian" ]]; then
     if (( ${pkgver%%.*} >= 470 )); then
       _NV_META[nvidia-utils-tkg_depends_deb]+=", libnvidia-egl-wayland1"
       if [[ -n "${_NV_META[nvidia-utils-tkg_recommends_deb]:-}" ]]; then

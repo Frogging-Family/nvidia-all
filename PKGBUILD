@@ -136,6 +136,7 @@ prepare() {
   source "${_where}/BIG_UGLY_FROGMINER"
   source "${_where}/nvidia-all-config/prepare"
 
+  _detect_distro
   _nv_srcprep
 }
 

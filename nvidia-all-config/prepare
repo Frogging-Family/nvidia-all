@@ -325,25 +325,31 @@ _prompt_nvidia_options() {
 
 # Detect distro family
 _detect_distro() {
-  local _id="" _id_like=""
+  local _id
+  local -a _ids=()
   if [[ -f /etc/os-release ]]; then
-    _id="$(. /etc/os-release && echo "${ID:-}")"
-    _id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+    IFS=' ' read -r -a _ids < <(
+      . /etc/os-release && printf '%s %s\n' "${ID:-unknown}" "${ID_LIKE:-}"
+    )
   fi
-  _NV_DISTRO_ID="${_id:-generic}"
-  local _combined="${_id} ${_id_like}"
-  if [[ "${_combined}" == *debian* || "${_combined}" == *ubuntu* ]]; then
-    _NV_DISTRO_FAMILY="debian"
-  elif [[ "${_combined}" == *fedora* || "${_combined}" == *rhel* || "${_combined}" == *centos* ]]; then
-    _NV_DISTRO_FAMILY="fedora"
-  elif [[ "${_combined}" == *suse* ]]; then
-    _NV_DISTRO_FAMILY="suse"
-  elif [[ "${_combined}" == *arch* || "${_combined}" == *manjaro* ||
-          "${_combined}" == *endeavouros* || "${_combined}" == *cachyos* ]]; then
-    _NV_DISTRO_FAMILY="arch"
-  else
-    _NV_DISTRO_FAMILY="generic"
-  fi
+
+  _NV_DISTRO_ID="${_ids[0]:-unknown}"
+  for _id in "${_ids[@]}"; do
+    if [[ "${_id}" =~ ^(debian|ubuntu)$ ]]; then
+      _NV_DISTRO_FAMILY="debian"
+    elif [[ "${_id}" == "fedora" ]]; then
+      _NV_DISTRO_FAMILY="fedora"
+    elif [[ "${_id}" =~ ^(suse|opensuse(-.*)?)$ ]]; then
+      _NV_DISTRO_FAMILY="suse"
+    elif [[ "${_id}" == "arch" ]]; then
+      _NV_DISTRO_FAMILY="arch"
+    else
+      continue
+    fi
+    return 0
+  done
+
+  _die "Unknown distribution '${_NV_DISTRO_ID}'. Supported distributions are Arch, Debian, Ubuntu, Fedora and SUSE."
 }
 
 # Older driver series
@@ -1164,8 +1170,7 @@ _dkms_prep() {
   local -a _modules=("nvidia" "nvidia-uvm" "nvidia-modeset" "nvidia-drm" "nvidia-peermem" "nvidia-ib-peermem-stub")
   local _pkg_name="nvidia" _dest _idx
 
-  if [[ "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "debian" ||
-        "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "ubuntu" ]]; then
+  if [[ "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "debian" ]]; then
     _dest="/updates/dkms"
   else
     _dest="/kernel/drivers/video"
@@ -1245,20 +1250,8 @@ _nv_open_srcprep() {
 
 _nv_srcprep() {
   local _system_gcc _kernel_gcc _system_clang _kernel_clang _continue
-  local _hostname="linux" _whoami="builder"
-
-  # Ensure distro family is available for reproducible metadata tagging.
-  if [[ -z "${_NV_DISTRO_FAMILY:-}" ]]; then
-    _detect_distro
-  fi
-  if [[ -n "${_NV_DISTRO_FAMILY:-}" ]] && [[ "${_NV_DISTRO_FAMILY}" != "generic" ]]; then
-    _hostname="${_NV_DISTRO_FAMILY}"
-    _whoami="${_NV_DISTRO_FAMILY}-builder"
-  fi
-  if [[ "${_NV_DISTRO_FAMILY}" = "arch" ]]; then
-    _hostname="archlinux"
-    _whoami="archlinux-builder"
-  fi
+  local _hostname="${_NV_DISTRO_ID:-${_NV_DISTRO_FAMILY}}"
+  local _whoami="${_NV_DISTRO_FAMILY}-tkg-builder"
 
   # remove previous build dir
   [[ -d "${_pkg}" ]] && rm -rf "${_pkg}"

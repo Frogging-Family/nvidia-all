@@ -34,8 +34,11 @@ _run_package_install() (
   "$@" |& tee -a "${_where}/logs/install.log.txt"
 )
 
-# Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/prepare"
+
+_detect_distro
+
+# Set up environment and trap cleanup
 source "${_where}/nvidia-all-config/install-common"
 
 _pkg_tmpdir=""
@@ -43,7 +46,6 @@ trap _exit_cleanup EXIT
 trap 'trap - INT TERM; exit 130' INT
 trap 'trap - INT TERM; exit 143' TERM
 
-_detect_distro
 if [[ "${_NV_DISTRO_FAMILY}" == "arch" ]]; then
   cd "${_where}"
   makepkg -si
@@ -78,68 +80,16 @@ _pkg="NVIDIA-Linux-x86_64-${pkgver}"
 srcdir="/tmp/nvidia-install-$$"
 pkgdir=""   # empty because we don't use makepkg, but some prepare functions expect it to exist
 
-msg2 "Detected distro family: ${_NV_DISTRO_FAMILY}"
+msg2 "Detected distro: ${_NV_DISTRO_ID} (${_NV_DISTRO_FAMILY})"
 
-# Distro selection prompt
-_distro_prompt() {
-  # If _distro is already set in customization.cfg, skip the prompt
-  if [[ -n "${_distro:-}" ]]; then
-    if [[ "${_distro}" = "Debian" ]]; then
-      _NV_PKG_TARGET="debian"
-      return 0
-    elif [[ "${_distro}" = "Ubuntu" ]]; then
-      _NV_PKG_TARGET="ubuntu"
-      return 0
-    elif [[ "${_distro}" = "Fedora" ]]; then
-      _NV_PKG_TARGET="fedora"
-      return 0
-    elif [[ "${_distro}" = "Suse" ]]; then
-      _NV_PKG_TARGET="suse"
-      return 0
-    else
-      warning "_distro='${_distro}' is not a valid value. Valid values: Debian, Ubuntu, Fedora, Suse — prompting..."
-    fi
-  fi
-
-  # Unknown distros are not supported
-  if [[ "${_NV_DISTRO_FAMILY}" = "generic" || -z "${_NV_DISTRO_FAMILY}" ]]; then
-    _die "Unknown distribution '${_NV_DISTRO_ID:-unknown}'. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
-  fi
-
-  msg2 "Which Linux distribution are you running?"
-  local _label
-  if [[ "${_NV_DISTRO_FAMILY}" = "debian" ]]; then
-    if [[ "${_NV_DISTRO_ID:-}" = "ubuntu" || "${_NV_DISTRO_ID:-}" = "linuxmint" ||
-          "${_NV_DISTRO_ID:-}" = "pop" || "${_NV_DISTRO_ID:-}" = "elementary" ||
-          "${_NV_DISTRO_ID:-}" = "zorin" ]]; then
-      _label="Ubuntu"
-      _default_index=1
-    else
-      _label="Debian"
-      _default_index=0
-    fi
-  elif [[ "${_NV_DISTRO_FAMILY}" = "fedora" ]]; then
-    _label="Fedora"
-    _default_index=2
-  elif [[ "${_NV_DISTRO_FAMILY}" = "suse" ]]; then
-    _label="Suse"
-    _default_index=3
-  fi
-  msg2 "Auto-detected: ${_NV_DISTRO_ID:-unknown} (${_NV_DISTRO_FAMILY}) → pre-selecting ${_label}"
-  _prompt_from_array "Debian" "Ubuntu" "Fedora" "Suse"
-  if [[ "${_selected_value}" = "Debian" ]]; then
-    _NV_PKG_TARGET="debian"
-  elif [[ "${_selected_value}" = "Ubuntu" ]]; then
-    _NV_PKG_TARGET="ubuntu"
-  elif [[ "${_selected_value}" = "Fedora" ]]; then
-    _NV_PKG_TARGET="fedora"
-  elif [[ "${_selected_value}" = "Suse" ]]; then
-    _NV_PKG_TARGET="suse"
-  else
-    _die "Unsupported distribution. Only Debian, Ubuntu, Fedora and Suse are supported by the direct installer."
-  fi
-}
-_distro_prompt
+_NV_PKG_TARGET="${_NV_DISTRO_FAMILY}"
+if [[ "${_distro:-}" =~ ^(Debian|Ubuntu)$ ]]; then
+  _NV_PKG_TARGET="debian"
+elif [[ "${_distro:-}" =~ ^(Fedora|Suse)$ ]]; then
+  _NV_PKG_TARGET="${_distro,,}"
+elif [[ -n "${_distro:-}" ]]; then
+  warning "_distro='${_distro}' is invalid. Using ${_NV_PKG_TARGET}."
+fi
 
 # Install build dependencies
 _install_dependencies() {
@@ -147,27 +97,20 @@ _install_dependencies() {
   local -a _kernels
   mapfile -t _kernels < <(_detect_kernels)
 
-  if [[ "${_NV_PKG_TARGET}" = "debian" || "${_NV_PKG_TARGET}" = "ubuntu" ]]; then
+  if [[ "${_NV_PKG_TARGET}" = "debian" ]]; then
     _deb_install_dependencies "${_kernels[@]}"
-  elif [[ "${_NV_PKG_TARGET}" = "fedora" || "${_NV_PKG_TARGET}" = "suse" ]]; then
-    _rpm_install_dependencies "${_kernels[@]}"
   else
-    _die "Unsupported distribution '${_NV_PKG_TARGET}'. Only Debian, Ubuntu, Fedora and Suse are supported."
+    _rpm_install_dependencies "${_kernels[@]}"
   fi
 }
 _install_dependencies
 
 _install_mode() {
-  if [[ "${_NV_PKG_TARGET}" != "debian" && "${_NV_PKG_TARGET}" != "ubuntu" &&
-        "${_NV_PKG_TARGET}" != "fedora" && "${_NV_PKG_TARGET}" != "suse" ]]; then
-    return 0
-  fi
-
   # Build a native distro package
   if [[ -z "${PKG_FORMAT:-}" ]]; then
-    if [[ "${_NV_PKG_TARGET}" = "debian" || "${_NV_PKG_TARGET}" = "ubuntu" ]]; then
+    if [[ "${_NV_PKG_TARGET}" = "debian" ]]; then
       PKG_FORMAT="deb"
-    elif [[ "${_NV_PKG_TARGET}" = "fedora" || "${_NV_PKG_TARGET}" = "suse" ]]; then
+    else
       PKG_FORMAT="rpm"
     fi
   fi
@@ -189,9 +132,9 @@ _install_mode
 
 # Relocate ELF shared libraries to the distribution-canonical library prefix
 _relocate_elfs() {
-  if [[ "${_NV_PKG_TARGET:-}" = "debian" || "${_NV_PKG_TARGET:-}" = "ubuntu" ]]; then
+  if [[ "${_NV_PKG_TARGET}" = "debian" ]]; then
     _deb_relocate_elfs "$1"
-  elif [[ "${_NV_PKG_TARGET:-}" = "fedora" || "${_NV_PKG_TARGET:-}" = "suse" ]]; then
+  else
     _rpm_relocate_elfs "$1"
   fi
 }
