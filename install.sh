@@ -229,19 +229,24 @@ _stage_kmod() {
 _stage_dkms() {
   # Open-source DKMS modules.
   if [[ "${_open_source_modules:-}" = "true" ]]; then
+    local _dkms_src="${srcdir}/open-gpu-kernel-modules-dkms"
+    local _dkms_conf="${_dkms_src}/kernel-open/dkms.conf"
+    local _dkms_name _dkms_version _dkms_dest
+
     install -dm755 "${pkgdir}/usr/src"
-    cp -dr --no-preserve='ownership' "${srcdir}/open-gpu-kernel-modules-dkms" \
-      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")"
-    mv \
-      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")/kernel-open/dkms.conf" \
-      "${pkgdir}/usr/src/$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_NAME "nvidia")-$(_dkms_conf_value "${srcdir}/open-gpu-kernel-modules-dkms/kernel-open/dkms.conf" PACKAGE_VERSION "${pkgver}")/dkms.conf"
+    _dkms_name=$(_dkms_conf_value "${_dkms_conf}" PACKAGE_NAME "nvidia")
+    _dkms_version=$(_dkms_conf_value "${_dkms_conf}" PACKAGE_VERSION "${pkgver}")
+    _dkms_dest="${pkgdir}/usr/src/${_dkms_name}-${_dkms_version}"
+
+    cp -dr --no-preserve='ownership' "${_dkms_src}" "${_dkms_dest}"
+    mv "${_dkms_dest}/kernel-open/dkms.conf" "${_dkms_dest}/dkms.conf"
 
     # Force module to load even on unsupported GPUs
     mkdir -p "${pkgdir}/usr/lib/modprobe.d"
     echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" |
        install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/nvidia-open.conf"
 
-    install -Dm644 "${srcdir}/open-gpu-kernel-modules-dkms/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+    install -Dm644 "${_dkms_src}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
   # Closed-source DKMS modules
   else
     install -dm755 "${pkgdir}/usr/src"

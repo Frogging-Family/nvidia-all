@@ -1166,9 +1166,16 @@ _apply_user_patches() {
 
 # Prepare a dkms.conf: distro-aware package name/dest, placeholder substitution, module entries
 _dkms_prep() {
-  local _conf="$1" _module_count="$2" _module_location="${3:-}"
-  local -a _modules=("nvidia" "nvidia-uvm" "nvidia-modeset" "nvidia-drm" "nvidia-peermem" "nvidia-ib-peermem-stub")
+  local _conf="$1" _module_location="${2:-}"
+  local _driver_series="${pkgver%%.*}"
+  local -a _modules=("nvidia" "nvidia-uvm" "nvidia-modeset" "nvidia-drm")
   local _pkg_name="nvidia" _dest _idx
+
+  if [[ "${_open_source_modules:-}" == "true" ]] || (( _driver_series >= 470 )); then
+    _modules+=("nvidia-peermem")
+  elif (( _driver_series == 465 )); then
+    _modules+=("nvidia-peermem" "nvidia-ib-peermem-stub")
+  fi
 
   if [[ "${_NV_PKG_TARGET:-${_NV_DISTRO_FAMILY:-}}" = "debian" ]]; then
     _dest="/updates/dkms"
@@ -1195,7 +1202,7 @@ _dkms_prep() {
   sed -i 's/__DKMS_MODULES//' "${_conf}"
   sed -i 's/NV_EXCLUDE_BUILD_MODULES/IGNORE_PREEMPT_RT_PRESENCE=1 NV_EXCLUDE_BUILD_MODULES/' "${_conf}"
 
-  for ((_idx = 0; _idx < _module_count; _idx++)); do
+  for _idx in "${!_modules[@]}"; do
     printf 'BUILT_MODULE_NAME[%s]="%s"\n'    "${_idx}" "${_modules[${_idx}]}" >> "${_conf}"
     printf 'DEST_MODULE_LOCATION[%s]="%s"\n' "${_idx}" "${_dest}"             >> "${_conf}"
     if [[ -n "${_module_location}" ]]; then
@@ -1374,7 +1381,7 @@ _nv_srcprep() {
       if [[ ! -f "${_open_dkms_srcdir}/kernel-open/dkms.conf" ]]; then
         _die "Open module DKMS configuration not found: ${_open_dkms_srcdir}/kernel-open/dkms.conf"
       fi
-      _dkms_prep "${_open_dkms_srcdir}/kernel-open/dkms.conf" 5 "kernel-open"
+      _dkms_prep "${_open_dkms_srcdir}/kernel-open/dkms.conf" "kernel-open"
     fi
 
   # ! closed-source module prep
@@ -1397,13 +1404,7 @@ _nv_srcprep() {
     # closed DKMS confs
     cp -a kernel kernel-dkms
     cd kernel-dkms
-    if (( ${pkgver%%.*} >= 470 )); then
-      _dkms_prep dkms.conf 5
-    elif (( ${pkgver%%.*} = 465 )); then
-      _dkms_prep dkms.conf 6
-    else
-      _dkms_prep dkms.conf 4
-    fi
+    _dkms_prep dkms.conf
 
     cd ../
 
