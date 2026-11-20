@@ -6,9 +6,6 @@ fi
 set -e
 mkdir -p /run/nvidia-all
 rm -f -- /run/nvidia-all/services-@PKGVER@.complete
-# Capture the previous version before RPM erases the old package.
-old_version=$(rpm -q --queryformat '%%{VERSION}\n' @PKGNAME@ | grep -vx '@PKGVER@' | head -n1)
-printf '%s\n' "$old_version" > /run/nvidia-all/services-@PKGVER@.previous
 exit 0
 
 %posttrans
@@ -16,9 +13,8 @@ set -e
 
 @SERVICE_FUNCTIONS@
 
-old_version=$(cat /run/nvidia-all/services-@PKGVER@.previous)
-_nv_services_configure "$old_version" @PKGVER@
-rm -f /run/nvidia-all/services-@PKGVER@.previous
+# Read the previous version from the shared service state.
+_nv_services_configure "" @PKGVER@
 touch /run/nvidia-all/services-@PKGVER@.complete
 exit 0
 
