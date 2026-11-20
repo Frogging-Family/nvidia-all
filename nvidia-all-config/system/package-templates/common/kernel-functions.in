@@ -33,10 +33,10 @@ _nv_install_dkms() {
   for kver in $kernels; do
     dkms install -m "$DKMS_NAME" -v "$DKMS_VERSION" -k "$kver"
     dkms_status=$(dkms status -m "$DKMS_NAME" -v "$DKMS_VERSION" -k "$kver")
-    case "$dkms_status" in
-      *": installed"*) ;;
-      *) echo "ERROR: NVIDIA DKMS is not installed for $kver." >&2; return 1 ;;
-    esac
+    if [ "${dkms_status#*': installed'}" = "$dkms_status" ]; then
+      echo "ERROR: NVIDIA DKMS is not installed for $kver." >&2
+      return 1
+    fi
     _nv_refresh_initramfs "$kver"
   done
 }
